@@ -16,7 +16,9 @@
     "check:realtime": "node scripts/check-realtime.mjs",
     "check:signing": "node scripts/check-signing.mjs",
     "check:errors": "node scripts/check-errors.mjs",
-    "gates": "pnpm check:size && pnpm check:deterministic && pnpm check:realtime && pnpm check:signing && pnpm check:errors"
+    "gates": "pnpm check:size && pnpm check:deterministic && pnpm check:realtime && pnpm check:signing && pnpm check:errors",
+    "test:sql": "node scripts/run-sql-tests.mjs",
+    "db:types": "supabase gen types typescript --linked > src/lib/db/database.types.ts"
   },
   "dependencies": {
     "@mond-design-system/react": "6.6.0",
@@ -36,6 +38,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "jsdom": "^31.0.0",
+    "supabase": "2.116.0",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^5.1.0"

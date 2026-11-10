@@ -160,3 +160,20 @@ describe('check:size — component max 300 lines', () => {
     expect(run('check-size.mjs', root).code).toBe(0);
   });
 });
+
+describe('test:sql — refuses unguarded finish()', () => {
+  it('fails before touching a DB when a file ends with plain finish()', () => {
+    const root = fixture({ '000.test.sql': 'begin; select plan(1); select ok(true); select * from finish(); rollback;' });
+    const result = run('run-sql-tests.mjs', root);
+    expect(result.code).toBe(1);
+    expect(result.output).toContain('without `true`');
+  });
+
+  it('passes the static check with finish(true), then needs SUPABASE_DB_URL', () => {
+    const root = fixture({ '000.test.sql': 'begin; select plan(1); select ok(true); select * from finish(true); rollback;' });
+    delete ENV.SUPABASE_DB_URL;
+    const result = run('run-sql-tests.mjs', root);
+    expect(result.output).not.toContain('without `true`');
+    expect(result.output).toContain('SUPABASE_DB_URL is not set');
+  });
+});

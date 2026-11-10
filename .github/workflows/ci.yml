@@ -1,5 +1,5 @@
 # Pipeline = package.json `verify`. Gates listed there only (one list, no drift).
-# Database job (`supabase start` + `db reset` + test:sql) lands with first migration (phase 1).
+# database: fresh local stack from migrations, then pgTAP suites (G10, G21).
 name: CI
 
 on:
@@ -31,3 +31,25 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm verify
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.tool-versions'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      # Full stack: policies need auth schema. pnpm exec = lockfile-pinned CLI.
+      - run: pnpm exec supabase start
+      # Replay every migration into an empty DB.
+      - run: pnpm exec supabase db reset
+
+      - name: pgTAP suites
+        run: |
+          eval "$(pnpm exec supabase status -o env --override-name db.url=SUPABASE_DB_URL)"
+          export SUPABASE_DB_URL
+          pnpm test:sql
