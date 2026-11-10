@@ -1,0 +1,195 @@
+/* Space brand for MDS. Load LAST, after MDS tokens + react styles (MDS README: wins by cascade).
+   Seven --brand-* inputs (BRAND_INPUTS) -> --br-* ramps via color-mix -> MDS semantic aliases.
+   Per-space theme re-sets only the seven inputs on :root; nothing else varies.
+   Defaults below = platform neutral. Ported from KSG brand-kinbaku.css. */
+
+:root {
+  /* brand inputs */
+  color-scheme: light;
+
+  --brand-accent: #1f4fbf;
+  --brand-accent-soft: #dde5f6;
+  --brand-page: #fdfaf1;
+  --brand-card: #ffffff;
+  --brand-hairline: #e2e2e2;
+  --brand-mid: #898989;
+  --brand-ink: #333333;
+
+  --br-sand-50: var(--brand-card);
+  --br-sand-100: var(--brand-page);
+  --br-sand-200: color-mix(in oklab, var(--brand-page), var(--brand-hairline) 38%);
+  --br-sand-300: var(--brand-hairline);
+  --br-sand-400: color-mix(in oklab, var(--brand-hairline), var(--brand-mid) 55%);
+  --br-sand-500: var(--brand-mid);
+
+  --br-ink-400: var(--brand-mid);
+  --br-ink-500: color-mix(in oklab, var(--brand-mid), var(--brand-ink) 32%);
+  --br-ink-600: color-mix(in oklab, var(--brand-mid), var(--brand-ink) 60%);
+  --br-ink-800: var(--brand-ink);
+  --br-ink-900: color-mix(in oklab, var(--brand-ink), black 34%);
+
+  --br-night-900: color-mix(in oklab, var(--brand-ink), black 45%);
+  --br-night-800: color-mix(in oklab, var(--brand-ink), black 36%);
+  --br-night-700: color-mix(in oklab, var(--brand-ink), black 26%);
+  --br-night-600: color-mix(in oklab, var(--brand-ink), black 15%);
+  --br-night-500: color-mix(in oklab, var(--brand-ink), black 6%);
+  --br-night-400: color-mix(in oklab, var(--brand-ink), white 12%);
+
+  --br-accent-500: var(--brand-accent);
+  --br-accent-100: var(--brand-accent-soft);
+
+  --br-accent-lifted: color-mix(in oklab, var(--br-accent-500), var(--br-accent-100) 52%);
+
+  --br-danger-500: #c03551;
+
+  --br-warn-500: #8b672e;
+  --br-ok-500: #4f7355;
+
+  --mds-font-display: Georgia, 'Times New Roman', serif;
+  --mds-font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --mds-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --mds-text-primary: var(--br-ink-800);
+  --mds-text-secondary: var(--br-ink-600);
+  --mds-text-muted: var(--br-ink-500);
+  --mds-text-inverse: var(--br-sand-50);
+  --mds-text-accent: var(--mds-accent);
+
+  --mds-text-on-media: var(--br-sand-50);
+
+  --mds-surface-page: var(--br-sand-100);
+  --mds-surface-card: var(--br-sand-50);
+
+  --mds-surface-raised: var(--br-sand-50);
+  --mds-surface-sunken: var(--br-sand-200);
+  --mds-surface-inverse: var(--br-ink-800);
+
+  --mds-surface-media: var(--br-ink-900);
+  --mds-surface-selected: color-mix(in oklab, var(--mds-action-bg) 8%, var(--mds-surface-card));
+
+  --mds-border-subtle: var(--br-sand-300);
+  --mds-border-strong: var(--br-sand-400);
+
+  --mds-control-border: var(--br-sand-500);
+  --mds-button-border: var(--mds-control-border);
+  --mds-button-secondary-fg: var(--mds-text-primary);
+  --mds-control-knob: var(--br-sand-50);
+
+  --mds-action-bg: var(--br-ink-800);
+  --mds-action-fg: var(--br-sand-50);
+  --mds-action-bg-hover: var(--br-ink-900);
+  --mds-action-bg-active: color-mix(in oklab, var(--mds-action-bg-hover), black 14%);
+
+  --mds-action-disabled-bg: var(--br-sand-300);
+  --mds-action-disabled-fg: var(--br-ink-500);
+
+  --mds-accent: var(--br-accent-500);
+  --mds-accent-contrast: var(--br-sand-50);
+
+  --mds-accent-hover: color-mix(in oklab, var(--mds-accent), black 16%);
+
+  --mds-accent-soft: var(--br-accent-100);
+
+  --mds-highlight: var(--mds-accent);
+  --mds-highlight-contrast: var(--mds-accent-contrast);
+  --mds-highlight-hover: var(--mds-accent-hover);
+  --mds-highlight-soft: var(--mds-accent-soft);
+
+  --mds-avatar-tone-1: var(--mds-surface-sunken);
+  --mds-avatar-tone-2: var(--mds-surface-sunken);
+  --mds-avatar-tone-3: var(--mds-surface-sunken);
+  --mds-avatar-tone-4: var(--mds-surface-sunken);
+  --mds-avatar-tone-5: var(--mds-surface-sunken);
+
+  --mds-status-danger: var(--br-danger-500);
+  --mds-status-danger-contrast: var(--br-sand-50);
+  --mds-status-danger-soft: color-mix(in oklab, var(--mds-status-danger) 12%, var(--mds-surface-card));
+  --mds-status-warning: var(--br-warn-500);
+
+  --mds-status-warning-contrast: var(--br-sand-50);
+  --mds-status-warning-soft: color-mix(in oklab, var(--mds-status-warning) 14%, var(--mds-surface-card));
+  --mds-status-success: var(--br-ok-500);
+  --mds-status-success-contrast: var(--br-sand-50);
+  --mds-status-success-soft: color-mix(in oklab, var(--mds-status-success) 12%, var(--mds-surface-card));
+
+  --mds-focus-ring-color: var(--br-accent-500);
+
+  --mds-scrim: color-mix(in oklab, var(--brand-ink) 45%, transparent);
+  --mds-overlay: color-mix(in oklab, var(--brand-ink) 45%, transparent);
+
+  --mds-scrim-strong: rgb(0 0 0 / 0.94);
+
+  --mds-on-media-dim: color-mix(in oklab, var(--br-sand-50) 62%, transparent);
+
+  --mds-on-media-border: color-mix(in oklab, var(--br-sand-50) 55%, transparent);
+  --mds-on-media-focus-ring: var(--br-accent-100);
+  --mds-on-media-surface-hover: color-mix(in oklab, var(--br-sand-50) 16%, transparent);
+  --mds-on-media-surface-active: color-mix(in oklab, var(--br-sand-50) 28%, transparent);
+
+  --mds-shadow-rgb: 51 51 51;
+}
+
+/* Dark re-points the same aliases. Aliases whose value is another flipping token are
+   repeated here: var() resolves where declared, so :root-only would stay light. */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --mds-text-primary: var(--br-sand-100);
+  --mds-text-secondary: var(--br-sand-400);
+
+  --mds-text-muted: color-mix(in oklab, var(--br-sand-500), var(--br-sand-400) 25%);
+  --mds-text-inverse: var(--br-ink-900);
+
+  --mds-surface-page: var(--br-night-800);
+  --mds-surface-card: var(--br-night-700);
+  --mds-surface-raised: var(--br-night-600);
+  --mds-surface-sunken: var(--br-night-900);
+  --mds-surface-inverse: var(--br-sand-100);
+
+  --mds-border-subtle: var(--br-night-500);
+  --mds-border-strong: var(--br-night-400);
+
+  --mds-control-border: var(--br-sand-500);
+
+  --mds-action-bg: var(--br-sand-100);
+  --mds-action-fg: var(--br-ink-900);
+  --mds-action-bg-hover: var(--br-sand-50);
+  --mds-action-disabled-bg: var(--br-night-400);
+  --mds-action-disabled-fg: var(--br-sand-400);
+
+  --mds-accent: var(--br-accent-lifted);
+  --mds-accent-contrast: var(--br-ink-900);
+  --mds-focus-ring-color: var(--br-accent-lifted);
+  --mds-status-danger: color-mix(in oklab, var(--br-danger-500), white 26%);
+  --mds-status-danger-contrast: var(--br-ink-900);
+  --mds-status-warning: color-mix(in oklab, var(--br-warn-500), white 26%);
+
+  --mds-status-warning-contrast: var(--br-ink-900);
+  --mds-status-success: color-mix(in oklab, var(--br-ok-500), white 26%);
+  --mds-status-success-contrast: var(--br-ink-900);
+
+  --mds-shadow-rgb: 0 0 0;
+
+  --mds-scrim: rgb(0 0 0 / 0.6);
+  --mds-overlay: rgb(0 0 0 / 0.6);
+
+  --mds-text-accent: var(--mds-accent);
+  --mds-button-secondary-fg: var(--mds-text-primary);
+  --mds-surface-selected: color-mix(in oklab, var(--mds-action-bg) 8%, var(--mds-surface-card));
+  --mds-action-bg-active: color-mix(in oklab, var(--mds-action-bg-hover), black 14%);
+  --mds-accent-hover: color-mix(in oklab, var(--mds-accent), white 16%);
+
+  --mds-accent-soft: color-mix(in oklab, var(--mds-accent) 12%, var(--mds-surface-card));
+  --mds-highlight: var(--mds-accent);
+  --mds-highlight-contrast: var(--mds-accent-contrast);
+  --mds-highlight-hover: var(--mds-accent-hover);
+  --mds-highlight-soft: var(--mds-accent-soft);
+  --mds-avatar-tone-1: var(--mds-surface-sunken);
+  --mds-avatar-tone-2: var(--mds-surface-sunken);
+  --mds-avatar-tone-3: var(--mds-surface-sunken);
+  --mds-avatar-tone-4: var(--mds-surface-sunken);
+  --mds-avatar-tone-5: var(--mds-surface-sunken);
+  --mds-status-danger-soft: color-mix(in oklab, var(--mds-status-danger) 12%, var(--mds-surface-card));
+  --mds-status-warning-soft: color-mix(in oklab, var(--mds-status-warning) 14%, var(--mds-surface-card));
+  --mds-status-success-soft: color-mix(in oklab, var(--mds-status-success) 12%, var(--mds-surface-card));
+}
