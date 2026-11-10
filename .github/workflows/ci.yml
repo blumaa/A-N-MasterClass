@@ -1,0 +1,33 @@
+# Pipeline = package.json `verify`. Gates listed there only (one list, no drift).
+# Database job (`supabase start` + `db reset` + test:sql) lands with first migration (phase 1).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      PLATFORM_HOST: localhost
+    steps:
+      - uses: actions/checkout@v7
+
+      # Before setup-node: `cache: 'pnpm'` needs pnpm on PATH. Version from packageManager.
+      - uses: pnpm/action-setup@v6
+
+      # node-version-file only: `node-version` would silently override .tool-versions.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: '.tool-versions'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm verify
