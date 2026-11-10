@@ -3,7 +3,7 @@
 import { Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import { DEFAULT_POINT_VALUES, LEADERBOARD_VISIBILITIES, POINT_REASONS, POINT_VALUE_MAX, type CommunitySettings } from '@/lib/data/types';
 import { CommunityForm } from './CommunityForm';
-import { ChoiceSelect, YesNoSelect } from './fields';
+import { ChoiceSelect, YesNoSelect } from '@/components/fields/fields';
 import { LEADERBOARD_LABELS, POINT_REASON_LABELS } from './labels';
 
 export function PointsEditor({ communityId, settings }: { communityId: string; settings: CommunitySettings }) {

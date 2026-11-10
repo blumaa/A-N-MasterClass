@@ -3,7 +3,7 @@
 import { Badge, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import type { AccessGroup, CommunitySettings } from '@/lib/data/types';
 import { CommunityForm } from './CommunityForm';
-import { YesNoSelect } from './fields';
+import { YesNoSelect } from '@/components/fields/fields';
 import styles from './community.module.css';
 
 function GroupRow({ group }: { group: AccessGroup }) {

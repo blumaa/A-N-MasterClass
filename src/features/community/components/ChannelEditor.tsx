@@ -3,7 +3,7 @@ import { Badge, Field, Heading, Input, Select, Stack, Text } from '@/components/
 import { CHANNEL_KINDS, CHANNEL_PRIVACIES, type AccessGroup, type Channel } from '@/lib/data/types';
 import type { DirectoryEntry } from '../api/feed';
 import { CommunityForm } from './CommunityForm';
-import { ChoiceSelect, YesNoSelect } from './fields';
+import { ChoiceSelect, YesNoSelect } from '@/components/fields/fields';
 import { KIND_LABELS, PRIVACY_LABELS } from './labels';
 import styles from './community.module.css';
 

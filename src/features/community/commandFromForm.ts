@@ -1,6 +1,6 @@
 // Community forms -> commands. Member forms (posts, comments, reactions), chat forms (messages,
 // DMs, blocks) and Studio forms (communities, channels, groups, settings, staff ticks) each post
-// `op` plus their fields. Booleans arrive as 'true' / 'false'.
+// `op` plus their fields. Shared readers live in lib/forms/commands.
 import type { Direction } from '@/lib/data/repo';
 import {
   CHANNEL_KINDS,
@@ -13,19 +13,16 @@ import {
   type PointReason,
   type PublishStatus,
 } from '@/lib/data/types';
-import { FormError, formReader, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
+import { body, field, flag, parser } from '@/lib/forms/commands';
+import { FormError, type FormReader as Reader } from '@/lib/forms/formReader';
 import { slugify } from '@/lib/text/slugify';
 import type { ChatCommand } from './api/chat';
 import type { CommunityCommand } from './api/commands';
 import type { StudioCommunityCommand } from './api/studio';
 
-export type Parsed<C> = { ok: true; command: C } | { ok: false; message: string };
-
-const BOOLEANS = ['true', 'false'] as const;
 const STATUSES: readonly PublishStatus[] = ['draft', 'published'];
 const DIRECTIONS: readonly Direction[] = ['up', 'down'];
 
-export const flag = (r: Reader, name: string): boolean => r.oneOf(name, BOOLEANS) === 'true';
 /** Whole number 0..POINT_VALUE_MAX. */
 function pointValue(v: string): number {
   const n = Number(v);
@@ -39,11 +36,6 @@ function pointValues(r: Reader): { pointValues?: Partial<Record<PointReason, num
     return v === undefined ? [] : [[reason, pointValue(v)] as const];
   });
   return entries.length === 0 ? {} : { pointValues: Object.fromEntries(entries) };
-}
-export function body(r: Reader): string {
-  const v = r.raw('body');
-  if (!v) throw new FormError('Write something first.');
-  return v;
 }
 
 const MEMBER: Record<CommunityCommand['op'], (r: Reader) => CommunityCommand> = {
@@ -74,9 +66,6 @@ const CHAT: Record<ChatCommand['op'], (r: Reader) => ChatCommand> = {
   sendDm: (r) => ({ op: 'sendDm', threadId: r.required('threadId'), body: body(r) }),
   block: (r) => ({ op: 'block', communityId: r.required('communityId'), profileId: r.required('profileId'), on: flag(r, 'on') }),
 };
-
-export const field = <K extends string, T>(r: Reader, name: K, read: () => T): Partial<Record<K, T>> =>
-  r.raw(name) === undefined ? {} : ({ [name]: read() } as Partial<Record<K, T>>);
 
 /** Feature toggles present in the form. */
 const groupFeatures = (r: Reader): Partial<Record<GroupFeature, boolean>> =>
@@ -145,15 +134,6 @@ const STUDIO: Record<StudioCommunityCommand['op'], (r: Reader) => StudioCommunit
   }),
   setStaff: (r) => ({ op: 'setStaff', communityId: r.required('communityId'), profileId: r.required('profileId'), on: flag(r, 'on') }),
 };
-
-export function parser<C extends { op: string }>(table: Record<C['op'], (r: Reader) => C>) {
-  const ops = Object.keys(table) as C['op'][];
-  return (form: FormData): Parsed<C> => {
-    const r = formReader(form);
-    const parsed = parseForm(() => table[r.oneOf('op', ops)](r));
-    return parsed.ok ? { ok: true, command: parsed.value } : parsed;
-  };
-}
 
 export const communityCommandFromForm = parser<CommunityCommand>(MEMBER);
 export const studioCommunityCommandFromForm = parser<StudioCommunityCommand>(STUDIO);

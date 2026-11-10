@@ -1,5 +1,5 @@
 // Start + end as datetime-local inputs in the chosen zone, plus the zone select. The server
-// turns them back into UTC instants with the same zone (eventsFromForm).
+// turns them back into UTC instants with the same zone (readInstant in lib/forms/commands).
 import { Field, Input } from '@/components/ui/mds';
 import { utcToZonedInput } from '@/lib/format/zoned';
 import { TimeZoneSelect } from './fields';

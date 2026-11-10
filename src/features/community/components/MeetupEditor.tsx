@@ -3,8 +3,8 @@
 import { Field, Heading, Input, Stack, Text, Textarea } from '@/components/ui/mds';
 import type { AccessGroup, Channel, Meetup } from '@/lib/data/types';
 import { EventsForm } from './EventsForm';
-import { RowSelect } from './fields';
-import { TimeFields } from './TimeFields';
+import { RowSelect } from '@/components/fields/fields';
+import { TimeFields } from '@/components/fields/TimeFields';
 import styles from './community.module.css';
 
 const DEFAULT_ZONE = 'UTC';

@@ -1,4 +1,4 @@
-// Small Studio selects shared by the community editors. Booleans post 'true' / 'false'.
+// Small Studio selects shared by feature editors. Booleans post 'true' / 'false'.
 import { Field, Select } from '@/components/ui/mds';
 
 type YesNoProps = { name: string; label: string; value: boolean; yes: string; no: string };
