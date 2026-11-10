@@ -2,7 +2,7 @@
 import { Field, Input } from '@/components/ui/mds';
 import type { Product } from '@/lib/data/types';
 import { CommandForm } from './CommandForm';
-import { StatusSelect } from './StatusSelect';
+import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 
 export function ProgramSettings({ program }: { program: Product }) {
   return (

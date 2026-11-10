@@ -1,55 +1,18 @@
 // Studio form -> CurriculumCommand. Every editor form posts `op` plus its fields.
 // Only fields present in the form go into a patch; blank optional fields become null.
 import type { Direction } from '@/lib/data/repo';
+import { FormError, formReader, optional, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
+import { slugify } from '@/lib/text/slugify';
 import { PART_KINDS, type PartKind, type PublishStatus } from '@/lib/data/types';
 import { vimeoIdOf } from '@/lib/video/vimeo';
 import type { CurriculumCommand } from './api/curriculum';
 
 export type Parsed = { ok: true; command: CurriculumCommand } | { ok: false; message: string };
 
-class FormError extends Error {}
-
 const STATUSES: readonly PublishStatus[] = ['draft', 'published'];
 const TABLES = ['modules', 'steps', 'parts'] as const;
 const DIRECTIONS: readonly Direction[] = ['up', 'down'];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-export function slugify(title: string): string {
-  return title
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 63);
-}
-
-function reader(form: FormData) {
-  const raw = (name: string): string | undefined => {
-    const v = form.get(name);
-    return typeof v === 'string' ? v.trim() : undefined;
-  };
-  const required = (name: string): string => {
-    const v = raw(name);
-    if (!v) throw new FormError(`Missing ${name}.`);
-    return v;
-  };
-  const oneOf = <T extends string>(name: string, allowed: readonly T[]): T => {
-    const v = required(name);
-    if (!(allowed as readonly string[]).includes(v)) throw new FormError(`Unknown ${name}: ${v}.`);
-    return v as T;
-  };
-  return { raw, required, oneOf };
-}
-
-type Reader = ReturnType<typeof reader>;
-
-// Optional patch fields: absent = untouched, '' = null.
-function optional<K extends string, T>(r: Reader, name: K, parse: (v: string) => T): Partial<Record<K, T | null>> {
-  const v = r.raw(name);
-  if (v === undefined) return {};
-  return { [name]: v === '' ? null : parse(v) } as Partial<Record<K, T | null>>;
-}
 
 const asText = (v: string): string => v;
 function asDays(v: string): number {
@@ -131,11 +94,7 @@ const PARSERS: Record<CurriculumCommand['op'], (r: Reader) => CurriculumCommand>
 const OPS = Object.keys(PARSERS) as CurriculumCommand['op'][];
 
 export function commandFromForm(form: FormData): Parsed {
-  const r = reader(form);
-  try {
-    return { ok: true, command: PARSERS[r.oneOf('op', OPS)](r) };
-  } catch (err) {
-    if (err instanceof FormError) return { ok: false, message: err.message };
-    throw err;
-  }
+  const r = formReader(form);
+  const parsed = parseForm(() => PARSERS[r.oneOf('op', OPS)](r));
+  return parsed.ok ? { ok: true, command: parsed.value } : parsed;
 }

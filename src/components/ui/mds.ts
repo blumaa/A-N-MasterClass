@@ -7,6 +7,7 @@ export {
   Card,
   CardBody,
   CardHeader,
+  Checkbox,
   Container,
   EmptyState,
   Field,

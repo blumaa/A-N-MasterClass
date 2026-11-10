@@ -1,0 +1,30 @@
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mds-space-3, 0.75rem);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--mds-space-3, 0.75rem);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--mds-space-3, 0.75rem);
+  padding-block-end: var(--mds-space-3, 0.75rem);
+  border-bottom: 1px solid var(--mds-border-subtle);
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mds-space-3, 0.75rem);
+}

@@ -5,6 +5,7 @@ import { ConstraintError } from '../errors';
 import type { Direction, Repo } from '../repo';
 import type { Grant, Module, Part, Product, Step } from '../types';
 import type { Db } from './db';
+import { createFakeSiteRepo } from './fakeSiteRepo';
 
 export type FakeRepo = Repo & { db: Db };
 
@@ -57,6 +58,7 @@ export function createFakeRepo(db: Db): FakeRepo {
 
   return {
     db,
+    ...createFakeSiteRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     profile: async (pid) => db.profiles.find((p) => p.id === pid) ?? null,

@@ -1,4 +1,5 @@
-// Space shell: runtime theme, header with library, studio (staff only), dev login switcher (fake data only).
+// Space shell: runtime theme, header (site nav, library, studio for staff, dev login on fake data),
+// footer with site links + legal pages (G11, G25).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { devAuthAllowed } from '@/config/dataSource';
@@ -9,6 +10,8 @@ import { ThemeStyle } from '@/features/branding/components/ThemeStyle';
 import { themeCss } from '@/features/branding/theme';
 import { devSignOutAction } from '@/features/devAuth/actions';
 import { libraryHref } from '@/features/programs/paths';
+import { siteChrome } from '@/features/site/api/site';
+import { SiteFooter } from '@/features/site/components/SiteFooter';
 import { studioHref } from '@/features/studio/paths';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { viewerCan } from '@/lib/auth/viewer';
@@ -24,13 +27,19 @@ export default async function SpaceLayout({ children, params }: LayoutProps<'/[s
   const viewer = await currentViewer((await params).space);
   if (!viewer) notFound();
   const devAuth = devAuthAllowed(process.env);
-  const theme = await spaceTheme(getRepo(), viewer.space.id);
+  const repo = getRepo();
+  const [theme, chrome] = await Promise.all([spaceTheme(repo, viewer.space.id), siteChrome(repo, viewer.space.id)]);
   return (
     <>
       <ThemeStyle css={themeCss(theme, 'space')} />
       <header className={styles.header}>
         <AppLink href="/">{viewer.space.name}</AppLink>
         <nav aria-label="Main" className={styles.nav}>
+          {chrome.header.map((item) => (
+            <AppLink key={`${item.href}|${item.label}`} href={item.href}>
+              {item.label}
+            </AppLink>
+          ))}
           <AppLink href={libraryHref}>Library</AppLink>
           {viewerCan(viewer, 'products.edit') ? <AppLink href={studioHref}>Studio</AppLink> : null}
           {viewer.profile ? (
@@ -54,6 +63,7 @@ export default async function SpaceLayout({ children, params }: LayoutProps<'/[s
       <Container width="wide">
         <main className={styles.main}>{children}</main>
       </Container>
+      <SiteFooter spaceName={viewer.space.name} links={chrome.footer} legal={chrome.legal} />
     </>
   );
 }

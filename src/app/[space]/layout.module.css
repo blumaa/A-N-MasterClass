@@ -5,7 +5,7 @@
   justify-content: space-between;
   gap: var(--mds-space-3, 0.75rem);
   padding: var(--mds-space-3, 0.75rem) var(--mds-space-4, 1rem);
-  border-bottom: 1px solid var(--mds-color-border-subtle, currentColor);
+  border-bottom: 1px solid var(--mds-border-subtle);
 }
 
 .nav {

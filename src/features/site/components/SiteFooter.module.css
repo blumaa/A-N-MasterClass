@@ -1,0 +1,13 @@
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mds-space-3);
+  padding: var(--mds-space-6) var(--mds-space-4);
+  border-top: 1px solid var(--mds-border-subtle);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mds-space-4);
+}

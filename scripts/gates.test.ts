@@ -177,3 +177,25 @@ describe('test:sql — refuses unguarded finish()', () => {
     expect(result.output).toContain('SUPABASE_DB_URL is not set');
   });
 });
+
+describe('check:tokens — every --mds-* used is declared', () => {
+  it('fails on a token neither MDS nor the app declares', () => {
+    const root = fixture({ 'a.module.css': `.a {\n  border: 1px solid var(--mds-color-border-subtle, red);\n}\n` });
+    const { code, output } = run('check-tokens.mjs', root);
+    expect(code).toBe(1);
+    expect(output).toContain('--mds-color-border-subtle');
+  });
+
+  it('passes on an MDS token', () => {
+    const root = fixture({ 'a.module.css': `.a {\n  gap: var(--mds-space-4);\n}\n` });
+    expect(run('check-tokens.mjs', root).code).toBe(0);
+  });
+
+  it('passes on a token the app declares itself', () => {
+    const root = fixture({
+      'brand.css': `:root {\n  --mds-border-subtle: #ccc;\n}\n`,
+      'a.module.css': `.a {\n  border-color: var(--mds-border-subtle);\n}\n`,
+    });
+    expect(run('check-tokens.mjs', root).code).toBe(0);
+  });
+});

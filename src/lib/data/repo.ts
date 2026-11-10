@@ -1,6 +1,21 @@
 // Data port. Raw reads/writes, no authorization: the DAL (features/*/api) checks
 // capabilities + step access before calling. Supabase adapter adds RLS as second wall.
-import type { Grant, Member, Module, Part, Product, Profile, Space, SpaceBranding, SpaceProfile, Step } from './types';
+import type {
+  Grant,
+  Member,
+  Module,
+  Page,
+  PageVersion,
+  PageKind,
+  Part,
+  Product,
+  Profile,
+  SiteNav,
+  Space,
+  SpaceBranding,
+  SpaceProfile,
+  Step,
+} from './types';
 
 export type NewProduct = Pick<Product, 'spaceId' | 'kind' | 'slug' | 'title'>;
 export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status' | 'themeOverride'>>;
@@ -13,6 +28,12 @@ export type StepPatch = Partial<Pick<Step, 'title' | 'description' | 'status'>>;
 export type NewPart = Pick<Part, 'stepId' | 'kind'>;
 export type PartPatch = Partial<Pick<Part, 'title' | 'text' | 'vimeoId' | 'aspect' | 'filePath'>>;
 export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'>;
+
+export type NewPage = Pick<Page, 'spaceId' | 'kind' | 'slug' | 'title'>;
+export type PagePatch = Partial<
+  Pick<Page, 'slug' | 'title' | 'isHome' | 'legalKind' | 'seoTitle' | 'seoDescription' | 'draft' | 'published' | 'publishedAt'>
+>;
+export type NewPageVersion = Omit<PageVersion, 'id'>;
 
 export type Direction = 'up' | 'down';
 
@@ -63,6 +84,22 @@ export interface Repo {
   // progress
   completedStepIds(profileId: string, stepIds: readonly string[]): Promise<Set<string>>;
   setStepComplete(profileId: string, stepId: string, done: boolean): Promise<void>;
+
+  // site (pages ordered by title; versions newest first)
+  pages(spaceId: string): Promise<Page[]>;
+  page(id: string): Promise<Page | null>;
+  pageBySlug(spaceId: string, kind: PageKind, slug: string): Promise<Page | null>;
+  createPage(input: NewPage): Promise<Page>;
+  /** Sets updatedAt. Unique (space, kind, slug) and one home per space are constraints. */
+  updatePage(id: string, patch: PagePatch): Promise<Page>;
+  /** Cascades to versions. */
+  deletePage(id: string): Promise<void>;
+  pageVersions(pageId: string): Promise<PageVersion[]>;
+  addPageVersion(input: NewPageVersion): Promise<PageVersion>;
+  /** None saved = empty nav. */
+  siteNav(spaceId: string): Promise<SiteNav>;
+  /** Upsert on space_id. */
+  saveSiteNav(nav: SiteNav): Promise<SiteNav>;
 
   // dev only (fake auth switcher)
   profilesInSpace(spaceId: string): Promise<Profile[]>;

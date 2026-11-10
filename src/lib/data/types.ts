@@ -2,6 +2,7 @@
 import type { Role } from '@/lib/auth/capabilities';
 import type { FontId } from '@/lib/fonts/catalog';
 import type { PublishStatus } from '@/lib/programs/access';
+import type { SiteSection } from '@/lib/site/sections';
 import type { BrandColors } from '@/tokens/resolveBrand';
 
 export type { PublishStatus, Role };
@@ -92,3 +93,33 @@ export type Grant = {
 };
 
 export type StepProgress = { profileId: string; stepId: string; completedAt: Date };
+
+// Site builder (G11, G25). Sections live in jsonb; see lib/site/sections.ts.
+export const PAGE_KINDS = ['page', 'post'] as const;
+export type PageKind = (typeof PAGE_KINDS)[number];
+export const LEGAL_KINDS = ['imprint', 'privacy', 'terms'] as const;
+export type LegalKind = (typeof LEGAL_KINDS)[number];
+
+export type Page = {
+  id: string;
+  spaceId: string;
+  /** page = /<slug>, post = /blog/<slug>. Slug unique per space + kind. */
+  kind: PageKind;
+  slug: string;
+  title: string;
+  /** At most one per space; served at /. Pages only. */
+  isHome: boolean;
+  legalKind: LegalKind | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  draft: SiteSection[];
+  /** null = not published (draft only). */
+  published: SiteSection[] | null;
+  publishedAt: Date | null;
+  updatedAt: Date;
+};
+
+export type PageVersion = { id: string; pageId: string; sections: SiteSection[]; publishedAt: Date };
+
+export type NavItem = { label: string; href: string };
+export type SiteNav = { spaceId: string; header: NavItem[]; footer: NavItem[] };

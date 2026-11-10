@@ -6,7 +6,7 @@ import type { CurriculumStep } from '../api/curriculum';
 import { studioProgramHref } from '../paths';
 import { CommandForm } from './CommandForm';
 import { PartEditor } from './PartEditor';
-import { StatusSelect } from './StatusSelect';
+import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 
 type Props = { programSlug: string; step: CurriculumStep; previewHref: string };
 

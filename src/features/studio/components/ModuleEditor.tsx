@@ -6,7 +6,7 @@ import type { CurriculumModule } from '../api/curriculum';
 import { studioStepHref } from '../paths';
 import { CommandForm } from './CommandForm';
 import { MoveButtons } from './MoveButtons';
-import { StatusSelect } from './StatusSelect';
+import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 import styles from './Curriculum.module.css';
 
 type Props = {

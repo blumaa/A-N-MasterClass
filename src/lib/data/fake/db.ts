@@ -1,5 +1,20 @@
 // In-memory tables for DATA_SOURCE=fake. REPLACED BY: Supabase tables (supabase/migrations).
-import type { Grant, Member, Module, Part, Product, Profile, Space, SpaceBranding, SpaceProfile, Step, StepProgress } from '../types';
+import type {
+  Grant,
+  Member,
+  Module,
+  Page,
+  PageVersion,
+  Part,
+  Product,
+  Profile,
+  SiteNav,
+  Space,
+  SpaceBranding,
+  SpaceProfile,
+  Step,
+  StepProgress,
+} from '../types';
 
 export type Db = {
   spaces: Space[];
@@ -13,6 +28,9 @@ export type Db = {
   parts: Part[];
   grants: Grant[];
   stepProgress: StepProgress[];
+  pages: Page[];
+  pageVersions: PageVersion[];
+  siteNav: SiteNav[];
 };
 
 export const emptyDb = (): Db => ({
@@ -27,4 +45,7 @@ export const emptyDb = (): Db => ({
   parts: [],
   grants: [],
   stepProgress: [],
+  pages: [],
+  pageVersions: [],
+  siteNav: [],
 });

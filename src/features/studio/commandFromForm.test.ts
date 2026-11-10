@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { commandFromForm, slugify } from './commandFromForm';
+import { commandFromForm } from './commandFromForm';
 
 const form = (fields: Record<string, string>): FormData => {
   const f = new FormData();
   for (const [k, v] of Object.entries(fields)) f.set(k, v);
   return f;
 };
-
-describe('slugify', () => {
-  it('makes a url slug from a title', () => {
-    expect(slugify('  Shibari 101: Foundations! ')).toBe('shibari-101-foundations');
-    expect(slugify('Über Knoten')).toBe('uber-knoten');
-  });
-});
 
 describe('commandFromForm', () => {
   it('derives the program slug from the title when blank', () => {

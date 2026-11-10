@@ -36,7 +36,7 @@
 /* Preview paints with the resolved --mds-* values set inline on this element. */
 .preview {
   padding: var(--mds-space-6, 1.5rem);
-  border-radius: var(--mds-radius-lg, 12px);
+  border-radius: var(--mds-radius-card);
   border: 1px solid var(--mds-border-subtle);
   background: var(--mds-surface-page);
   color: var(--mds-text-primary);

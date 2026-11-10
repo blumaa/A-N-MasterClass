@@ -4,7 +4,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MATRIX, ROLES } from '@/lib/auth/capabilities';
+import { LEGAL_KINDS, PAGE_KINDS } from '@/lib/data/types';
 import { FONT_IDS } from '@/lib/fonts/catalog';
+import { SECTION_KINDS } from '@/lib/site/sections';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { BRAND_INPUTS } from '@/tokens/brandInputs';
 
@@ -53,5 +55,29 @@ describe('SQL mirrors: branding', () => {
     );
     expect(lists).toHaveLength(2);
     for (const list of lists) expect(list).toEqual([...FONT_IDS]);
+  });
+});
+
+describe('SQL mirrors: site', () => {
+  const list = (re: RegExp) =>
+    sql
+      .match(re)?.[1]
+      .split(',')
+      .map((s) => s.trim().replace(/'/g, ''));
+
+  it('pages kind check equals PAGE_KINDS', () => {
+    expect(list(/pages_kind check \(kind in \(([^)]+)\)\)/)).toEqual([...PAGE_KINDS]);
+  });
+
+  it('pages legal_kind check equals LEGAL_KINDS', () => {
+    expect(list(/pages_legal_kind check \(legal_kind in \(([^)]+)\)\)/)).toEqual([...LEGAL_KINDS]);
+  });
+
+  it('is_site_sections kinds equal SECTION_KINDS', () => {
+    expect(list(/e ->> 'kind' in \(([^)]+)\)/)).toEqual([...SECTION_KINDS]);
+  });
+
+  it('pages slug check equals SLUG_PATTERN', () => {
+    expect(sql.match(/pages_slug_format check \(slug ~ '([^']+)'\)/)?.[1]).toBe(SLUG_PATTERN.source);
   });
 });
