@@ -10,7 +10,13 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm lint && pnpm gates && pnpm typecheck && pnpm test && pnpm build",
+    "check:size": "node scripts/check-size.mjs",
+    "check:deterministic": "node scripts/check-deterministic.mjs",
+    "check:realtime": "node scripts/check-realtime.mjs",
+    "check:signing": "node scripts/check-signing.mjs",
+    "check:errors": "node scripts/check-errors.mjs",
+    "gates": "pnpm check:size && pnpm check:deterministic && pnpm check:realtime && pnpm check:signing && pnpm check:errors"
   },
   "dependencies": {
     "@mond-design-system/react": "6.6.0",
