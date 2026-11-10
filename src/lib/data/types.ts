@@ -207,3 +207,84 @@ export type ClaimToken = {
   expiresAt: Date;
   usedAt: Date | null;
 };
+
+// Community (G12, G13, G15). Launch 1 = feed channels. A community is a product (kind 'community'):
+// members are grant holders; owner/admin reach every community, other staff only ticked ones.
+/** public = every member posts; read_only = only moderators post, members comment + react. */
+export const CHANNEL_VISIBILITIES = ['public', 'read_only'] as const;
+export type ChannelVisibility = (typeof CHANNEL_VISIBILITIES)[number];
+
+export type Channel = {
+  id: string;
+  communityId: string;
+  title: string;
+  visibility: ChannelVisibility;
+  position: number;
+};
+
+/** space_member_communities: assistant/support staff ticked for this community (G15). */
+export type CommunityStaff = { communityId: string; profileId: string };
+
+export type Post = {
+  id: string;
+  channelId: string;
+  authorId: string;
+  /** Plain text with @[Name](id) mention markup. */
+  body: string;
+  pinned: boolean;
+  createdAt: Date;
+  /** Hidden by a moderator: only moderators still see it. */
+  hiddenAt: Date | null;
+};
+
+/** Comments hang off a feed post or a program step (lesson comments). */
+export const COMMENT_TARGETS = ['post', 'step'] as const;
+export type CommentTarget = (typeof COMMENT_TARGETS)[number];
+
+export type Comment = {
+  id: string;
+  spaceId: string;
+  targetType: CommentTarget;
+  targetId: string;
+  /** One reply level: a reply's parent is always a top-level comment on the same target. */
+  parentId: string | null;
+  authorId: string;
+  body: string;
+  createdAt: Date;
+  hiddenAt: Date | null;
+};
+
+export const REACTION_TARGETS = ['post', 'comment'] as const;
+export type ReactionTarget = (typeof REACTION_TARGETS)[number];
+
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '🙏', '🔥', '👏'] as const;
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+
+/** Unique (target, profile, emoji). */
+export type Reaction = {
+  targetType: ReactionTarget;
+  targetId: string;
+  profileId: string;
+  emoji: ReactionEmoji;
+  createdAt: Date;
+};
+
+/**
+ * comment = someone commented on your post; reply = someone replied to your comment;
+ * step_comment = new lesson comment (to staff with comments.moderate); mention; reaction.
+ */
+export const NOTIFICATION_TYPES = ['comment', 'reply', 'step_comment', 'mention', 'reaction'] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+export type Notification = {
+  id: string;
+  spaceId: string;
+  recipientId: string;
+  actorId: string;
+  type: NotificationType;
+  /** Where it points: a post, or a step (lesson comments). */
+  postId: string | null;
+  stepId: string | null;
+  createdAt: Date;
+  readAt: Date | null;
+};

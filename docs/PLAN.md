@@ -124,6 +124,14 @@ video_position(profile_id, part_id, last_position_s)
 - Port near as-is (exploration map): `components/engagement/*` (ReactionBar, picker, ReactorsSheet, CommentThread, comments hooks, `thread.ts`), `lib/mentions/*`, `useDeterministicWrite`, `lib/feedback.ts`, `lib/confirm.tsx`, photo pipeline (`lib/photo.ts`, `resize.ts`, `upload.ts`), emoji migration + `scripts/gen-emoji.ts`, reaction/comment/mention SQL (squash final versions), `NotificationChannel`, push (`lib/push/*`, `push-sw.js`, `PushHeal`).
 - Change vs KSG: **comments polymorphic from day one** (`target_type post | step`) → lesson comments like Kajabi. Moderation via `has_capability` + `channel_moderators` instead of `is_admin()` (G15). Notification types redefined (`channel_post`, `step_comment`, `reply`, `mention`, `reaction`, `dm`, `event_reminder`, `granted`).
 
+Phase 6 as built (Launch 1):
+- Migration `20261110090600_community.sql` + `supabase/tests/060-community.test.sql` written, not yet run (DB setup later).
+- New community starts with a `General` channel. Deleting the last channel is refused in the app, not by trigger (a trigger would block the cascade when the community is deleted).
+- Notifications: comment notifies post author + mentioned; reply notifies parent author; step comment notifies everyone with `comments.moderate`; first reaction notifies author. Only directory members of the community receive. Mentions in step comments are not notified, and step comments have no mention autocomplete.
+- One reply level (Kajabi). Polymorphic targets have no FK; delete triggers on posts/steps/comments remove orphans.
+- `ALWAYS_REACH` (owner, admin) lives in `lib/auth/capabilities.ts`, mirrored by `reaches_community()`.
+- Not yet: push notifications, photo uploads, private channels + `channel_moderators`, reports queue. Chat/DMs/access groups = Launch 2.
+
 ## Studio (instructor admin)
 
 Sidebar: Dashboard · Products (Programs, Communities, Coaching, Podcasts, Downloads) · Site (Pages, Blog, Nav/Footer) · Offers · Customers · Branding · Settings · Analytics. Each item gated by capability (G15).

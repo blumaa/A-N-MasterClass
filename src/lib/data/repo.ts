@@ -1,11 +1,15 @@
 // Data port. Raw reads/writes, no authorization: the DAL (features/*/api) checks
 // capabilities + step access before calling. Supabase adapter adds RLS as second wall.
 import type {
+  Channel,
   ClaimToken,
+  Comment,
+  CommentTarget,
   Contact,
   Grant,
   Member,
   Module,
+  Notification,
   Offer,
   Order,
   OrderProvider,
@@ -15,8 +19,11 @@ import type {
   Part,
   PaymentCredentials,
   PaymentEnv,
+  Post,
   Product,
   Profile,
+  Reaction,
+  ReactionTarget,
   SiteNav,
   Space,
   SpaceBranding,
@@ -54,13 +61,24 @@ export type ContactUpsert = {
   consent: { source: string; at: Date } | null;
 };
 
+export type NewChannel = Pick<Channel, 'communityId' | 'title' | 'visibility'>;
+export type ChannelPatch = Partial<Pick<Channel, 'title' | 'visibility'>>;
+export type NewPost = Pick<Post, 'channelId' | 'authorId' | 'body' | 'createdAt'>;
+export type PostPatch = Partial<Pick<Post, 'pinned' | 'hiddenAt'>>;
+export type NewComment = Pick<Comment, 'spaceId' | 'targetType' | 'targetId' | 'parentId' | 'authorId' | 'body' | 'createdAt'>;
+export type CommentPatch = Partial<Pick<Comment, 'hiddenAt'>>;
+export type NewNotification = Omit<Notification, 'id' | 'readAt'>;
+
 export type Direction = 'up' | 'down';
+export type Reorderable = 'modules' | 'steps' | 'parts' | 'channels';
 
 export interface Repo {
   // tenancy
   spaceBySlug(slug: string): Promise<Space | null>;
   profile(id: string): Promise<Profile | null>;
   member(spaceId: string, profileId: string): Promise<Member | null>;
+  /** Staff of a space. */
+  members(spaceId: string): Promise<Member[]>;
   spaceProfiles(spaceId: string): Promise<SpaceProfile[]>;
   /** Email compared lowercased (citext in SQL). */
   profileByEmail(email: string): Promise<Profile | null>;
@@ -97,7 +115,7 @@ export interface Repo {
   updatePart(id: string, patch: PartPatch): Promise<Part>;
   deletePart(id: string): Promise<void>;
   /** Swap with sibling. OWES RPC: reorder_* (atomic). */
-  move(table: 'modules' | 'steps' | 'parts', id: string, direction: Direction): Promise<void>;
+  move(table: Reorderable, id: string, direction: Direction): Promise<void>;
 
   // access
   activeGrant(productId: string, profileId: string, now: Date): Promise<Grant | null>;
@@ -160,6 +178,47 @@ export interface Repo {
   createClaimToken(row: ClaimToken): Promise<void>;
   /** Marks a valid (unused, unexpired, same space) token used and returns it; else null. Atomic in SQL. */
   consumeClaimToken(spaceId: string, tokenHash: string, now: Date): Promise<ClaimToken | null>;
+
+  // community (G12): channels ordered by position
+  channels(communityId: string): Promise<Channel[]>;
+  channel(id: string): Promise<Channel | null>;
+  /** Community must be a product of kind 'community'. */
+  createChannel(input: NewChannel): Promise<Channel>;
+  updateChannel(id: string, patch: ChannelPatch): Promise<Channel>;
+  /** Cascades to posts, their comments and reactions. */
+  deleteChannel(id: string): Promise<void>;
+  /** Profile ids of assistant/support staff ticked for the community (space_member_communities). */
+  communityStaff(communityId: string): Promise<string[]>;
+  /** Profile must be staff of the community's space. */
+  setCommunityStaff(communityId: string, profileId: string, on: boolean): Promise<void>;
+
+  /** Pinned first, then newest first. */
+  posts(channelId: string): Promise<Post[]>;
+  post(id: string): Promise<Post | null>;
+  /** Body 1..10000 chars (constraint). */
+  createPost(input: NewPost): Promise<Post>;
+  updatePost(id: string, patch: PostPatch): Promise<Post>;
+  /** Cascades to its comments, reactions and notifications. */
+  deletePost(id: string): Promise<void>;
+
+  /** Oldest first, for every target id given. */
+  comments(targetType: CommentTarget, targetIds: readonly string[]): Promise<Comment[]>;
+  comment(id: string): Promise<Comment | null>;
+  /** Body 1..5000 chars. Parent must be a top-level comment on the same target (constraint). */
+  createComment(input: NewComment): Promise<Comment>;
+  updateComment(id: string, patch: CommentPatch): Promise<Comment>;
+  /** Cascades to replies and reactions. */
+  deleteComment(id: string): Promise<void>;
+
+  reactions(targetType: ReactionTarget, targetIds: readonly string[]): Promise<Reaction[]>;
+  /** on = insert if missing; off = delete. Unique (target, profile, emoji). */
+  setReaction(row: Reaction, on: boolean): Promise<void>;
+
+  /** Newest first, at most `limit`. */
+  notifications(spaceId: string, recipientId: string, limit: number): Promise<Notification[]>;
+  unreadNotificationCount(spaceId: string, recipientId: string): Promise<number>;
+  addNotifications(rows: readonly NewNotification[]): Promise<void>;
+  markNotificationsRead(spaceId: string, recipientId: string, now: Date): Promise<void>;
 
   // dev only (fake auth switcher)
   profilesInSpace(spaceId: string): Promise<Profile[]>;

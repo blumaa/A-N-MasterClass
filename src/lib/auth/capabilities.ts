@@ -34,3 +34,6 @@ export function capabilitiesOf(role: Role): Capability[] {
 export function can(role: Role, cap: Capability): boolean {
   return MATRIX[role].includes(cap);
 }
+
+/** Roles that reach every community without a per-community tick (G15). Mirrored in SQL reaches_community(). */
+export const ALWAYS_REACH: readonly Role[] = ['owner', 'admin'];

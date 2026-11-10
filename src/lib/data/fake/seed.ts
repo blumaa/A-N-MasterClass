@@ -12,6 +12,9 @@ export const SEED_IDS = {
   assistant: 'user-assistant',
   student: 'user-student',
   program: 'prod-shibari-101',
+  community: 'prod-community',
+  general: 'chan-general',
+  announcements: 'chan-announcements',
 } as const;
 
 export function seedDb(now: Date = new Date()): Db {
@@ -51,6 +54,17 @@ export function seedDb(now: Date = new Date()): Db {
       subtitle: 'Foundations, safety, first ties',
       status: 'published',
       position: 0,
+      themeOverride: null,
+    },
+    {
+      id: ids.community,
+      spaceId: ids.alexander,
+      kind: 'community',
+      slug: 'community',
+      title: 'Rope Community',
+      subtitle: 'Share ties, ask questions',
+      status: 'published',
+      position: 1,
       themeOverride: null,
     },
     {
@@ -131,6 +145,30 @@ export function seedDb(now: Date = new Date()): Db {
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
     orderId: null,
+  });
+
+  db.grants.push({
+    id: 'grant-student-community',
+    productId: ids.community,
+    profileId: ids.student,
+    source: 'manual',
+    status: 'active',
+    grantedAt: new Date(now.getTime() - 2 * DAY),
+    expiresAt: null,
+    orderId: null,
+  });
+  db.channels.push(
+    { id: ids.general, communityId: ids.community, title: 'General', visibility: 'public', position: 0 },
+    { id: ids.announcements, communityId: ids.community, title: 'Announcements', visibility: 'read_only', position: 1 },
+  );
+  db.posts.push({
+    id: 'post-welcome',
+    channelId: ids.announcements,
+    authorId: ids.alexanderOwner,
+    body: 'Welcome to the community! Introduce yourself in General.',
+    pinned: true,
+    createdAt: new Date(now.getTime() - DAY),
+    hiddenAt: null,
   });
 
   // Natasha gets her own look so the two dev spaces visibly differ; Alexander keeps defaults.

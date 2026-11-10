@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import { completeStep, stepView } from './step';
+import { completeStep, stepOpen, stepView } from './step';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
@@ -67,5 +67,16 @@ describe('completeStep', () => {
   it('refuses an anonymous visitor', async () => {
     const r = await completeStep(repo, await as(null), 'shibari-101', 'step-intro', true, NOW);
     expect(r).toEqual({ ok: false, error: 'signed_out' });
+  });
+});
+
+describe('stepOpen', () => {
+  it('is true only for a step the viewer may open, in their space', async () => {
+    expect(await stepOpen(repo, await as(SEED_IDS.student), 'step-intro', NOW)).toBe(true);
+    expect(await stepOpen(repo, await as(SEED_IDS.student), 'step-single-column', NOW)).toBe(false);
+    expect(await stepOpen(repo, await as(null), 'step-intro', NOW)).toBe(false);
+    expect(await stepOpen(repo, await as(SEED_IDS.student), 'nope', NOW)).toBe(false);
+    const other = (await resolveViewer(repo, 'natasha', SEED_IDS.natashaOwner))!;
+    expect(await stepOpen(repo, other, 'step-intro', NOW)).toBe(false);
   });
 });

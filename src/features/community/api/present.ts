@@ -1,0 +1,65 @@
+// Row -> view shaping shared by feed, post page and step comments. Pure.
+import type { Comment, Reaction, ReactionEmoji } from '@/lib/data/types';
+import { REACTION_EMOJIS } from '@/lib/data/types';
+
+export type Author = { id: string; name: string };
+export type ReactionCount = { emoji: ReactionEmoji; count: number; mine: boolean };
+
+export type CommentItem = {
+  id: string;
+  parentId: string | null;
+  body: string;
+  author: Author;
+  createdAt: Date;
+  hidden: boolean;
+  reactions: ReactionCount[];
+  canDelete: boolean;
+};
+export type CommentNode = CommentItem & { replies: CommentItem[] };
+
+/** Fallback when a space profile is missing (account deleted or never named). */
+export const UNKNOWN_NAME = 'Member';
+
+export type Names = ReadonlyMap<string, string>;
+
+export const authorOf = (names: Names, id: string): Author => ({ id, name: names.get(id) ?? UNKNOWN_NAME });
+
+/** Counts per emoji in REACTION_EMOJIS order; emojis nobody used are left out. */
+export function reactionCounts(rows: readonly Reaction[], targetId: string, me: string | null): ReactionCount[] {
+  const mine = rows.filter((r) => r.targetId === targetId);
+  return REACTION_EMOJIS.flatMap((emoji) => {
+    const hits = mine.filter((r) => r.emoji === emoji);
+    return hits.length === 0 ? [] : [{ emoji, count: hits.length, mine: hits.some((r) => r.profileId === me) }];
+  });
+}
+
+/** Comments the viewer may see: hidden ones (and replies under a hidden one) only for moderators. */
+export function visibleComments(rows: readonly Comment[], moderate: boolean): Comment[] {
+  if (moderate) return [...rows];
+  const hiddenTop = new Set(rows.filter((c) => c.hiddenAt !== null).map((c) => c.id));
+  return rows.filter((c) => c.hiddenAt === null && !(c.parentId && hiddenTop.has(c.parentId)));
+}
+
+/** One reply level (G12): top-level comments oldest first, each with its replies oldest first. */
+export function buildThread(
+  rows: readonly Comment[],
+  reactions: readonly Reaction[],
+  names: Names,
+  me: string | null,
+  moderate: boolean,
+): CommentNode[] {
+  const item = (c: Comment): CommentItem => ({
+    id: c.id,
+    parentId: c.parentId,
+    body: c.body,
+    author: authorOf(names, c.authorId),
+    createdAt: c.createdAt,
+    hidden: c.hiddenAt !== null,
+    reactions: reactionCounts(reactions, c.id, me),
+    canDelete: moderate || c.authorId === me,
+  });
+  const visible = visibleComments(rows, moderate);
+  return visible
+    .filter((c) => c.parentId === null)
+    .map((top) => ({ ...item(top), replies: visible.filter((c) => c.parentId === top.id).map(item) }));
+}

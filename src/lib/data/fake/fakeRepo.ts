@@ -2,10 +2,12 @@
 // (unique slug, one active grant, vimeo id digits, cascades) so fakes fail like Postgres.
 import { SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { ConstraintError } from '../errors';
-import type { Direction, Repo } from '../repo';
+import { grantIsActive } from '../grants';
+import type { Direction, Reorderable, Repo } from '../repo';
 import type { Grant, Module, Part, Product, Profile, Step } from '../types';
 import type { Db } from './db';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
+import { createFakeCommunityRepo } from './fakeCommunityRepo';
 import { createFakeSiteRepo } from './fakeSiteRepo';
 
 export type FakeRepo = Repo & { db: Db };
@@ -25,15 +27,13 @@ function checkSlug(slug: string): void {
   if (!SLUG_PATTERN.test(slug)) throw new ConstraintError(`invalid slug: ${JSON.stringify(slug)}`);
 }
 
-const isActive = (g: Grant, now: Date): boolean =>
-  g.status === 'active' && (g.expiresAt === null || g.expiresAt > now);
 
 export function createFakeRepo(db: Db): FakeRepo {
   let seq = 0;
   const id = (prefix: string): string => `${prefix}-${Date.now().toString(36)}-${(seq++).toString(36)}`;
 
   // Rows sharing a parent with rowId (reorder scope).
-  const siblingsOf: Record<'modules' | 'steps' | 'parts', (rowId: string) => Positioned[]> = {
+  const siblingsOf: Record<Reorderable, (rowId: string) => Positioned[]> = {
     modules: (rowId) => {
       const row = must(db.modules.find((m) => m.id === rowId), 'module');
       return db.modules.filter((m) => m.programId === row.programId);
@@ -46,11 +46,19 @@ export function createFakeRepo(db: Db): FakeRepo {
       const row = must(db.parts.find((p) => p.id === rowId), 'part');
       return db.parts.filter((p) => p.stepId === row.stepId);
     },
+    channels: (rowId) => {
+      const row = must(db.channels.find((c) => c.id === rowId), 'channel');
+      return db.channels.filter((c) => c.communityId === row.communityId);
+    },
   };
 
   function removeStepIds(stepIds: Set<string>): void {
     db.parts = db.parts.filter((p) => !stepIds.has(p.stepId));
     db.stepProgress = db.stepProgress.filter((sp) => !stepIds.has(sp.stepId));
+    const comments = new Set(db.comments.filter((c) => c.targetType === 'step' && stepIds.has(c.targetId)).map((c) => c.id));
+    db.reactions = db.reactions.filter((r) => !(r.targetType === 'comment' && comments.has(r.targetId)));
+    db.comments = db.comments.filter((c) => !comments.has(c.id));
+    db.notifications = db.notifications.filter((n) => !(n.stepId && stepIds.has(n.stepId)));
     db.steps = db.steps.filter((s) => !stepIds.has(s.id));
     for (const m of db.modules) {
       if (m.unlockAfterStepId && stepIds.has(m.unlockAfterStepId)) m.unlockAfterStepId = null;
@@ -61,11 +69,13 @@ export function createFakeRepo(db: Db): FakeRepo {
     db,
     ...createFakeSiteRepo(db, id),
     ...createFakeCommerceRepo(db, id),
+    ...createFakeCommunityRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     profile: async (pid) => db.profiles.find((p) => p.id === pid) ?? null,
     member: async (spaceId, profileId) =>
       db.members.find((m) => m.spaceId === spaceId && m.profileId === profileId) ?? null,
+    members: async (spaceId) => db.members.filter((m) => m.spaceId === spaceId),
     spaceProfiles: async (spaceId) => db.spaceProfiles.filter((sp) => sp.spaceId === spaceId),
     profileByEmail: async (email) => db.profiles.find((p) => p.email === email.toLowerCase()) ?? null,
     async createProfile(email) {
@@ -199,10 +209,10 @@ export function createFakeRepo(db: Db): FakeRepo {
     },
 
     activeGrant: async (productId, profileId, now) =>
-      db.grants.find((g) => g.productId === productId && g.profileId === profileId && isActive(g, now)) ?? null,
+      db.grants.find((g) => g.productId === productId && g.profileId === profileId && grantIsActive(g, now)) ?? null,
     async grants(spaceId, profileId, now) {
       const inSpace = new Set(db.products.filter((p) => p.spaceId === spaceId).map((p) => p.id));
-      return db.grants.filter((g) => g.profileId === profileId && inSpace.has(g.productId) && isActive(g, now));
+      return db.grants.filter((g) => g.profileId === profileId && inSpace.has(g.productId) && grantIsActive(g, now));
     },
     grantsForProduct: async (productId) => db.grants.filter((g) => g.productId === productId),
     grantsForOrder: async (orderId) => db.grants.filter((g) => g.orderId === orderId),

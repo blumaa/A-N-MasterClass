@@ -1,10 +1,13 @@
-// Step page (G6/G7): outline beside, parts, Complete & Continue, prev/next.
+// Step page (G6/G7): outline beside, parts, Complete & Continue, lesson comments, prev/next.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ButtonLink } from '@/components/ui/links';
 import { EmptyState, Heading, Stack, Text } from '@/components/ui/mds';
+import { communityAction } from '@/app/[space]/communityActions';
+import { stepThread } from '@/features/community/api/notifications';
+import { CommentThread } from '@/features/community/components/CommentThread';
 import { accessLabel } from '@/features/programs/accessLabel';
-import { stepView } from '@/features/programs/api/step';
+import { stepOpen, stepView } from '@/features/programs/api/step';
 import { CompleteButton } from '@/features/programs/components/CompleteButton';
 import { ProgramOutline } from '@/features/programs/components/ProgramOutline';
 import { StepParts } from '@/features/programs/components/StepParts';
@@ -20,8 +23,11 @@ async function load(params: Props['params']) {
   const viewer = await currentViewer(space);
   if (!viewer) return null;
   const now = new Date();
-  const view = await stepView(getRepo(), viewer, program, step, now);
-  return view ? { view, now, signedIn: viewer.profile !== null } : null;
+  const repo = getRepo();
+  const view = await stepView(repo, viewer, program, step, now);
+  if (!view) return null;
+  const thread = await stepThread(repo, viewer, view.step.id, (id) => stepOpen(repo, viewer, id, now));
+  return { view, now, thread, signedIn: viewer.profile !== null };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -32,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function StepPage({ params }: Props) {
   const data = await load(params);
   if (!data) notFound();
-  const { view, now, signedIn } = data;
+  const { view, now, thread, signedIn } = data;
   const { outline, step, access, parts, prevStepId, nextStepId } = view;
   const slug = outline.program.slug;
   const blocked = accessLabel(access, now);
@@ -53,6 +59,16 @@ export default async function StepPage({ params }: Props) {
             <>
               <StepParts parts={parts} />
               {signedIn ? <CompleteButton programSlug={slug} stepId={step.id} done={step.done} /> : null}
+              {thread ? (
+                <CommentThread
+                  action={communityAction}
+                  target={{ type: 'step', id: step.id }}
+                  comments={thread.comments}
+                  members={[]}
+                  canComment={thread.canComment}
+                  moderate={thread.moderate}
+                />
+              ) : null}
             </>
           )}
           <nav aria-label="Lesson" className={styles.pager}>

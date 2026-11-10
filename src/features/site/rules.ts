@@ -3,7 +3,7 @@ import { LEGAL_KINDS, type LegalKind, type NavItem, type Page } from '@/lib/data
 import { isSafeHref } from '@/lib/site/sections';
 
 /** Page slugs that would be shadowed by app routes (rules.test.ts checks app/[space]). */
-export const RESERVED_PAGE_SLUGS: readonly string[] = ['blog', 'checkout', 'claim', 'dev', 'library', 'programs', 'studio', 'api', 'manifest.webmanifest'];
+export const RESERVED_PAGE_SLUGS: readonly string[] = ['blog', 'checkout', 'claim', 'community', 'dev', 'library', 'notifications', 'programs', 'studio', 'api', 'manifest.webmanifest'];
 
 export const LEGAL_LABELS: Readonly<Record<LegalKind, string>> = {
   imprint: 'Legal notice',

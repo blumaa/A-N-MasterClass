@@ -39,6 +39,15 @@ export async function stepView(
   };
 }
 
+/** Whether the viewer may open a step, found by id alone (the community StepGate). */
+export async function stepOpen(repo: Repo, viewer: Viewer, stepId: string, now: Date): Promise<boolean> {
+  const step = await repo.step(stepId);
+  const mod = step ? await repo.module(step.moduleId) : null;
+  const program = mod ? await repo.product(mod.programId) : null;
+  if (!program || program.spaceId !== viewer.space.id) return false;
+  return (await stepView(repo, viewer, program.slug, stepId, now))?.access.kind === 'open';
+}
+
 export type CompleteResult = { ok: true; nextStepId: string | null } | { ok: false; error: 'signed_out' | 'not_found' | 'not_open' };
 
 export async function completeStep(

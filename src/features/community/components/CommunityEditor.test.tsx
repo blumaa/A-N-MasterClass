@@ -1,0 +1,62 @@
+import { render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import type { Channel, Product } from '@/lib/data/types';
+import type { StudioCommunity } from '../api/studio';
+import { CommunityEditor } from './CommunityEditor';
+import { CommunityList } from './CommunityList';
+
+vi.mock('../actions', () => ({ editCommunityAction: vi.fn() }));
+
+const community: Product = {
+  id: 'c1',
+  spaceId: 's',
+  kind: 'community',
+  slug: 'circle',
+  title: 'Circle',
+  subtitle: null,
+  status: 'draft',
+  position: 0,
+  themeOverride: null,
+};
+const channel = (id: string, title: string, position: number): Channel => ({
+  id,
+  communityId: 'c1',
+  title,
+  visibility: 'public',
+  position,
+});
+
+const view = (over: Partial<StudioCommunity> = {}): StudioCommunity => ({
+  community,
+  channels: [channel('g', 'General', 0), channel('w', 'Wins', 1)],
+  staff: [{ profileId: 'a', name: 'Sam', role: 'assistant', ticked: true }],
+  canManageStaff: true,
+  ...over,
+});
+
+describe('CommunityList', () => {
+  it('links each community to its editor', () => {
+    render(<CommunityList communities={[community]} />);
+    expect(screen.getByRole('link', { name: /Circle/ })).toHaveAttribute('href', '/studio/communities/c1');
+    expect(screen.getByRole('button', { name: 'Add community' })).toBeInTheDocument();
+  });
+});
+
+describe('CommunityEditor', () => {
+  it('shows each channel with move buttons only where it can move', () => {
+    render(<CommunityEditor view={view()} />);
+    const rows = within(screen.getByRole('list', { name: 'Channels' })).getAllByRole('listitem');
+    expect(within(rows[0]!).queryByRole('button', { name: 'Move up' })).toBeNull();
+    expect(within(rows[0]!).getByRole('button', { name: 'Move down' })).toBeInTheDocument();
+    expect(within(rows[1]!).getByRole('button', { name: 'Move up' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add channel' })).toBeInTheDocument();
+  });
+
+  it('shows staff ticks only with staff.manage', () => {
+    const { rerender } = render(<CommunityEditor view={view()} />);
+    expect(screen.getByText('Sam')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove access' })).toBeInTheDocument();
+    rerender(<CommunityEditor view={view({ canManageStaff: false })} />);
+    expect(screen.queryByText('Sam')).toBeNull();
+  });
+});

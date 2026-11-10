@@ -3,9 +3,20 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MATRIX, ROLES } from '@/lib/auth/capabilities';
+import { ALWAYS_REACH, MATRIX, ROLES } from '@/lib/auth/capabilities';
 import { CURRENCIES, MAX_PRICE_CENTS } from '@/lib/commerce/money';
-import { LEGAL_KINDS, ORDER_PROVIDERS, ORDER_STATUSES, PAGE_KINDS, PAYMENT_ENVS } from '@/lib/data/types';
+import {
+  CHANNEL_VISIBILITIES,
+  COMMENT_TARGETS,
+  NOTIFICATION_TYPES,
+  REACTION_EMOJIS,
+  REACTION_TARGETS,
+  LEGAL_KINDS,
+  ORDER_PROVIDERS,
+  ORDER_STATUSES,
+  PAGE_KINDS,
+  PAYMENT_ENVS,
+} from '@/lib/data/types';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { SECTION_KINDS } from '@/lib/site/sections';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
@@ -17,6 +28,13 @@ const sql = readdirSync(MIGRATIONS)
   .sort()
   .map((f) => readFileSync(join(MIGRATIONS, f), 'utf8'))
   .join('\n');
+
+/** First capture group of `re` as a list of SQL string literals. */
+const list = (re: RegExp) =>
+  sql
+    .match(re)?.[1]
+    .split(',')
+    .map((s) => s.trim().replace(/'/g, ''));
 
 describe('SQL mirrors', () => {
   it('spaces slug check equals SLUG_PATTERN', () => {
@@ -60,12 +78,6 @@ describe('SQL mirrors: branding', () => {
 });
 
 describe('SQL mirrors: site', () => {
-  const list = (re: RegExp) =>
-    sql
-      .match(re)?.[1]
-      .split(',')
-      .map((s) => s.trim().replace(/'/g, ''));
-
   it('pages kind check equals PAGE_KINDS', () => {
     expect(list(/pages_kind check \(kind in \(([^)]+)\)\)/)).toEqual([...PAGE_KINDS]);
   });
@@ -84,12 +96,6 @@ describe('SQL mirrors: site', () => {
 });
 
 describe('SQL mirrors: commerce', () => {
-  const list = (re: RegExp) =>
-    sql
-      .match(re)?.[1]
-      .split(',')
-      .map((s) => s.trim().replace(/'/g, ''));
-
   it('currency checks equal CURRENCIES', () => {
     const lists = [...sql.matchAll(/currency text not null check \(currency in \(([^)]+)\)\)/g)].map((m) =>
       m[1].split(',').map((s) => s.trim().replace(/'/g, '')),
@@ -116,5 +122,31 @@ describe('SQL mirrors: commerce', () => {
 
   it('payment_credentials env check equals PAYMENT_ENVS', () => {
     expect(list(/payment_credentials_env check \(env in \(([^)]+)\)\)/)).toEqual([...PAYMENT_ENVS]);
+  });
+});
+
+describe('SQL mirrors: community', () => {
+  it('channels visibility check equals CHANNEL_VISIBILITIES', () => {
+    expect(list(/channels_visibility check \(visibility in \(([^)]+)\)\)/)).toEqual([...CHANNEL_VISIBILITIES]);
+  });
+
+  it('comments target check equals COMMENT_TARGETS', () => {
+    expect(list(/comments_target check \(target_type in \(([^)]+)\)\)/)).toEqual([...COMMENT_TARGETS]);
+  });
+
+  it('reactions target check equals REACTION_TARGETS', () => {
+    expect(list(/reactions_target check \(target_type in \(([^)]+)\)\)/)).toEqual([...REACTION_TARGETS]);
+  });
+
+  it('reactions emoji check equals REACTION_EMOJIS', () => {
+    expect(list(/reactions_emoji check \(emoji in \(([^)]+)\)\)/)).toEqual([...REACTION_EMOJIS]);
+  });
+
+  it('notifications type check equals NOTIFICATION_TYPES', () => {
+    expect(list(/notifications_type check \(type in \(([^)]+)\)\)/)).toEqual([...NOTIFICATION_TYPES]);
+  });
+
+  it('reaches_community role list equals ALWAYS_REACH', () => {
+    expect(list(/m\.role = any \(array\[([^\]]+)\]\)/)).toEqual([...ALWAYS_REACH]);
   });
 });

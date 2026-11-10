@@ -1,0 +1,85 @@
+.container {
+  position: relative;
+}
+
+/* Native textarea dressed as MDS Textarea — the real one cannot host
+   combobox aria or the caret round-trip this field needs. */
+.host {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--mds-pad-tight) var(--mds-pad-control-md);
+  border: var(--mds-border-width) solid var(--mds-control-border);
+  border-radius: var(--mds-radius-control);
+  background: var(--mds-surface-card);
+  color: var(--mds-text-primary);
+  font-family: var(--mds-font-body);
+  font-size: var(--mds-text-control);
+  line-height: var(--mds-leading-normal);
+  resize: vertical;
+  transition: border-color var(--mds-transition-control);
+}
+
+.host::placeholder {
+  color: var(--mds-text-muted);
+}
+
+.host:focus-visible {
+  outline: var(--mds-focus-width) solid var(--mds-focus-ring-color);
+  outline-offset: var(--mds-focus-offset);
+}
+
+.host.invalid {
+  border-color: var(--mds-status-danger);
+}
+
+.host:disabled {
+  background: var(--mds-action-disabled-bg);
+  color: var(--mds-action-disabled-fg);
+  cursor: not-allowed;
+  resize: none;
+}
+
+.menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: var(--mds-z-raised);
+  background: var(--mds-surface-card);
+  border: var(--mds-border-width) solid var(--mds-border-subtle);
+  border-radius: var(--mds-radius-card);
+  box-shadow: var(--mds-elevation-card);
+  padding: var(--mds-gap-hairline);
+  max-height: var(--mention-menu-max);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.below {
+  top: calc(100% + var(--mds-gap-hairline));
+}
+
+.above {
+  bottom: calc(100% + var(--mds-gap-hairline));
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--mds-gap-tight);
+  border-radius: var(--mds-radius-control);
+  padding: var(--mds-pad-item-y) var(--mds-pad-tight);
+  cursor: pointer;
+}
+
+.optionActive {
+  background: var(--mds-accent-soft);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
