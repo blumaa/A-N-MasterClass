@@ -9,6 +9,8 @@ import type { Db } from './db';
 import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
 import { createFakeCommunityRepo } from './fakeCommunityRepo';
+import { createFakeEventsRepo } from './fakeEventsRepo';
+import { withPoints } from './fakePoints';
 import { createFakeSiteRepo } from './fakeSiteRepo';
 
 export type FakeRepo = Repo & { db: Db };
@@ -68,12 +70,13 @@ export function createFakeRepo(db: Db): FakeRepo {
 
   const chat = createFakeChatRepo(db, id);
 
-  return {
+  return withPoints(db, {
     db,
     ...createFakeSiteRepo(db, id),
     ...chat,
     ...createFakeCommerceRepo(db, id),
     ...createFakeCommunityRepo(db, id),
+    ...createFakeEventsRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     spaceSlugByHost: async (host) => {
@@ -270,5 +273,5 @@ export function createFakeRepo(db: Db): FakeRepo {
       ]);
       return db.profiles.filter((p) => ids.has(p.id));
     },
-  };
+  });
 }

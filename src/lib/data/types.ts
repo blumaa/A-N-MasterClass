@@ -219,8 +219,9 @@ export type ClaimToken = {
 // members are grant holders; owner/admin reach every community, other staff only ticked ones.
 /**
  * Access group (Kajabi): a tier inside a community. Each grant of a community joins one group;
- * a member may hold several. Channels belong to one group. Feature toggles gate the member
- * directory and starting DMs. Every community has exactly one default group.
+ * a member may hold several. Channels, challenges and meetups belong to one group. Feature
+ * toggles gate the member directory, starting DMs, challenges, meetups and the leaderboard.
+ * Every community has exactly one default group.
  */
 export type AccessGroup = {
   id: string;
@@ -229,6 +230,20 @@ export type AccessGroup = {
   isDefault: boolean;
   directory: boolean;
   dms: boolean;
+  challenges: boolean;
+  meetups: boolean;
+  leaderboard: boolean;
+};
+/** Per-group feature toggles; all on for a new group. */
+export const GROUP_FEATURES = ['directory', 'dms', 'challenges', 'meetups', 'leaderboard'] as const;
+export type GroupFeature = (typeof GROUP_FEATURES)[number];
+/** New access groups get every feature (Kajabi default: all toggles on). */
+export const ALL_GROUP_FEATURES: Record<GroupFeature, boolean> = {
+  directory: true,
+  dms: true,
+  challenges: true,
+  meetups: true,
+  leaderboard: true,
 };
 
 /** feed = posts + comments + reactions; chat = a running list of short messages. */
@@ -269,9 +284,98 @@ export type DmThread = { id: string; communityId: string; aId: string; bId: stri
 export type DmRead = { threadId: string; profileId: string; readAt: Date };
 /** Blocker hides from and stops messages with the blocked member (either direction). */
 export type Block = { communityId: string; blockerId: string; blockedId: string };
-/** No row = defaults (DMs on, founder reachable). */
-export type CommunitySettings = { communityId: string; dmsEnabled: boolean; founderDms: boolean };
-export const DEFAULT_COMMUNITY_SETTINGS = { dmsEnabled: true, founderDms: true } as const;
+/**
+ * Points (Kajabi gamification): what earns them. comment = a comment on a feed post;
+ * reaction_given / reaction_received = first reaction by a member on someone else's post;
+ * dm = a direct message sent; challenge = a challenge entry.
+ */
+export const POINT_REASONS = ['comment', 'reaction_given', 'reaction_received', 'dm', 'challenge'] as const;
+export type PointReason = (typeof POINT_REASONS)[number];
+/** Kajabi's default point values. */
+export const DEFAULT_POINT_VALUES: Readonly<Record<PointReason, number>> = {
+  comment: 3,
+  reaction_given: 1,
+  reaction_received: 1,
+  dm: 1,
+  challenge: 100,
+};
+export const POINT_VALUE_MAX = 1_000;
+/** Who sees the leaderboard: members (and staff), staff only, nobody. */
+export const LEADERBOARD_VISIBILITIES = ['members', 'staff', 'off'] as const;
+export type LeaderboardVisibility = (typeof LEADERBOARD_VISIBILITIES)[number];
+
+/** No row = defaults (DMs on, founder reachable, points on, leaderboard for members, default values). */
+export type CommunitySettings = {
+  communityId: string;
+  dmsEnabled: boolean;
+  founderDms: boolean;
+  pointsEnabled: boolean;
+  leaderboard: LeaderboardVisibility;
+  /** Overrides of DEFAULT_POINT_VALUES, 0..POINT_VALUE_MAX; 0 = this action earns nothing. */
+  pointValues: Partial<Record<PointReason, number>>;
+};
+export const DEFAULT_COMMUNITY_SETTINGS: Omit<CommunitySettings, 'communityId'> = {
+  dmsEnabled: true,
+  founderDms: true,
+  pointsEnabled: true,
+  leaderboard: 'members',
+  pointValues: {},
+};
+
+/**
+ * Append-only points ledger. Points are fixed when earned (a later value change is not
+ * retroactive); the row goes away with its source (comment, reaction, message, entry).
+ * Unique (reason, sourceKey, profileId).
+ */
+export type PointsEntry = {
+  communityId: string;
+  profileId: string;
+  reason: PointReason;
+  sourceKey: string;
+  points: number;
+  createdAt: Date;
+};
+export type PointTotal = { profileId: string; points: number };
+
+/** Challenge (Kajabi): a time-boxed task for one access group; members submit one entry. */
+export type Challenge = {
+  id: string;
+  communityId: string;
+  accessGroupId: string;
+  title: string;
+  description: string;
+  prize: string | null;
+  startsAt: Date;
+  /** After startsAt (constraint). */
+  endsAt: Date;
+  /** Members see it before it starts. */
+  showBeforeStart: boolean;
+  createdAt: Date;
+};
+/** One per (challenge, profile). Body 1..5000 chars, sent inside the challenge window. */
+export type ChallengeEntry = { challengeId: string; profileId: string; body: string; createdAt: Date };
+
+/**
+ * Meetup (G14): scheduled event for one access group with an external join link (Zoom/Meet),
+ * shown from shortly before the start until the end. Stored UTC plus the host's IANA zone.
+ */
+export type Meetup = {
+  id: string;
+  communityId: string;
+  accessGroupId: string;
+  /** Optional channel where it is discussed. */
+  channelId: string | null;
+  title: string;
+  description: string;
+  /** Join link (https). */
+  location: string;
+  timeZone: string;
+  startsAt: Date;
+  endsAt: Date;
+  replayVimeoId: string | null;
+  createdAt: Date;
+};
+export type MeetupRsvp = { meetupId: string; profileId: string; createdAt: Date };
 
 /** space_member_communities: assistant/support staff ticked for this community (G15). */
 export type CommunityStaff = { communityId: string; profileId: string };

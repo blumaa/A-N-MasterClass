@@ -2,6 +2,12 @@
 // capabilities + step access before calling. Supabase adapter adds RLS as second wall.
 import type {
   AccessGroup,
+  Challenge,
+  ChallengeEntry,
+  GroupFeature,
+  Meetup,
+  MeetupRsvp,
+  PointTotal,
   Block,
   Channel,
   CommunitySettings,
@@ -72,7 +78,15 @@ export type ContactUpsert = {
 };
 
 export type NewAccessGroup = Pick<AccessGroup, 'communityId' | 'title'> & { isDefault?: boolean };
-export type AccessGroupPatch = Partial<Pick<AccessGroup, 'title' | 'directory' | 'dms'>>;
+export type AccessGroupPatch = Partial<Pick<AccessGroup, 'title' | GroupFeature>>;
+/** Fields left out stay as stored; pointValues merge per reason. */
+export type CommunitySettingsPatch = Partial<Omit<CommunitySettings, 'communityId'>>;
+export type NewChallenge = Omit<Challenge, 'id'>;
+export type ChallengePatch = Partial<Pick<Challenge, 'title' | 'description' | 'prize' | 'startsAt' | 'endsAt' | 'showBeforeStart'>>;
+export type NewMeetup = Omit<Meetup, 'id' | 'replayVimeoId'>;
+export type MeetupPatch = Partial<
+  Pick<Meetup, 'channelId' | 'title' | 'description' | 'location' | 'timeZone' | 'startsAt' | 'endsAt' | 'replayVimeoId'>
+>;
 /** Kind and group are fixed once created: posts or messages and private members depend on them. */
 export type NewChannel = Pick<Channel, 'communityId' | 'accessGroupId' | 'title' | 'kind' | 'privacy' | 'readOnly'>;
 export type ChannelPatch = Partial<Pick<Channel, 'title' | 'privacy' | 'readOnly'>>;
@@ -279,6 +293,36 @@ export interface Repo {
   unreadNotificationCount(spaceId: string, recipientId: string): Promise<number>;
   addNotifications(rows: readonly NewNotification[]): Promise<void>;
   markNotificationsRead(spaceId: string, recipientId: string, now: Date): Promise<void>;
+
+  // gamification (G12): points ledger is written by triggers on the source rows (SQL) or the
+  // withPoints wrapper (fake); repo callers only read it.
+  /** Totals per profile with points earned since `since` (null = all time), highest first. */
+  pointTotals(communityId: string, since: Date | null): Promise<PointTotal[]>;
+
+  /** Newest start first. */
+  challenges(communityId: string): Promise<Challenge[]>;
+  challenge(id: string): Promise<Challenge | null>;
+  /** Title non-blank, endsAt > startsAt, group of the same community (constraints). */
+  createChallenge(input: NewChallenge): Promise<Challenge>;
+  updateChallenge(id: string, patch: ChallengePatch): Promise<Challenge>;
+  /** Cascades to entries (and their points). */
+  deleteChallenge(id: string): Promise<void>;
+  /** Oldest first. */
+  challengeEntries(challengeId: string): Promise<ChallengeEntry[]>;
+  /** One per profile; body 1..5000; createdAt inside the challenge window (constraints). */
+  createChallengeEntry(row: ChallengeEntry): Promise<void>;
+  deleteChallengeEntry(challengeId: string, profileId: string): Promise<void>;
+
+  /** Soonest start first. */
+  meetups(communityId: string): Promise<Meetup[]>;
+  meetup(id: string): Promise<Meetup | null>;
+  /** Title non-blank, https location, endsAt > startsAt, group and channel of the same community. */
+  createMeetup(input: NewMeetup): Promise<Meetup>;
+  updateMeetup(id: string, patch: MeetupPatch): Promise<Meetup>;
+  /** Cascades to RSVPs. */
+  deleteMeetup(id: string): Promise<void>;
+  meetupRsvps(meetupId: string): Promise<MeetupRsvp[]>;
+  setRsvp(meetupId: string, profileId: string, on: boolean, now: Date): Promise<void>;
 
   // dev only (fake auth switcher)
   profilesInSpace(spaceId: string): Promise<Profile[]>;

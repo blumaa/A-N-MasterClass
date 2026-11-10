@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Stack } from '@/components/ui/mds';
-import { communityNav } from '@/features/community/api/dms';
+import { communityNav } from '@/features/community/api/nav';
 import { postPage } from '@/features/community/api/feed';
 import { CommentThread } from '@/features/community/components/CommentThread';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
@@ -33,7 +33,7 @@ export default async function PostRoute({ params }: Props) {
   const { page, viewer } = data;
   const { community, access, channels, channel, post, comments, members } = page;
   const signedIn = viewer.profile !== null;
-  const nav = await communityNav(getRepo(), viewer, community, access.directory, new Date());
+  const nav = await communityNav(getRepo(), viewer, community, access, new Date());
   return (
     <CommunityFrame community={community} channels={channels} activeId={channel.id} extras={nav}>
       <Stack gap="loose">

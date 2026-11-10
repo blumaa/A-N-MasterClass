@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import type { Product } from '@/lib/data/types';
+import { DEFAULT_COMMUNITY_SETTINGS, type Product } from '@/lib/data/types';
 import { chatCommand } from './chat';
-import { communityNav, dmInbox, dmTargets, dmThreadPage, isUnread, unreadDms } from './dms';
+import { dmInbox, dmTargets, dmThreadPage, isUnread, unreadDms } from './dms';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 const LATER = new Date('2026-11-10T13:00:00Z');
@@ -74,19 +74,8 @@ describe('dmInbox / dmThreadPage', () => {
 describe('dmTargets', () => {
   it('is everyone the viewer may start a thread with', async () => {
     expect(await dmTargets(repo, await viewer(SEED_IDS.student), community, NOW)).toEqual(new Set([SEED_IDS.alexanderOwner]));
-    await repo.saveCommunitySettings({ communityId: SEED_IDS.community, dmsEnabled: true, founderDms: false });
+    await repo.saveCommunitySettings({ communityId: SEED_IDS.community, ...DEFAULT_COMMUNITY_SETTINGS, dmsEnabled: true, founderDms: false });
     expect(await dmTargets(repo, await viewer(SEED_IDS.student), community, NOW)).toEqual(new Set());
     expect(await dmTargets(repo, await viewer(SEED_IDS.assistant), community, NOW)).toEqual(new Set());
-  });
-});
-
-describe('communityNav', () => {
-  it('shows Messages with unread count while DMs are on', async () => {
-    const id = await thread();
-    await send(SEED_IDS.student, id, 'hello');
-    const owner = await viewer(SEED_IDS.alexanderOwner);
-    expect(await communityNav(repo, owner, community, true, NOW)).toEqual({ directory: true, dms: { unread: 1 } });
-    await repo.saveCommunitySettings({ communityId: SEED_IDS.community, dmsEnabled: false, founderDms: true });
-    expect(await communityNav(repo, owner, community, false, NOW)).toEqual({ directory: false, dms: null });
   });
 });

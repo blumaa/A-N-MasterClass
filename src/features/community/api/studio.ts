@@ -5,7 +5,7 @@ import { ALWAYS_REACH } from '@/lib/auth/capabilities';
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
-import type { AccessGroupPatch, ChannelPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
+import type { AccessGroupPatch, ChannelPatch, CommunitySettingsPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
 import type { AccessGroup, Channel, ChannelKind, ChannelPrivacy, CommunitySettings, Product, Role } from '@/lib/data/types';
 import { reachesAsStaff } from './access';
 import { directory, spaceNames, type DirectoryEntry } from './feed';
@@ -43,7 +43,7 @@ export async function studioCommunities(repo: Repo, viewer: Viewer): Promise<Pro
 }
 
 /** The community if the viewer may edit it, else null. */
-async function editable(repo: Repo, viewer: Viewer, communityId: string): Promise<Product | null> {
+export async function editable(repo: Repo, viewer: Viewer, communityId: string): Promise<Product | null> {
   const community = await repo.product(communityId);
   if (!community || community.kind !== 'community' || community.spaceId !== viewer.space.id) return null;
   return (await reachesAsStaff(repo, viewer, community.id)) ? community : null;
@@ -108,7 +108,7 @@ export type StudioCommunityCommand =
   | { op: 'createGroup'; communityId: string; title: string }
   | { op: 'updateGroup'; groupId: string; patch: AccessGroupPatch }
   | { op: 'deleteGroup'; groupId: string }
-  | { op: 'saveSettings'; communityId: string; dmsEnabled: boolean; founderDms: boolean }
+  | { op: 'saveSettings'; communityId: string; patch: CommunitySettingsPatch }
   | { op: 'setStaff'; communityId: string; profileId: string; on: boolean };
 
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
@@ -139,6 +139,12 @@ const targetOf = (repo: Repo, c: StudioCommunityCommand): Promise<string | null>
       return repo.accessGroup(c.groupId).then((g) => g?.communityId ?? null);
   }
 };
+
+async function saveSettings(repo: Repo, communityId: string, patch: CommunitySettingsPatch): Promise<void> {
+  const current = await repo.communitySettings(communityId);
+  const pointValues = { ...current.pointValues, ...patch.pointValues };
+  await repo.saveCommunitySettings({ ...current, ...patch, communityId, pointValues });
+}
 
 async function defaultGroup(repo: Repo, communityId: string): Promise<string> {
   const group = (await repo.accessGroups(communityId)).find((g) => g.isDefault);
@@ -214,11 +220,7 @@ async function run({ repo, viewer, me, now }: Ctx, c: StudioCommunityCommand): P
     case 'deleteGroup':
       return void (await repo.deleteAccessGroup(c.groupId));
     case 'saveSettings':
-      return void (await repo.saveCommunitySettings({
-        communityId: c.communityId,
-        dmsEnabled: c.dmsEnabled,
-        founderDms: c.founderDms,
-      }));
+      return void (await saveSettings(repo, c.communityId, c.patch));
     case 'setStaff': {
       const member = (await repo.members(viewer.space.id)).find((m) => m.profileId === c.profileId);
       if (!member || !tickable(member.role))

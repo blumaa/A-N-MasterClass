@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { Channel, Product } from '@/lib/data/types';
+import { ALL_GROUP_FEATURES, DEFAULT_COMMUNITY_SETTINGS, type Channel, type Product } from '@/lib/data/types';
 import type { StudioCommunity } from '../api/studio';
 import { CommunityEditor } from './CommunityEditor';
 import { CommunityList } from './CommunityList';
@@ -34,10 +34,10 @@ const view = (over: Partial<StudioCommunity> = {}): StudioCommunity => ({
   community,
   channels: [channel('g', 'General', 0), channel('w', 'Wins', 1, { privacy: 'private', kind: 'chat' })],
   groups: [
-    { id: 'members', communityId: 'c1', title: 'Members', isDefault: true, directory: true, dms: true },
-    { id: 'vip', communityId: 'c1', title: 'VIP', isDefault: false, directory: true, dms: false },
+    { id: 'members', communityId: 'c1', title: 'Members', isDefault: true, ...ALL_GROUP_FEATURES },
+    { id: 'vip', communityId: 'c1', title: 'VIP', isDefault: false, ...ALL_GROUP_FEATURES, dms: false },
   ],
-  settings: { communityId: 'c1', dmsEnabled: true, founderDms: true },
+  settings: { communityId: 'c1', ...DEFAULT_COMMUNITY_SETTINGS },
   members: [
     { id: 'p1', name: 'Robin', staff: false },
     { id: 'p2', name: 'Kim', staff: false },

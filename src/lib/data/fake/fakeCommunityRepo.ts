@@ -91,6 +91,7 @@ export function createFakeCommunityRepo(db: Db, id: (prefix: string) => string):
       removePosts(new Set(db.posts.filter((p) => p.channelId === cid).map((p) => p.id)));
       db.messages = db.messages.filter((m) => m.channelId !== cid);
       db.channelMembers = db.channelMembers.filter((m) => m.channelId !== cid);
+      for (const m of db.meetups) if (m.channelId === cid) m.channelId = null;
       db.channels = db.channels.filter((c) => c.id !== cid);
     },
 

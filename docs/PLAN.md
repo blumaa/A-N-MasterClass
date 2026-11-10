@@ -176,7 +176,18 @@ Launch 2 as built:
 - DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
 - Live updates: polling (`LiveRefresh`, `router.refresh` on an interval while visible). Supabase Realtime later.
 - Not yet: `channel_moderators`, reports queue, push, typing indicators, attachments in chat.
+
 **Launch 3** — challenges, points, leaderboard, meetups/events.
+
+Launch 3 as built:
+- Migration `20261110090800_community_gamification_meetups.sql` + `supabase/tests/080-gamification-meetups.test.sql` written, not yet run.
+- Points: comment on a post 3, reaction given 1 / received 1 (once per member per post, never on own post), DM 1, challenge entry 100. Values editable 0..1000 per community, 0 = off for that action; fixed when earned. Ledger written by triggers only, rows removed with their source, so totals never go negative.
+- Leaderboard: 7 days / 30 days / all time; the week resets Monday 08:00 UTC, the month on the 1st 08:00 UTC. Shown to members, staff only, or off; members also need a group with the leaderboard on.
+- Challenges: window in UTC, one entry per member inside the window, withdraw while open. Entries visible to the author and staff only; staff export CSV. Upcoming challenges hidden unless "show before start".
+- Meetups: times shown in the event's zone. Join link hidden from clients (column privilege), read via `meetup_join_url()`: staff always, members from 15 minutes before the start until the end. RSVP until the end. `.ics` links to the meetup page, not the join link. Replay = Vimeo id, shown after the end.
+- Studio: points settings on the community page; challenges + meetups on `studio/communities/[id]/events`. Group toggles: challenges, meetups, leaderboard.
+- Not yet: meetup reminder emails (email provider pending), recurring meetups.
+
 **Launch 4** — coaching + own scheduler + Google Calendar.
 **Launch 5** — podcast + download products.
 **Later** — drip release emails (`pg_cron`), quizzes, coupons, order bumps, upsells (G23), subscriptions/payment plans, certificates, embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.

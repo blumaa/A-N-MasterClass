@@ -1,6 +1,6 @@
 // Dev seed for DATA_SOURCE=fake. Two spaces, staff of each role, one student with a grant,
 // a program tree showing every access state (open, step-locked, drip, fixed date).
-import type { Channel } from '../types';
+import { ALL_GROUP_FEATURES, type Channel } from '../types';
 import { emptyDb, type Db } from './db';
 
 const DAY = 86_400_000;
@@ -167,8 +167,7 @@ export function seedDb(now: Date = new Date()): Db {
     communityId: ids.community,
     title: 'Members',
     isDefault: true,
-    directory: true,
-    dms: true,
+    ...ALL_GROUP_FEATURES,
   });
   const channel = (id: string, title: string, position: number, extra: Partial<Channel> = {}): Channel => ({
     id,

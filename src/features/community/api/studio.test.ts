@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import type { CommunitySettingsPatch } from '@/lib/data/repo';
+import { DEFAULT_COMMUNITY_SETTINGS } from '@/lib/data/types';
 import { editCommunity, studioCommunities, studioCommunity, type StudioCommunityCommand } from './studio';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -37,7 +39,7 @@ describe('studioCommunity', () => {
     const view = await studioCommunity(repo, await as(SEED_IDS.alexanderOwner), SEED_IDS.community, NOW);
     expect(view?.channels.map((c) => c.title)).toEqual(['General', 'Announcements', 'Lounge']);
     expect(view?.groups.map((g) => g.title)).toEqual(['Members']);
-    expect(view?.settings).toEqual({ communityId: SEED_IDS.community, dmsEnabled: true, founderDms: true });
+    expect(view?.settings).toEqual({ communityId: SEED_IDS.community, ...DEFAULT_COMMUNITY_SETTINGS });
     expect(view?.members).toEqual([
       { id: SEED_IDS.alexanderOwner, name: expect.any(String), staff: true },
       { id: SEED_IDS.student, name: 'Robin (student)', staff: false },
@@ -110,9 +112,18 @@ describe('editCommunity', () => {
     expect(view?.channelMembers).toEqual({ [SEED_IDS.general]: [SEED_IDS.student] });
   });
 
-  it('saves DM settings', async () => {
-    expect((await run(OWNER, { op: 'saveSettings', communityId: SEED_IDS.community, dmsEnabled: false, founderDms: true })).ok).toBe(true);
-    expect(await repo.communitySettings(SEED_IDS.community)).toMatchObject({ dmsEnabled: false });
+  it('merges settings patches, point values per reason', async () => {
+    const save = (patch: CommunitySettingsPatch) => run(OWNER, { op: 'saveSettings', communityId: SEED_IDS.community, patch });
+    expect((await save({ dmsEnabled: false })).ok).toBe(true);
+    expect((await save({ pointValues: { comment: 5 } })).ok).toBe(true);
+    expect((await save({ leaderboard: 'staff', pointValues: { dm: 0 } })).ok).toBe(true);
+    expect(await repo.communitySettings(SEED_IDS.community)).toEqual({
+      communityId: SEED_IDS.community,
+      ...DEFAULT_COMMUNITY_SETTINGS,
+      dmsEnabled: false,
+      leaderboard: 'staff',
+      pointValues: { comment: 5, dm: 0 },
+    });
   });
 
   it('ticks staff only with staff.manage, only assistant/support', async () => {

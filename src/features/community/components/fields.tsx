@@ -29,3 +29,38 @@ export function ChoiceSelect<T extends string>({ name, label, value, options, la
     </Field>
   );
 }
+
+// IANA zones from the runtime (Intl may leave out "UTC", so it is added first).
+const ZONES: readonly string[] = ['UTC', ...Intl.supportedValuesOf('timeZone').filter((z) => z !== 'UTC')];
+
+export function TimeZoneSelect({ value }: { value: string }) {
+  return (
+    <Field label="Time zone">
+      <Select name="timeZone" defaultValue={value}>
+        {ZONES.map((z) => (
+          <option key={z} value={z}>
+            {z}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  );
+}
+
+type OptionsProps = { name: string; label: string; value: string; options: readonly { id: string; title: string }[]; none?: string };
+
+/** Select over rows with id + title (access groups, channels); `none` adds an empty choice. */
+export function RowSelect({ name, label, value, options, none }: OptionsProps) {
+  return (
+    <Field label={label}>
+      <Select name={name} defaultValue={value}>
+        {none !== undefined ? <option value="">{none}</option> : null}
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.title}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  );
+}

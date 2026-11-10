@@ -1,7 +1,7 @@
 // Community shell: channel nav (plus Messages / Members extras) beside the content.
 import type { ReactNode } from 'react';
 import type { Channel, Product } from '@/lib/data/types';
-import type { CommunityNav } from '../api/dms';
+import type { CommunityNav } from '../api/nav';
 import { ChannelNav } from './ChannelNav';
 import styles from './community.module.css';
 

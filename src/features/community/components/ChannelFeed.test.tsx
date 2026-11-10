@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { Channel, Product } from '@/lib/data/types';
+import { ALL_GROUP_FEATURES, type Channel, type Product } from '@/lib/data/types';
 import type { CommunityPage } from '../api/feed';
 import { ChannelChat } from './ChannelChat';
 import { ChannelFeed } from './ChannelFeed';
@@ -35,7 +35,7 @@ const channel = (over: Partial<Channel> = {}): Channel => ({
 const page = (over: Partial<Open>): Open => ({
   kind: 'open',
   community,
-  access: { read: true, staff: false, moderatePosts: false, moderateComments: false, groupIds: ['g1'], directory: true, dms: true },
+  access: { read: true, staff: false, moderatePosts: false, moderateComments: false, groupIds: ['g1'], ...ALL_GROUP_FEATURES },
   channels: [channel()],
   channel: channel(),
   canPost: false,

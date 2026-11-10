@@ -6,7 +6,7 @@
 import { ALWAYS_REACH } from '@/lib/auth/capabilities';
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
-import type { Channel, Product } from '@/lib/data/types';
+import { ALL_GROUP_FEATURES, GROUP_FEATURES, type Channel, type GroupFeature, type Product } from '@/lib/data/types';
 
 export type CommunityAccess = {
   read: boolean;
@@ -16,10 +16,9 @@ export type CommunityAccess = {
   moderateComments: boolean;
   /** Access groups the member holds (empty for staff). */
   groupIds: string[];
-  /** Feature toggles: union over the member's groups; staff always. */
-  directory: boolean;
-  dms: boolean;
-};
+} & Record<GroupFeature, boolean>; // feature toggles: union over the member's groups; staff always
+
+const NO_FEATURES = Object.fromEntries(GROUP_FEATURES.map((f) => [f, false])) as Record<GroupFeature, boolean>;
 
 const NONE: CommunityAccess = {
   read: false,
@@ -27,8 +26,7 @@ const NONE: CommunityAccess = {
   moderatePosts: false,
   moderateComments: false,
   groupIds: [],
-  directory: false,
-  dms: false,
+  ...NO_FEATURES,
 };
 
 export async function reachesAsStaff(repo: Repo, viewer: Viewer, communityId: string): Promise<boolean> {
@@ -51,8 +49,7 @@ export async function communityAccess(
       staff: true,
       moderatePosts: viewerCan(viewer, 'community.moderate'),
       moderateComments: viewerCan(viewer, 'comments.moderate'),
-      directory: true,
-      dms: true,
+      ...ALL_GROUP_FEATURES,
     };
   }
   if (community.status !== 'published') return NONE;
@@ -70,8 +67,7 @@ export async function communityAccess(
     ...NONE,
     read: true,
     groupIds,
-    directory: held.some((g) => g.directory),
-    dms: held.some((g) => g.dms),
+    ...(Object.fromEntries(GROUP_FEATURES.map((f) => [f, held.some((g) => g[f])])) as Record<GroupFeature, boolean>),
   };
 }
 
@@ -109,3 +105,7 @@ export async function readableChannels(
   const rules = await Promise.all(channels.map((c) => channelAccess(repo, access, c, profileId)));
   return channels.filter((_, i) => rules[i]?.read);
 }
+
+/** A group-scoped item (challenge, meetup) is for staff and the members of its group. */
+export const reachesGroup = (access: CommunityAccess, groupId: string): boolean =>
+  access.read && (access.staff || access.groupIds.includes(groupId));

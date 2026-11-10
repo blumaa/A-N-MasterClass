@@ -99,18 +99,3 @@ export async function dmTargets(repo: Repo, viewer: Viewer, community: Product, 
   if (!dm || !me) return new Set();
   return new Set([...dm.memberIds].filter((id) => canStart(dm, me, id)));
 }
-
-/** Side-nav extras: Members link (directory toggle) and Messages link with unread count (DMs on). */
-export type CommunityNav = { directory: boolean; dms: { unread: number } | null };
-
-export async function communityNav(
-  repo: Repo,
-  viewer: Viewer,
-  community: Product,
-  directory: boolean,
-  now: Date,
-): Promise<CommunityNav> {
-  const dm = await dmContext(repo, viewer, community, now);
-  if (!dm?.enabled) return { directory, dms: null };
-  return { directory, dms: { unread: await unreadDms(repo, viewer, community, now) } };
-}

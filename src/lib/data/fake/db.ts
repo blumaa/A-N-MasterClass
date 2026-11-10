@@ -2,6 +2,11 @@
 import type {
   AccessGroup,
   Block,
+  Challenge,
+  ChallengeEntry,
+  Meetup,
+  MeetupRsvp,
+  PointsEntry,
   Channel,
   ChannelMember,
   CommunitySettings,
@@ -74,6 +79,11 @@ export type Db = {
   comments: Comment[];
   reactions: Reaction[];
   notifications: Notification[];
+  pointsLedger: PointsEntry[];
+  challenges: Challenge[];
+  challengeEntries: ChallengeEntry[];
+  meetups: Meetup[];
+  meetupRsvps: MeetupRsvp[];
 };
 
 export const emptyDb = (): Db => ({
@@ -112,4 +122,9 @@ export const emptyDb = (): Db => ({
   comments: [],
   reactions: [],
   notifications: [],
+  pointsLedger: [],
+  challenges: [],
+  challengeEntries: [],
+  meetups: [],
+  meetupRsvps: [],
 });

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import { DEFAULT_COMMUNITY_SETTINGS } from '@/lib/data/types';
 import { chatCommand, type ChatCommand } from './chat';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -20,7 +21,7 @@ const createdId = (r: Awaited<ReturnType<typeof run>>): string => {
 const FORBIDDEN = { ok: false, error: 'forbidden' };
 const start = (from: string, to: string) => run(from, { op: 'startDm', communityId: SEED_IDS.community, recipientId: to });
 const settings = (patch: { dmsEnabled?: boolean; founderDms?: boolean }) =>
-  repo.saveCommunitySettings({ communityId: SEED_IDS.community, dmsEnabled: true, founderDms: true, ...patch });
+  repo.saveCommunitySettings({ communityId: SEED_IDS.community, ...DEFAULT_COMMUNITY_SETTINGS, ...patch });
 
 describe('chat channel messages', () => {
   it('members send in chat channels; feed channels refuse messages; other spaces see nothing', async () => {

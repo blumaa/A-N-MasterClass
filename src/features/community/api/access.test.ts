@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import type { Product } from '@/lib/data/types';
+import { ALL_GROUP_FEATURES, type Product } from '@/lib/data/types';
 import { channelAccess, communityAccess, readableChannels, type CommunityAccess } from './access';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -25,8 +25,7 @@ describe('communityAccess', () => {
       moderatePosts: false,
       moderateComments: false,
       groupIds: [SEED_IDS.members],
-      directory: true,
-      dms: true,
+      ...ALL_GROUP_FEATURES,
     });
   });
 
@@ -52,8 +51,7 @@ describe('communityAccess', () => {
       staff: true,
       moderatePosts: true,
       moderateComments: true,
-      directory: true,
-      dms: true,
+      ...ALL_GROUP_FEATURES,
     });
   });
 
@@ -75,13 +73,12 @@ describe('communityAccess', () => {
 
   it('joins every group the member holds a grant for; features are the union of those groups', async () => {
     const vip = await repo.createAccessGroup({ communityId: community.id, title: 'VIP' });
-    await repo.updateAccessGroup(vip.id, { directory: false, dms: false });
-    await repo.updateAccessGroup(SEED_IDS.members, { directory: false });
+    await repo.updateAccessGroup(vip.id, { directory: false, dms: false, challenges: false, leaderboard: true });
+    await repo.updateAccessGroup(SEED_IDS.members, { directory: false, leaderboard: false, meetups: false });
     await repo.createGrant({ productId: community.id, profileId: SEED_IDS.student, source: 'manual', orderId: null, accessGroupId: vip.id });
     const access = await communityAccess(repo, await as(SEED_IDS.student), community, NOW);
     expect(access.groupIds.toSorted()).toEqual([SEED_IDS.members, vip.id].toSorted());
-    expect(access.directory).toBe(false);
-    expect(access.dms).toBe(true);
+    expect(access).toMatchObject({ directory: false, dms: true, challenges: true, meetups: true, leaderboard: true });
   });
 
   it('a member holding only an extra group is not in the default group', async () => {
@@ -98,8 +95,7 @@ const member: CommunityAccess = {
   moderatePosts: false,
   moderateComments: false,
   groupIds: [SEED_IDS.members],
-  directory: true,
-  dms: true,
+  ...ALL_GROUP_FEATURES,
 };
 const owner: CommunityAccess = { ...member, staff: true, moderatePosts: true, moderateComments: true, groupIds: [] };
 

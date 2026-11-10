@@ -3,7 +3,7 @@ import type { Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { Channel, Product } from '@/lib/data/types';
 import { readableChannels, type CommunityAccess } from './access';
-import { communityNav, type CommunityNav } from './dms';
+import { communityNav, type CommunityNav } from './nav';
 import { loadCommunity } from './feed';
 
 export type CommunityShell = { community: Product; access: CommunityAccess; channels: Channel[]; nav: CommunityNav };
@@ -15,7 +15,7 @@ export async function communityShell(repo: Repo, viewer: Viewer, slug: string, n
   const { community, access } = found;
   const [channels, nav] = await Promise.all([
     repo.channels(community.id).then((all) => readableChannels(repo, access, all, viewer.profile!.id)),
-    communityNav(repo, viewer, community, access.directory, now),
+    communityNav(repo, viewer, community, access, now),
   ]);
   return { community, access, channels, nav };
 }

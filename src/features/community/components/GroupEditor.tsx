@@ -1,4 +1,4 @@
-// Studio > community > access groups (Kajabi tiers: directory + DM toggles) and messaging settings.
+// Studio > community > access groups (Kajabi tiers: directory, DM, challenge, meetup and leaderboard toggles) and messaging settings.
 // https://help.kajabi.com/en/articles/17174417-community-access-groups
 import { Badge, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import type { AccessGroup, CommunitySettings } from '@/lib/data/types';
@@ -17,6 +17,9 @@ function GroupRow({ group }: { group: AccessGroup }) {
         </Field>
         <YesNoSelect name="directory" label="Member directory" value={group.directory} yes="Shown" no="Hidden" />
         <YesNoSelect name="dms" label="Start direct messages" value={group.dms} yes="Allowed" no="Not allowed" />
+        <YesNoSelect name="challenges" label="Challenges" value={group.challenges} yes="Shown" no="Hidden" />
+        <YesNoSelect name="meetups" label="Meetups" value={group.meetups} yes="Shown" no="Hidden" />
+        <YesNoSelect name="leaderboard" label="Leaderboard" value={group.leaderboard} yes="Shown" no="Hidden" />
       </CommunityForm>
       {group.isDefault ? null : (
         <CommunityForm

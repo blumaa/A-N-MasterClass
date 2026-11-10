@@ -95,8 +95,28 @@ describe('studioCommunityCommandFromForm', () => {
     });
     expect(studioCommunityCommandFromForm(form({ op: 'saveSettings', communityId: 'c', dmsEnabled: 'true', founderDms: 'false' }))).toEqual({
       ok: true,
-      command: { op: 'saveSettings', communityId: 'c', dmsEnabled: true, founderDms: false },
+      command: { op: 'saveSettings', communityId: 'c', patch: { dmsEnabled: true, founderDms: false } },
     });
+  });
+
+  it('reads group feature toggles', () => {
+    const f = form({ op: 'updateGroup', groupId: 'g', challenges: 'false', meetups: 'true', leaderboard: 'false' });
+    expect(studioCommunityCommandFromForm(f)).toEqual({
+      ok: true,
+      command: { op: 'updateGroup', groupId: 'g', patch: { challenges: false, meetups: true, leaderboard: false } },
+    });
+  });
+
+  it('reads points settings: toggle, leaderboard visibility, whole point values 0..1000', () => {
+    const points = { op: 'saveSettings', communityId: 'c', pointsEnabled: 'true', leaderboard: 'staff', point_comment: '5', point_dm: '0' };
+    expect(studioCommunityCommandFromForm(form(points))).toEqual({
+      ok: true,
+      command: { op: 'saveSettings', communityId: 'c', patch: { pointsEnabled: true, leaderboard: 'staff', pointValues: { comment: 5, dm: 0 } } },
+    });
+    expect(studioCommunityCommandFromForm(form({ ...points, leaderboard: 'everyone' })).ok).toBe(false);
+    expect(studioCommunityCommandFromForm(form({ ...points, point_comment: '1.5' })).ok).toBe(false);
+    expect(studioCommunityCommandFromForm(form({ ...points, point_comment: '1001' })).ok).toBe(false);
+    expect(studioCommunityCommandFromForm(form({ ...points, point_comment: '-1' })).ok).toBe(false);
   });
 });
 

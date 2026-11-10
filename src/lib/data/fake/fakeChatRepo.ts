@@ -3,7 +3,7 @@
 // supabase/migrations/*_community_groups_chat_dms.sql.
 import { ConstraintError } from '../errors';
 import type { Repo } from '../repo';
-import { DEFAULT_COMMUNITY_SETTINGS, type AccessGroup, type Block, type DmThread, type Message } from '../types';
+import { ALL_GROUP_FEATURES, DEFAULT_COMMUNITY_SETTINGS, type AccessGroup, type Block, type DmThread, type Message } from '../types';
 import type { Db } from './db';
 
 type ChatRepo = Pick<
@@ -66,7 +66,7 @@ export function createFakeChatRepo(db: Db, id: (prefix: string) => string): Chat
       if (isDefault && db.accessGroups.some((g) => g.communityId === input.communityId && g.isDefault)) {
         throw new ConstraintError('a community has one default group');
       }
-      const row: AccessGroup = { ...input, id: id('group'), isDefault, directory: true, dms: true };
+      const row: AccessGroup = { ...input, id: id('group'), isDefault, ...ALL_GROUP_FEATURES };
       db.accessGroups.push(row);
       return row;
     },
@@ -80,7 +80,9 @@ export function createFakeChatRepo(db: Db, id: (prefix: string) => string): Chat
       const used =
         db.channels.some((c) => c.accessGroupId === gid) ||
         db.grants.some((g) => g.accessGroupId === gid) ||
-        db.offerProducts.some((o) => o.accessGroupId === gid);
+        db.offerProducts.some((o) => o.accessGroupId === gid) ||
+        db.challenges.some((c) => c.accessGroupId === gid) ||
+        db.meetups.some((m) => m.accessGroupId === gid);
       if (used) throw new ConstraintError('group in use');
       db.accessGroups = db.accessGroups.filter((g) => g.id !== gid);
     },
@@ -147,9 +149,10 @@ export function createFakeChatRepo(db: Db, id: (prefix: string) => string): Chat
     },
 
     communitySettings: async (communityId) =>
-      db.communitySettings.find((s) => s.communityId === communityId) ?? { communityId, ...DEFAULT_COMMUNITY_SETTINGS },
+      db.communitySettings.find((s) => s.communityId === communityId) ?? { communityId, ...DEFAULT_COMMUNITY_SETTINGS, pointValues: {} },
     async saveCommunitySettings(row) {
-      db.communitySettings = [...db.communitySettings.filter((s) => s.communityId !== row.communityId), { ...row }];
+      const copy = { ...row, pointValues: { ...row.pointValues } };
+      db.communitySettings = [...db.communitySettings.filter((s) => s.communityId !== row.communityId), copy];
     },
   };
 }

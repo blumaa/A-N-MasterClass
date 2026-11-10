@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ConstraintError } from '../errors';
 import type { NewChannel } from '../repo';
-import type { Comment, Post } from '../types';
+import { DEFAULT_COMMUNITY_SETTINGS, type Comment, type Post } from '../types';
 import { createFakeRepo, type FakeRepo } from './fakeRepo';
 import { SEED_IDS, seedDb } from './seed';
 
@@ -164,8 +164,8 @@ describe('DMs', () => {
     expect(await repo.blocks(communityId, SEED_IDS.alexanderOwner)).toEqual([row]);
     await repo.setBlock(row, false);
     expect(await repo.blocks(communityId, SEED_IDS.student)).toEqual([]);
-    expect(await repo.communitySettings(communityId)).toEqual({ communityId, dmsEnabled: true, founderDms: true });
-    await repo.saveCommunitySettings({ communityId, dmsEnabled: false, founderDms: true });
+    expect(await repo.communitySettings(communityId)).toEqual({ communityId, ...DEFAULT_COMMUNITY_SETTINGS });
+    await repo.saveCommunitySettings({ communityId, ...DEFAULT_COMMUNITY_SETTINGS, dmsEnabled: false });
     expect((await repo.communitySettings(communityId)).dmsEnabled).toBe(false);
   });
 });

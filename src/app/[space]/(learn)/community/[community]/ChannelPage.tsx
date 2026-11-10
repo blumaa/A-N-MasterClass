@@ -1,7 +1,7 @@
 // Shared body of the community home (first channel) and a channel route.
 import { notFound } from 'next/navigation';
 import { EmptyState } from '@/components/ui/mds';
-import { communityNav } from '@/features/community/api/dms';
+import { communityNav } from '@/features/community/api/nav';
 import { communityPage } from '@/features/community/api/feed';
 import { ChannelChat } from '@/features/community/components/ChannelChat';
 import { ChannelFeed } from '@/features/community/components/ChannelFeed';
@@ -25,7 +25,7 @@ export async function ChannelPage({ space, community, channelId }: { space: stri
   if (page.kind === 'locked') {
     return <EmptyState title={page.community.title} description="This community is for members. Get access through one of its offers." />;
   }
-  const nav = await communityNav(getRepo(), viewer, page.community, page.access.directory, new Date());
+  const nav = await communityNav(getRepo(), viewer, page.community, page.access, new Date());
   return (
     <CommunityFrame community={page.community} channels={page.channels} activeId={page.channel.id} extras={nav}>
       {page.channel.kind === 'chat' ? (

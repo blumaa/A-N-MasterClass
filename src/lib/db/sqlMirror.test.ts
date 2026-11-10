@@ -9,6 +9,8 @@ import {
   CHANNEL_KINDS,
   CHANNEL_PRIVACIES,
   COMMENT_TARGETS,
+  DEFAULT_POINT_VALUES,
+  LEADERBOARD_VISIBILITIES,
   NOTIFICATION_TYPES,
   REACTION_EMOJIS,
   REACTION_TARGETS,
@@ -17,6 +19,8 @@ import {
   ORDER_STATUSES,
   PAGE_KINDS,
   PAYMENT_ENVS,
+  POINT_REASONS,
+  POINT_VALUE_MAX,
 } from '@/lib/data/types';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { SECTION_KINDS } from '@/lib/site/sections';
@@ -153,5 +157,30 @@ describe('SQL mirrors: community', () => {
 
   it('reaches_community role list equals ALWAYS_REACH', () => {
     expect(list(/m\.role = any \(array\[([^\]]+)\]\)/)).toEqual([...ALWAYS_REACH]);
+  });
+
+  it('points ledger reason check and point_values keys equal POINT_REASONS', () => {
+    expect(list(/points_ledger_reason check \(reason in \(([^)]+)\)\)/)).toEqual([...POINT_REASONS]);
+    expect(list(/e\.key not in \(([^)]+)\)/)).toEqual([...POINT_REASONS]);
+  });
+
+  it('community_settings leaderboard check equals LEADERBOARD_VISIBILITIES', () => {
+    expect(list(/community_settings_leaderboard check \(leaderboard in \(([^)]+)\)\)/)).toEqual([
+      ...LEADERBOARD_VISIBILITIES,
+    ]);
+  });
+
+  it('point limits equal POINT_VALUE_MAX', () => {
+    expect(sql).toContain(`not between 0 and ${POINT_VALUE_MAX}`);
+    expect(sql).toContain(`check (points between 1 and ${POINT_VALUE_MAX})`);
+  });
+
+  it('point_value defaults equal DEFAULT_POINT_VALUES', () => {
+    const defaults = Object.fromEntries(
+      [...sql.matchAll(/when '(\w+)' then (\d+)/g)]
+        .filter(([, reason]) => (POINT_REASONS as readonly string[]).includes(reason))
+        .map(([, reason, value]) => [reason, Number(value)]),
+    );
+    expect(defaults).toEqual(DEFAULT_POINT_VALUES);
   });
 });

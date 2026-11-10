@@ -1,10 +1,13 @@
 // Studio > one community: settings, channels, access groups + messaging, staff ticks (G15).
 import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
+import { ButtonLink } from '@/components/ui/links';
 import { Badge, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import type { StaffTick, StudioCommunity } from '../api/studio';
+import { studioEventsHref } from '../paths';
 import { ChannelEditor } from './ChannelEditor';
 import { CommunityForm } from './CommunityForm';
 import { GroupEditor } from './GroupEditor';
+import { PointsEditor } from './PointsEditor';
 import styles from './community.module.css';
 
 function StaffRow({ communityId, tick }: { communityId: string; tick: StaffTick }) {
@@ -45,6 +48,12 @@ export function CommunityEditor({ view }: { view: StudioCommunity }) {
         channelMembers={channelMembers}
       />
       <GroupEditor communityId={communityId} groups={groups} settings={view.settings} />
+      <PointsEditor communityId={communityId} settings={view.settings} />
+      <div>
+        <ButtonLink href={studioEventsHref(communityId)} variant="secondary">
+          Challenges and meetups
+        </ButtonLink>
+      </div>
 
       {canManageStaff ? (
         <Stack gap="base">
