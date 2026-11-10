@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { body, field, flag, parser, readClock, readInstant, readIso, readWhole, readTimeZone } from './commands';
+import { body, field, flag, titleAndSlug, parser, productPatch, readClock, readDuration, readInstant, readIso, readWhole, readTimeZone } from './commands';
 import { formReader } from './formReader';
 
 const form = (entries: Record<string, string>) => {
@@ -25,6 +25,29 @@ describe('field', () => {
   });
   it('reads present fields', () => {
     expect(field(reader({ title: 'A' }), 'title', () => 'read')).toEqual({ title: 'read' });
+  });
+});
+
+describe('titleAndSlug', () => {
+  it('derives a missing slug from the title', () => {
+    expect(titleAndSlug(reader({ title: 'Rope Talk', slug: '' }))).toEqual({ title: 'Rope Talk', slug: 'rope-talk' });
+    expect(titleAndSlug(reader({ title: 'Rope Talk', slug: 'rt' }))).toEqual({ title: 'Rope Talk', slug: 'rt' });
+  });
+});
+
+describe('productPatch', () => {
+  it('reads present fields only, blank subtitle as none', () => {
+    expect(productPatch(reader({ subtitle: '', status: 'published' }))).toEqual({ subtitle: null, status: 'published' });
+    expect(() => productPatch(reader({ status: 'gone' }))).toThrow();
+  });
+});
+
+describe('readDuration', () => {
+  it('reads h:mm:ss, m:ss or blank', () => {
+    expect(readDuration(reader({ d: '1:02:03' }), 'd')).toBe(3723);
+    expect(readDuration(reader({ d: '42:05' }), 'd')).toBe(2525);
+    expect(readDuration(reader({ d: '' }), 'd')).toBeNull();
+    expect(() => readDuration(reader({ d: '1:75' }), 'd')).toThrow('Enter the length as h:mm:ss or m:ss.');
   });
 });
 

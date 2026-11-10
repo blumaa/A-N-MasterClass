@@ -14,6 +14,7 @@ export {
   Field,
   Heading,
   Inline,
+  Link,
   Input,
   ListGroup,
   ListItem,

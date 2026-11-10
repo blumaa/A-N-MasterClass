@@ -200,13 +200,22 @@ Launch 4 as built:
 - Client: library tile, coaching page (balance, slots in the coach's zone, agenda), session page (join link, `.ics`, reschedule/cancel until cutoff). Studio: Coaching nav (products.edit), group sessions, program settings, hours, overrides, calendar (settings.manage), session page with notes, reschedule, cancel.
 - Not yet: confirmation/reminder emails (email provider pending), per-client time zone display (coach zone shown with label), Google app verification (testing mode refresh tokens expire after 7 days).
 
+Launch 5 as built:
+- Migration `20261110091000_podcasts_downloads.sql` + `supabase/tests/100-podcasts-downloads.test.sql` written, not yet run.
+- Podcast = settings (author, explicit, episodic/serial) + episodes (mp3 only, 1 byte..250 MB, season, type full/bonus/trailer, show notes, publish_at null = draft, future = scheduled). Holders see published episodes only; staff see all.
+- Private feed per listener: token from `podcast_feed_token` (created on first ask), `reset_podcast_feed` replaces it. Feed + audio routes under `/feeds/podcast/[token]` take no session; `podcast_feed` (service role only) answers only while the listener's grant is active.
+- Download = list of files; holders read the list. Every file and audio request goes through a server route that returns a 302 to a short signed URL (`signedRedirect`, `cache-control: no-store`).
+- Files in private bucket `resources` (no object policies = service role only). Bucket limit 250 MB; Supabase Free caps uploads at 50 MB, Pro allows up to 500 GB (https://supabase.com/docs/guides/storage/uploads/file-limits).
+- Client: Podcasts + Downloads tiles in the library, podcast page (episodes, feed URL, reset), downloads page. Studio: Podcasts + Downloads nav (products.edit).
+- Not yet: file upload UI (paths entered by hand in Studio), Supabase file store adapter (`getFileStore` throws for supabase), "Download all" zip, download parts in program steps through the same signed route.
+
 **Launch 5** — podcast + download products.
 **Later** — drip release emails (`pg_cron`), quizzes, coupons, order bumps, upsells (G23), subscriptions/payment plans, certificates, embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.
 
 ## Costs (warn, verify on official pricing pages before signup)
 
 - Vercel: Hobby forbids commercial use → **Pro** needed (per-seat monthly).
-- Supabase: Free pauses + no backups → **Pro** (monthly per project + usage).
+- Supabase: Free pauses + no backups → **Pro** (monthly per project + usage). Free upload cap 50 MB (episodes up to 250 MB need Pro). Egress Pro: 250 GB uncached + 250 GB cached included, then $0.09 / $0.03 per GB (https://supabase.com/docs/guides/platform/manage-your-usage/egress); podcast audio is the main egress driver.
 - Vimeo: plan with embed domain allow-list (KSG client has Pro); each instructor's account or one shared.
 - PayPal: per-transaction fees (percent + fixed, varies by country/currency, cross-border extra) charged to each instructor's own account; platform pays nothing. Verify current EU rates on PayPal's official fees page.
 - Email provider (transactional only, G16): free tier likely enough at start.

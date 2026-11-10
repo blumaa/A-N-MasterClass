@@ -7,6 +7,10 @@ import type {
   CoachingProgram,
   CoachingSession,
   CoachSettings,
+  Episode,
+  PodcastFeed,
+  PodcastSettings,
+  ProductFile,
   SessionNote,
   Block,
   Challenge,
@@ -100,6 +104,10 @@ export type Db = {
   calendarConnections: CalendarConnection[];
   /** Stands in for Supabase Vault. */
   calendarSecrets: { spaceId: string; refreshToken: string }[];
+  podcasts: PodcastSettings[];
+  episodes: Episode[];
+  podcastFeeds: PodcastFeed[];
+  productFiles: ProductFile[];
 };
 
 export const emptyDb = (): Db => ({
@@ -151,4 +159,8 @@ export const emptyDb = (): Db => ({
   sessionNotes: [],
   calendarConnections: [],
   calendarSecrets: [],
+  podcasts: [],
+  episodes: [],
+  podcastFeeds: [],
+  productFiles: [],
 });

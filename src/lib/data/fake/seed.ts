@@ -20,6 +20,8 @@ export const SEED_IDS = {
   lounge: 'chan-lounge',
   members: 'group-members',
   coaching: 'prod-coaching',
+  podcast: 'prod-podcast',
+  downloads: 'prod-downloads',
 } as const;
 
 export function seedDb(now: Date = new Date()): Db {
@@ -222,6 +224,7 @@ export function seedDb(now: Date = new Date()): Db {
   });
 
   seedCoaching(db, now);
+  seedMedia(db, now);
   return db;
 }
 
@@ -269,4 +272,60 @@ function seedCoaching(db: Db, now: Date): void {
     orderId: null,
     accessGroupId: null,
   });
+}
+
+/** Private podcast with two episodes (one scheduled) and a download pack, both held by the student. */
+function seedMedia(db: Db, now: Date): void {
+  const ids = SEED_IDS;
+  const product = (id: string, kind: 'podcast' | 'download', slug: string, title: string, subtitle: string, position: number) => ({
+    id,
+    spaceId: ids.alexander,
+    kind,
+    slug,
+    title,
+    subtitle,
+    status: 'published' as const,
+    position,
+    themeOverride: null,
+  });
+  db.products.push(
+    product(ids.podcast, 'podcast', 'rope-talk', 'Rope Talk', 'Members-only podcast', 3),
+    product(ids.downloads, 'download', 'pattern-pack', 'Pattern Pack', 'Printable tie diagrams', 4),
+  );
+  db.podcasts.push({ productId: ids.podcast, author: 'Alexander', explicit: false, order: 'episodic' });
+  const ep = (id: string, title: string, publishAt: Date, createdAt: Date) => ({
+    id,
+    productId: ids.podcast,
+    title,
+    type: 'full' as const,
+    season: 1,
+    showNotes: '',
+    audioPath: `rope-talk/${id}.mp3`,
+    audioBytes: 24_000_000,
+    durationS: 1500,
+    explicit: false,
+    publishAt,
+    createdAt,
+  });
+  db.episodes.push(
+    ep('ep-welcome', 'Welcome to Rope Talk', new Date(now.getTime() - 7 * DAY), new Date(now.getTime() - 8 * DAY)),
+    ep('ep-tension', 'Tension and timing', new Date(now.getTime() + 7 * DAY), new Date(now.getTime() - DAY)),
+  );
+  db.productFiles.push(
+    { id: 'file-single-column', productId: ids.downloads, title: 'Single column tie', filePath: 'pattern-pack/single-column.pdf', sizeBytes: 1_200_000, createdAt: new Date(now.getTime() - 3 * DAY) },
+    { id: 'file-hip-harness', productId: ids.downloads, title: 'Hip harness', filePath: 'pattern-pack/hip-harness.pdf', sizeBytes: 2_400_000, createdAt: new Date(now.getTime() - 2 * DAY) },
+  );
+  for (const productId of [ids.podcast, ids.downloads]) {
+    db.grants.push({
+      id: `grant-student-${productId}`,
+      productId,
+      profileId: ids.student,
+      source: 'manual',
+      status: 'active',
+      grantedAt: new Date(now.getTime() - 2 * DAY),
+      expiresAt: null,
+      orderId: null,
+      accessGroupId: null,
+    });
+  }
 }

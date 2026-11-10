@@ -11,6 +11,7 @@ import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
 import { createFakeCommunityRepo } from './fakeCommunityRepo';
 import { createFakeEventsRepo } from './fakeEventsRepo';
+import { createFakeMediaRepo } from './fakeMediaRepo';
 import { withPoints } from './fakePoints';
 import { createFakeSiteRepo } from './fakeSiteRepo';
 
@@ -79,6 +80,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakeCommunityRepo(db, id),
     ...createFakeEventsRepo(db, id),
     ...createFakeCoachingRepo(db, id),
+    ...createFakeMediaRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     spaceSlugByHost: async (host) => {

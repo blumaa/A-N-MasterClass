@@ -10,6 +10,8 @@ import {
   CHANNEL_PRIVACIES,
   COMMENT_TARGETS,
   DEFAULT_POINT_VALUES,
+  EPISODE_MAX_BYTES,
+  EPISODE_TYPES,
   LEADERBOARD_VISIBILITIES,
   NOTIFICATION_TYPES,
   REACTION_EMOJIS,
@@ -19,6 +21,7 @@ import {
   ORDER_STATUSES,
   PAGE_KINDS,
   PAYMENT_ENVS,
+  PODCAST_ORDERS,
   POINT_REASONS,
   POINT_VALUE_MAX,
 } from '@/lib/data/types';
@@ -182,5 +185,20 @@ describe('SQL mirrors: community', () => {
         .map(([, reason, value]) => [reason, Number(value)]),
     );
     expect(defaults).toEqual(DEFAULT_POINT_VALUES);
+  });
+});
+
+describe('SQL mirrors: podcasts', () => {
+  it('podcast_settings order check equals PODCAST_ORDERS', () => {
+    expect(list(/podcast_settings_order check \(episode_order in \(([^)]+)\)\)/)).toEqual([...PODCAST_ORDERS]);
+  });
+
+  it('episodes type check equals EPISODE_TYPES', () => {
+    expect(list(/episodes_type check \(type in \(([^)]+)\)\)/)).toEqual([...EPISODE_TYPES]);
+  });
+
+  it('episode size limit and bucket limit equal EPISODE_MAX_BYTES', () => {
+    expect(sql).toContain(`check (audio_bytes between 1 and ${EPISODE_MAX_BYTES})`);
+    expect(sql).toContain(`('resources', 'resources', false, ${EPISODE_MAX_BYTES})`);
   });
 });

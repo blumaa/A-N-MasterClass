@@ -1,10 +1,9 @@
 // Coaching forms -> commands. Studio posts schedule numbers as whole numbers, weekly windows as
 // time inputs, and coach-scheduled times as datetime-local in `timeZone`. Clients post an
 // offered slot as the UTC instant the page rendered.
-import { field, parser, readClock, readInstant, readIso, readTimeZone, readWhole } from '@/lib/forms/commands';
+import { titleAndSlug, parser, productPatch, readClock, readInstant, readIso, readTimeZone, readWhole } from '@/lib/forms/commands';
 import { FormError, type FormReader as Reader } from '@/lib/forms/formReader';
-import { COACHING_KINDS, PUBLISH_STATUSES } from '@/lib/data/types';
-import { slugify } from '@/lib/text/slugify';
+import { COACHING_KINDS } from '@/lib/data/types';
 import type { BookingCommand } from './api/booking';
 import type { CoachingCommand } from './api/studio';
 
@@ -24,18 +23,11 @@ function overrideHours(r: Reader) {
 }
 
 const STUDIO: Record<CoachingCommand['op'], (r: Reader) => CoachingCommand> = {
-  createProgram: (r) => {
-    const title = r.required('title');
-    return { op: 'createProgram', title, slug: r.raw('slug') || slugify(title) };
-  },
+  createProgram: (r) => ({ op: 'createProgram', ...titleAndSlug(r) }),
   updateProduct: (r) => ({
     op: 'updateProduct',
     productId: r.required('productId'),
-    patch: {
-      ...field(r, 'title', () => r.required('title')),
-      ...field(r, 'subtitle', () => r.raw('subtitle') || null),
-      ...field(r, 'status', () => r.oneOf('status', PUBLISH_STATUSES)),
-    },
+    patch: productPatch(r),
   }),
   saveProgram: (r) => ({
     op: 'saveProgram',

@@ -11,11 +11,9 @@ import {
   POINT_VALUE_MAX,
   type GroupFeature,
   type PointReason,
-  PUBLISH_STATUSES,
 } from '@/lib/data/types';
-import { body, field, flag, parser } from '@/lib/forms/commands';
+import { body, field, flag, titleAndSlug, parser, productPatch } from '@/lib/forms/commands';
 import { FormError, type FormReader as Reader } from '@/lib/forms/formReader';
-import { slugify } from '@/lib/text/slugify';
 import type { ChatCommand } from './api/chat';
 import type { CommunityCommand } from './api/commands';
 import type { StudioCommunityCommand } from './api/studio';
@@ -71,18 +69,11 @@ const groupFeatures = (r: Reader): Partial<Record<GroupFeature, boolean>> =>
   Object.fromEntries(GROUP_FEATURES.flatMap((f) => (r.raw(f) === undefined ? [] : [[f, flag(r, f)]])));
 
 const STUDIO: Record<StudioCommunityCommand['op'], (r: Reader) => StudioCommunityCommand> = {
-  createCommunity: (r) => {
-    const title = r.required('title');
-    return { op: 'createCommunity', title, slug: r.raw('slug') || slugify(title) };
-  },
+  createCommunity: (r) => ({ op: 'createCommunity', ...titleAndSlug(r) }),
   updateCommunity: (r) => ({
     op: 'updateCommunity',
     communityId: r.required('communityId'),
-    patch: {
-      ...field(r, 'title', () => r.required('title')),
-      ...field(r, 'subtitle', () => r.raw('subtitle') || null),
-      ...field(r, 'status', () => r.oneOf('status', PUBLISH_STATUSES)),
-    },
+    patch: productPatch(r),
   }),
   createChannel: (r) => ({
     op: 'createChannel',

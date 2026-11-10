@@ -2,7 +2,7 @@
 import { CURRENCIES, parsePrice } from '@/lib/commerce/money';
 import { PAYMENT_ENVS } from '@/lib/data/types';
 import { FormError, formReader, parseForm, type FormReader } from '@/lib/forms/formReader';
-import { slugify } from '@/lib/text/slugify';
+import { titleAndSlug } from '@/lib/forms/commands';
 import type { OfferCommand } from './api/offers';
 import type { PaymentsInput } from './api/payments';
 
@@ -18,8 +18,7 @@ function parseOffer(form: FormData): OfferCommand {
   const r = formReader(form);
   const op = r.oneOf('op', OPS);
   if (op === 'create') {
-    const title = r.required('title');
-    return { op, title, slug: r.raw('slug') || slugify(title), priceCents: price(r), currency: r.oneOf('currency', CURRENCIES) };
+    return { op, ...titleAndSlug(r), priceCents: price(r), currency: r.oneOf('currency', CURRENCIES) };
   }
   const offerId = r.required('offerId');
   switch (op) {

@@ -1,6 +1,8 @@
 // Form -> command helpers shared by every feature: a parser over an `op` table plus small typed
 // readers. Booleans arrive as 'true' / 'false'; times as datetime-local values in `timeZone`.
+import { PUBLISH_STATUSES, type Product } from '@/lib/data/types';
 import { isTimeZone, zonedToUtc } from '@/lib/format/zoned';
+import { slugify } from '@/lib/text/slugify';
 import { FormError, formReader, parseForm, type FormReader as Reader } from './formReader';
 
 export type Parsed<C> = { ok: true; command: C } | { ok: false; message: string };
@@ -12,6 +14,30 @@ export const flag = (r: Reader, name: string): boolean => r.oneOf(name, BOOLEANS
 /** Patch field: absent = untouched, present = read(). */
 export const field = <K extends string, T>(r: Reader, name: K, read: () => T): Partial<Record<K, T>> =>
   r.raw(name) === undefined ? {} : ({ [name]: read() } as Partial<Record<K, T>>);
+
+/** Title of a new product, offer or page, with the slug derived from it when left blank. */
+export function titleAndSlug(r: Reader): { title: string; slug: string } {
+  const title = r.required('title');
+  return { title, slug: r.raw('slug') || slugify(title) };
+}
+
+/** Product title / subtitle / status patch; blank subtitle = none. */
+export const productPatch = (r: Reader): Partial<Pick<Product, 'title' | 'subtitle' | 'status'>> => ({
+  ...field(r, 'title', () => r.required('title')),
+  ...field(r, 'subtitle', () => r.raw('subtitle') || null),
+  ...field(r, 'status', () => r.oneOf('status', PUBLISH_STATUSES)),
+});
+
+const DURATION = /^(?:(\d+):)?([0-5]?\d):([0-5]\d)$/;
+
+/** Media length typed as h:mm:ss or m:ss, in seconds; blank = unknown (null). */
+export function readDuration(r: Reader, name: string): number | null {
+  const v = r.raw(name) ?? '';
+  if (!v) return null;
+  const m = DURATION.exec(v);
+  if (!m) throw new FormError('Enter the length as h:mm:ss or m:ss.');
+  return Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+}
 
 export function body(r: Reader): string {
   const v = r.raw('body');

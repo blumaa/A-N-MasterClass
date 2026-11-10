@@ -2,7 +2,7 @@
 // Only fields present in the form go into a patch; blank optional fields become null.
 import type { Direction } from '@/lib/data/repo';
 import { FormError, formReader, optional, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
-import { slugify } from '@/lib/text/slugify';
+import { titleAndSlug } from '@/lib/forms/commands';
 import { PART_KINDS, PUBLISH_STATUSES, type PartKind } from '@/lib/data/types';
 import { vimeoIdOf } from '@/lib/video/vimeo';
 import type { CurriculumCommand } from './api/curriculum';
@@ -37,10 +37,7 @@ function titleField(r: Reader) {
 }
 
 const PARSERS: Record<CurriculumCommand['op'], (r: Reader) => CurriculumCommand> = {
-  createProgram: (r) => {
-    const title = r.required('title');
-    return { op: 'createProgram', title, slug: r.raw('slug') || slugify(title) };
-  },
+  createProgram: (r) => ({ op: 'createProgram', ...titleAndSlug(r) }),
   updateProgram: (r) => ({
     op: 'updateProgram',
     programId: r.required('programId'),

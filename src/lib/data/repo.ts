@@ -49,6 +49,10 @@ import type {
   SpaceBranding,
   SpaceProfile,
   Step,
+  Episode,
+  PodcastFeed,
+  PodcastSettings,
+  ProductFile,
 } from './types';
 
 export type NewProduct = Pick<Product, 'spaceId' | 'kind' | 'slug' | 'title'>;
@@ -107,6 +111,9 @@ export type NewNotification = Omit<Notification, 'id' | 'readAt'>;
 
 export type NewAvailabilityRule = Omit<AvailabilityRule, 'id'>;
 export type NewAvailabilityOverride = Omit<AvailabilityOverride, 'id'>;
+export type NewEpisode = Omit<Episode, 'id'>;
+export type EpisodePatch = Partial<Omit<Episode, 'id' | 'productId' | 'createdAt'>>;
+export type NewProductFile = Omit<ProductFile, 'id'>;
 export type NewCoachingSession = Omit<CoachingSession, 'id' | 'status' | 'googleEventId' | 'cancelledAt'>;
 export type CoachingSessionPatch = Partial<
   Pick<CoachingSession, 'title' | 'startsAt' | 'endsAt' | 'location' | 'agenda' | 'status' | 'cancelledAt' | 'googleEventId'>
@@ -380,6 +387,34 @@ export interface Repo {
   /** Upsert row + token. */
   saveCalendarConnection(row: CalendarConnection, refreshToken: string): Promise<void>;
   deleteCalendarConnection(spaceId: string): Promise<void>;
+
+  // podcasts and downloads (G18)
+  podcastSettings(productId: string): Promise<PodcastSettings | null>;
+  /** Upsert. Product kind podcast; author up to 200 chars. */
+  savePodcastSettings(row: PodcastSettings): Promise<void>;
+  /** Every episode of the podcast, newest created first. */
+  episodes(productId: string): Promise<Episode[]>;
+  episode(id: string): Promise<Episode | null>;
+  /** Podcast product; title non-blank; .mp3 path; 1..EPISODE_MAX_BYTES; season >= 1; duration >= 0. */
+  createEpisode(input: NewEpisode): Promise<Episode>;
+  updateEpisode(id: string, patch: EpisodePatch): Promise<Episode>;
+  deleteEpisode(id: string): Promise<void>;
+  /**
+   * The viewer's feed token for a podcast, created on first ask (SQL: podcast_feed_token RPC,
+   * needs an active grant at `now`).
+   */
+  podcastFeedToken(productId: string, profileId: string, now: Date): Promise<string>;
+  /** New token; the old feed URL stops working (SQL: reset_podcast_feed). */
+  resetPodcastFeed(productId: string, profileId: string, now: Date): Promise<string>;
+  /** Service role only (SQL: podcast_feed). The feed behind a token while its grant is active. */
+  podcastFeedByToken(token: string, now: Date): Promise<PodcastFeed | null>;
+  /** Oldest first. */
+  productFiles(productId: string): Promise<ProductFile[]>;
+  productFile(id: string): Promise<ProductFile | null>;
+  /** Download product; title non-blank; size > 0. */
+  createProductFile(input: NewProductFile): Promise<ProductFile>;
+  renameProductFile(id: string, title: string): Promise<ProductFile>;
+  deleteProductFile(id: string): Promise<void>;
 
   // dev only (fake auth switcher)
   profilesInSpace(spaceId: string): Promise<Profile[]>;

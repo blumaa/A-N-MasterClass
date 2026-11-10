@@ -4,7 +4,7 @@ import type { Direction } from '@/lib/data/repo';
 import { LEGAL_KINDS, PAGE_KINDS, type LegalKind, type NavItem } from '@/lib/data/types';
 import { formReader, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
 import { SECTION_KINDS } from '@/lib/site/sections';
-import { slugify } from '@/lib/text/slugify';
+import { titleAndSlug } from '@/lib/forms/commands';
 import type { SiteCommand } from './api/site';
 
 export type Parsed = { ok: true; command: SiteCommand } | { ok: false; message: string };
@@ -59,10 +59,8 @@ function parse(form: FormData): SiteCommand {
   const pageId = () => r.required('pageId');
   const sectionId = () => r.required('sectionId');
   switch (op) {
-    case 'createPage': {
-      const title = r.required('title');
-      return { op, kind: r.oneOf('kind', PAGE_KINDS), title, slug: r.raw('slug') || slugify(title) };
-    }
+    case 'createPage':
+      return { op, kind: r.oneOf('kind', PAGE_KINDS), ...titleAndSlug(r) };
     case 'updatePage': {
       const legal = r.raw('legalKind');
       return {

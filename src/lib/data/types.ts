@@ -520,3 +520,57 @@ export type CalendarConnection = {
   calendarId: string;
   connectedAt: Date;
 };
+
+// ---------------------------------------------------------------------------------------------
+// Podcasts and downloads (G18): Kajabi Podcasts (private, per-buyer feed) and Downloads products.
+
+/** episodic = newest first; serial = oldest first, by season (Apple itunes:type). */
+export const PODCAST_ORDERS = ['episodic', 'serial'] as const;
+export type PodcastOrder = (typeof PODCAST_ORDERS)[number];
+
+/** Apple itunes:episodeType values. */
+export const EPISODE_TYPES = ['full', 'bonus', 'trailer'] as const;
+export type EpisodeType = (typeof EPISODE_TYPES)[number];
+
+/** Kajabi episode upload limit: one MP3 up to 250 MB. */
+export const EPISODE_MAX_BYTES = 250 * 1024 * 1024;
+
+/** Show settings of a podcast product. */
+export type PodcastSettings = {
+  productId: string;
+  author: string;
+  /** Show-wide explicit flag (itunes:explicit). */
+  explicit: boolean;
+  order: PodcastOrder;
+};
+
+export type Episode = {
+  id: string;
+  productId: string;
+  title: string;
+  type: EpisodeType;
+  season: number | null;
+  showNotes: string;
+  /** Object path in the private `resources` bucket (an .mp3). */
+  audioPath: string;
+  audioBytes: number;
+  durationS: number | null;
+  explicit: boolean;
+  /** null = unscheduled (staff only); in the future = scheduled; else published. */
+  publishAt: Date | null;
+  createdAt: Date;
+};
+
+/** A buyer's private feed of one podcast. The token in the URL is the credential. */
+export type PodcastFeed = { productId: string; profileId: string; token: string; createdAt: Date };
+
+/** One file of a download product. */
+export type ProductFile = {
+  id: string;
+  productId: string;
+  title: string;
+  /** Object path in the private `resources` bucket. */
+  filePath: string;
+  sizeBytes: number;
+  createdAt: Date;
+};

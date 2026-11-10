@@ -4,6 +4,7 @@
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
+import { heldProducts } from '@/lib/data/held';
 import type { Repo } from '@/lib/data/repo';
 import type { CoachingProgram, CoachingSession, CoachSettings, Product } from '@/lib/data/types';
 import { icsFor } from '@/lib/calendar/ics';
@@ -100,13 +101,7 @@ export async function clientCoaching(
 }
 
 /** Library section: published coaching products the viewer holds an active grant for. */
-export async function myCoaching(repo: Repo, viewer: Viewer, now: Date): Promise<Product[]> {
-  const me = viewer.profile?.id;
-  if (!me) return [];
-  const coaching = (await repo.products(viewer.space.id)).filter((p) => p.kind === 'coaching' && p.status === 'published');
-  const grants = await Promise.all(coaching.map((p) => repo.activeGrant(p.id, me, now)));
-  return coaching.filter((_, i) => grants[i] !== null);
-}
+export const myCoaching = (repo: Repo, viewer: Viewer, now: Date): Promise<Product[]> => heldProducts(repo, viewer, 'coaching', now);
 
 /** One session the viewer may see (own 1:1 or a group session of a product they hold). */
 export async function clientSession(repo: Repo, viewer: Viewer, sessionId: string, now: Date): Promise<ClientSession | null> {
