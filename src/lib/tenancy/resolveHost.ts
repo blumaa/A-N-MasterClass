@@ -1,5 +1,5 @@
 // Host header -> tenant kind. Pure. Proxy decides what to do with the result.
-// Custom hosts are looked up in `space_domains` by the caller (phase 1).
+// Custom hosts are looked up in `space_domains` by routeHost.
 
 export type HostResolution =
   | { kind: 'platform' }

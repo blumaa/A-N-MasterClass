@@ -23,6 +23,7 @@ import type {
   Reaction,
   SiteNav,
   Space,
+  SpaceDomain,
   SpaceBranding,
   SpaceProfile,
   Step,
@@ -31,6 +32,7 @@ import type {
 
 export type Db = {
   spaces: Space[];
+  spaceDomains: SpaceDomain[];
   profiles: Profile[];
   spaceProfiles: SpaceProfile[];
   branding: SpaceBranding[];
@@ -62,6 +64,7 @@ export type Db = {
 
 export const emptyDb = (): Db => ({
   spaces: [],
+  spaceDomains: [],
   profiles: [],
   spaceProfiles: [],
   branding: [],

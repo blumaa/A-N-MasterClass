@@ -75,6 +75,8 @@ export type Reorderable = 'modules' | 'steps' | 'parts' | 'channels';
 export interface Repo {
   // tenancy
   spaceBySlug(slug: string): Promise<Space | null>;
+  /** Slug of the space a custom host is attached to (space_domains), else null. Host compared lowercased. */
+  spaceSlugByHost(host: string): Promise<string | null>;
   profile(id: string): Promise<Profile | null>;
   member(spaceId: string, profileId: string): Promise<Member | null>;
   /** Staff of a space. */

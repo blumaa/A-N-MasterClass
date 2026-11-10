@@ -162,3 +162,12 @@ describe('branding', () => {
     expect((await repo.updateProduct(p.id, { themeOverride: colors })).themeOverride).toEqual(colors);
   });
 });
+
+describe('custom domains', () => {
+  it('maps a host to its space slug, case-insensitive; unknown host = null', async () => {
+    repo.db.spaceDomains.push({ host: 'alexander.example', spaceId: 's1', isPrimary: true });
+    expect(await repo.spaceSlugByHost('alexander.example')).toBe('alexander');
+    expect(await repo.spaceSlugByHost('Alexander.Example')).toBe('alexander');
+    expect(await repo.spaceSlugByHost('nobody.example')).toBeNull();
+  });
+});

@@ -72,6 +72,10 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakeCommunityRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
+    spaceSlugByHost: async (host) => {
+      const domain = db.spaceDomains.find((d) => d.host === host.toLowerCase());
+      return db.spaces.find((s) => s.id === domain?.spaceId)?.slug ?? null;
+    },
     profile: async (pid) => db.profiles.find((p) => p.id === pid) ?? null,
     member: async (spaceId, profileId) =>
       db.members.find((m) => m.spaceId === spaceId && m.profileId === profileId) ?? null,

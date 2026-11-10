@@ -16,6 +16,9 @@ export type Space = {
   locale: string;
 };
 
+/** A host attached to a space (G17). Host stored lowercase. */
+export type SpaceDomain = { host: string; spaceId: string; isPrimary: boolean };
+
 export type Profile = { id: string; email: string; isPlatformAdmin: boolean };
 
 export type SpaceProfile = { spaceId: string; profileId: string; displayName: string };

@@ -160,6 +160,12 @@ Space library (my products + progress) → program page (module list, checkmarks
 6. Community core — community product, feed channels (KSG port), polymorphic comments, reactions, mentions, notifications, push, moderation, directory.
 7. Domains go live — real domains in Vercel, Auth allow-list, Vimeo allow-list, CSP.
 
+Phase 7 as built (Launch 1):
+- Custom hosts resolve through `space_domains` (`routeHost` + `createHostLookup`, 60 s in-process cache, misses cached, failures not). Unknown host = 404.
+- Domains are added by hand: Vercel dashboard + `space_domains` row. Checklist: `docs/DOMAINS.md`. Vercel Domains API = later.
+- CSP is a static header from `next.config.ts` (`src/lib/security/csp.ts`), no nonce: a nonce forces dynamic rendering of every page and disables ISR. `'unsafe-inline'` for scripts/styles, as PayPal recommends.
+- Blocked on the real platform domain (G17) to actually go live.
+
 **Launch 2** — chat channels, DMs, access groups.
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 **Launch 4** — coaching + own scheduler + Google Calendar.
