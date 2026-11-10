@@ -167,6 +167,15 @@ Phase 7 as built (Launch 1):
 - Blocked on the real platform domain (G17) to actually go live.
 
 **Launch 2** — chat channels, DMs, access groups.
+
+Launch 2 as built:
+- Migration `20261110090700_community_groups_chat_dms.sql` + `supabase/tests/070-groups-chat-dms.test.sql` written, not yet run. `channels.visibility` replaced by `kind` (feed | chat), `privacy` (public | private) and `read_only`.
+- Every community gets a default `Members` group (trigger). A grant or offer item without a group joins it. The default group cannot be deleted; a group in use cannot be deleted (FK restrict).
+- Grant uniqueness widened to one active grant per (product, profile, group): a member may hold several groups of one community. `fulfil_order` now carries `offer_products.access_group_id`; drip counts from the earliest grant.
+- Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
+- DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
+- Live updates: polling (`LiveRefresh`, `router.refresh` on an interval while visible). Supabase Realtime later.
+- Not yet: `channel_moderators`, reports queue, push, typing indicators, attachments in chat.
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 **Launch 4** — coaching + own scheduler + Google Calendar.
 **Launch 5** — podcast + download products.

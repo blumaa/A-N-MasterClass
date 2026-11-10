@@ -25,12 +25,24 @@ describe('offerCommandFromForm', () => {
     });
   });
 
-  it('collects ticked products', () => {
-    expect(offerCommandFromForm(form({ op: 'setProducts', offerId: 'o1', productId: ['p1', 'p2'] }))).toEqual({
+  it('collects ticked products with the access group picked per community', () => {
+    expect(
+      offerCommandFromForm(form({ op: 'setProducts', offerId: 'o1', productId: ['p1', 'c1'], 'group:c1': 'g1', 'group:c2': 'g2' })),
+    ).toEqual({
       ok: true,
-      command: { op: 'setProducts', offerId: 'o1', productIds: ['p1', 'p2'] },
+      command: {
+        op: 'setProducts',
+        offerId: 'o1',
+        items: [
+          { productId: 'p1', accessGroupId: null },
+          { productId: 'c1', accessGroupId: 'g1' },
+        ],
+      },
     });
-    expect(offerCommandFromForm(form({ op: 'setProducts', offerId: 'o1' }))).toMatchObject({ command: { productIds: [] } });
+    expect(offerCommandFromForm(form({ op: 'setProducts', offerId: 'o1', productId: 'c1', 'group:c1': '' }))).toMatchObject({
+      command: { items: [{ productId: 'c1', accessGroupId: null }] },
+    });
+    expect(offerCommandFromForm(form({ op: 'setProducts', offerId: 'o1' }))).toMatchObject({ command: { items: [] } });
   });
 
   it('parses publish, unpublish and delete', () => {

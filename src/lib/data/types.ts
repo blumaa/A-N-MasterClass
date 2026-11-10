@@ -96,6 +96,8 @@ export type Grant = {
   expiresAt: Date | null;
   /** Order that paid for it; a full refund of that order revokes it (G28). */
   orderId: string | null;
+  /** Community products only: access group joined; null = the community's default group. */
+  accessGroupId: string | null;
 };
 
 export type StepProgress = { profileId: string; stepId: string; completedAt: Date };
@@ -144,7 +146,9 @@ export type Offer = {
   status: PublishStatus;
 };
 
-export type OfferProduct = { offerId: string; productId: string };
+/** accessGroupId: for a community product, the group the buyer joins (null = default group). */
+export type OfferProduct = { offerId: string; productId: string; accessGroupId: string | null };
+export type OfferItem = Omit<OfferProduct, 'offerId'>;
 
 export const PAYMENT_ENVS = ['sandbox', 'live'] as const;
 export type PaymentEnv = (typeof PAYMENT_ENVS)[number];
@@ -213,17 +217,61 @@ export type ClaimToken = {
 
 // Community (G12, G13, G15). Launch 1 = feed channels. A community is a product (kind 'community'):
 // members are grant holders; owner/admin reach every community, other staff only ticked ones.
-/** public = every member posts; read_only = only moderators post, members comment + react. */
-export const CHANNEL_VISIBILITIES = ['public', 'read_only'] as const;
-export type ChannelVisibility = (typeof CHANNEL_VISIBILITIES)[number];
+/**
+ * Access group (Kajabi): a tier inside a community. Each grant of a community joins one group;
+ * a member may hold several. Channels belong to one group. Feature toggles gate the member
+ * directory and starting DMs. Every community has exactly one default group.
+ */
+export type AccessGroup = {
+  id: string;
+  communityId: string;
+  title: string;
+  isDefault: boolean;
+  directory: boolean;
+  dms: boolean;
+};
+
+/** feed = posts + comments + reactions; chat = a running list of short messages. */
+export const CHANNEL_KINDS = ['feed', 'chat'] as const;
+export type ChannelKind = (typeof CHANNEL_KINDS)[number];
+/** public = every member of the channel's group; private = only invited members of that group. */
+export const CHANNEL_PRIVACIES = ['public', 'private'] as const;
+export type ChannelPrivacy = (typeof CHANNEL_PRIVACIES)[number];
 
 export type Channel = {
   id: string;
   communityId: string;
+  accessGroupId: string;
   title: string;
-  visibility: ChannelVisibility;
+  kind: ChannelKind;
+  privacy: ChannelPrivacy;
+  /** Only moderators post (feed) or send (chat); members still comment and react on feed posts. */
+  readOnly: boolean;
   position: number;
 };
+
+/** Invited members of a private channel. */
+export type ChannelMember = { channelId: string; profileId: string };
+
+/** A chat line, in a chat channel or a DM thread (exactly one of the two). */
+export type Message = {
+  id: string;
+  channelId: string | null;
+  threadId: string | null;
+  authorId: string;
+  body: string;
+  createdAt: Date;
+};
+
+/** 1:1 DM inside one community. aId < bId; unique per (community, aId, bId). */
+export type DmThread = { id: string; communityId: string; aId: string; bId: string };
+/** Last time a participant opened the thread; later messages by the other side are unread. */
+export type DmRead = { threadId: string; profileId: string; readAt: Date };
+/** Blocker hides from and stops messages with the blocked member (either direction). */
+export type Block = { communityId: string; blockerId: string; blockedId: string };
+/** No row = defaults (DMs on, founder reachable). */
+export type CommunitySettings = { communityId: string; dmsEnabled: boolean; founderDms: boolean };
+export const DEFAULT_COMMUNITY_SETTINGS = { dmsEnabled: true, founderDms: true } as const;
 
 /** space_member_communities: assistant/support staff ticked for this community (G15). */
 export type CommunityStaff = { communityId: string; profileId: string };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { communityCommandFromForm, studioCommunityCommandFromForm } from './commandFromForm';
+import { chatCommandFromForm, communityCommandFromForm, studioCommunityCommandFromForm } from './commandFromForm';
 
 const form = (fields: Record<string, string>): FormData => {
   const f = new FormData();
@@ -58,22 +58,60 @@ describe('studioCommunityCommandFromForm', () => {
       ok: true,
       command: { op: 'updateCommunity', communityId: 'c', patch: { status: 'published' } },
     });
-    expect(studioCommunityCommandFromForm(form({ op: 'updateChannel', channelId: 'ch', visibility: 'read_only' }))).toEqual({
+    expect(studioCommunityCommandFromForm(form({ op: 'updateChannel', channelId: 'ch', privacy: 'private', readOnly: 'true' }))).toEqual({
       ok: true,
-      command: { op: 'updateChannel', channelId: 'ch', patch: { visibility: 'read_only' } },
+      command: { op: 'updateChannel', channelId: 'ch', patch: { privacy: 'private', readOnly: true } },
+    });
+    expect(studioCommunityCommandFromForm(form({ op: 'updateGroup', groupId: 'g', dms: 'false' }))).toEqual({
+      ok: true,
+      command: { op: 'updateGroup', groupId: 'g', patch: { dms: false } },
     });
   });
 
   it('reads channel create, move and staff ticks', () => {
-    expect(studioCommunityCommandFromForm(form({ op: 'createChannel', communityId: 'c', title: 'Wins', visibility: 'public' }))).toEqual({
+    const channel = { op: 'createChannel', communityId: 'c', title: 'Wins', kind: 'chat', privacy: 'public', readOnly: 'false' };
+    expect(studioCommunityCommandFromForm(form({ ...channel, accessGroupId: 'g' }))).toEqual({
       ok: true,
-      command: { op: 'createChannel', communityId: 'c', title: 'Wins', visibility: 'public' },
+      command: { ...channel, readOnly: false, accessGroupId: 'g' },
+    });
+    expect(studioCommunityCommandFromForm(form({ ...channel, accessGroupId: '' }))).toEqual({
+      ok: true,
+      command: { ...channel, readOnly: false },
     });
     expect(studioCommunityCommandFromForm(form({ op: 'moveChannel', channelId: 'ch', direction: 'down' }))).toMatchObject({ ok: true });
     expect(studioCommunityCommandFromForm(form({ op: 'setStaff', communityId: 'c', profileId: 'p', on: 'true' }))).toEqual({
       ok: true,
       command: { op: 'setStaff', communityId: 'c', profileId: 'p', on: true },
     });
-    expect(studioCommunityCommandFromForm(form({ op: 'createChannel', communityId: 'c', title: 'X', visibility: 'secret' })).ok).toBe(false);
+    expect(studioCommunityCommandFromForm(form({ ...channel, privacy: 'secret' })).ok).toBe(false);
+  });
+
+  it('reads groups, private channel members and DM settings', () => {
+    expect(studioCommunityCommandFromForm(form({ op: 'createGroup', communityId: 'c', title: 'VIP' }))).toMatchObject({ ok: true });
+    expect(studioCommunityCommandFromForm(form({ op: 'deleteGroup', groupId: 'g' }))).toMatchObject({ ok: true });
+    expect(studioCommunityCommandFromForm(form({ op: 'setChannelMember', channelId: 'ch', profileId: 'p', on: 'true' }))).toEqual({
+      ok: true,
+      command: { op: 'setChannelMember', channelId: 'ch', profileId: 'p', on: true },
+    });
+    expect(studioCommunityCommandFromForm(form({ op: 'saveSettings', communityId: 'c', dmsEnabled: 'true', founderDms: 'false' }))).toEqual({
+      ok: true,
+      command: { op: 'saveSettings', communityId: 'c', dmsEnabled: true, founderDms: false },
+    });
+  });
+});
+
+describe('chatCommandFromForm', () => {
+  it('reads messages, DMs and blocks', () => {
+    expect(chatCommandFromForm(form({ op: 'sendMessage', channelId: 'ch', body: 'hi' }))).toEqual({
+      ok: true,
+      command: { op: 'sendMessage', channelId: 'ch', body: 'hi' },
+    });
+    expect(chatCommandFromForm(form({ op: 'sendDm', threadId: 't', body: '' })).ok).toBe(false);
+    expect(chatCommandFromForm(form({ op: 'startDm', communityId: 'c', recipientId: 'p' }))).toMatchObject({ ok: true });
+    expect(chatCommandFromForm(form({ op: 'deleteMessage', messageId: 'm' }))).toMatchObject({ ok: true });
+    expect(chatCommandFromForm(form({ op: 'block', communityId: 'c', profileId: 'p', on: 'true' }))).toEqual({
+      ok: true,
+      command: { op: 'block', communityId: 'c', profileId: 'p', on: true },
+    });
   });
 });

@@ -25,7 +25,7 @@ export function ChannelFeed({ page, action, signedIn }: Props) {
           placeholder="Share something…"
           rows={4}
         />
-      ) : channel.visibility === 'read_only' ? (
+      ) : channel.readOnly ? (
         <Text tone="muted">Only staff post in this channel.</Text>
       ) : null}
       {posts.length === 0 ? (

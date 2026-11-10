@@ -1,6 +1,6 @@
 // Studio > Offers > one offer: settings, linked products, publish, checkout link, delete.
 import { AppLink } from '@/components/ui/links';
-import { Checkbox, Field, Heading, Input, Stack, Text, Textarea } from '@/components/ui/mds';
+import { Checkbox, Field, Heading, Input, Select, Stack, Text, Textarea } from '@/components/ui/mds';
 import type { StudioOfferDetail } from '../../api/offers';
 import { checkoutPath } from '../../paths';
 import { PriceFields } from './OfferFields';
@@ -9,9 +9,9 @@ import { OfferForm } from './StudioForms';
 import styles from './Studio.module.css';
 
 export function OfferEditor({ detail }: { detail: StudioOfferDetail }) {
-  const { offer, productIds, products } = detail;
+  const { offer, items, products } = detail;
   const id = { offerId: offer.id };
-  const linked = new Set(productIds);
+  const linked = new Map(items.map((i) => [i.productId, i.accessGroupId]));
   const published = offer.status === 'published';
   return (
     <Stack gap="loose">
@@ -50,7 +50,21 @@ export function OfferEditor({ detail }: { detail: StudioOfferDetail }) {
           <fieldset className={styles.products}>
             <legend>Buyers get access to</legend>
             {products.map((p) => (
-              <Checkbox key={p.id} name="productId" value={p.id} defaultChecked={linked.has(p.id)} label={`${p.title} (${p.kind})`} />
+              <div key={p.id} className={styles.product}>
+                <Checkbox name="productId" value={p.id} defaultChecked={linked.has(p.id)} label={`${p.title} (${p.kind})`} />
+                {p.groups.length > 0 ? (
+                  <Field label={`Access group in ${p.title}`}>
+                    <Select name={`group:${p.id}`} defaultValue={linked.get(p.id) ?? ''}>
+                      <option value="">Members (default)</option>
+                      {p.groups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.title}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                ) : null}
+              </div>
             ))}
           </fieldset>
         </OfferForm>

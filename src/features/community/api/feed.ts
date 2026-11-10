@@ -5,8 +5,19 @@ import { grantIsActive } from '@/lib/data/grants';
 import type { Repo } from '@/lib/data/repo';
 import type { Channel, Post, Product } from '@/lib/data/types';
 import type { MentionOption } from '@/lib/mentions/markup';
-import { canPostIn, communityAccess, type CommunityAccess } from './access';
-import { authorOf, buildThread, reactionCounts, type Author, type CommentNode, type Names, type ReactionCount } from './present';
+import { channelAccess, communityAccess, readableChannels, type CommunityAccess } from './access';
+import {
+  authorOf,
+  buildThread,
+  CHAT_LIMIT,
+  messageItems,
+  reactionCounts,
+  type Author,
+  type CommentNode,
+  type MessageItem,
+  type Names,
+  type ReactionCount,
+} from './present';
 
 export type PostItem = {
   id: string;
@@ -31,14 +42,20 @@ export type CommunityPage =
       access: CommunityAccess;
       channels: Channel[];
       channel: Channel;
+      /** Post in a feed channel, send in a chat channel. */
       canPost: boolean;
+      /** Feed channels only. */
       posts: PostItem[];
+      /** Chat channels only: the latest CHAT_LIMIT lines, oldest first. */
+      messages: MessageItem[];
       members: MentionOption[];
     };
 
 export type PostPage = {
   community: Product;
   access: CommunityAccess;
+  /** Channels the viewer reads (side nav). */
+  channels: Channel[];
   channel: Channel;
   post: PostItem;
   comments: CommentNode[];
@@ -51,7 +68,7 @@ export async function spaceNames(repo: Repo, spaceId: string): Promise<Names> {
 }
 
 /** A community product of the viewer's space; drafts only exist for those who reach them. */
-async function loadCommunity(repo: Repo, viewer: Viewer, slug: string, now: Date) {
+export async function loadCommunity(repo: Repo, viewer: Viewer, slug: string, now: Date) {
   const community = await repo.productBySlug(viewer.space.id, slug);
   if (!community || community.kind !== 'community') return null;
   const access = await communityAccess(repo, viewer, community, now);
@@ -95,11 +112,15 @@ export async function communityPage(
   if (!found) return null;
   const { community, access } = found;
   if (!access.read) return { kind: 'locked', community };
-  const channels = await repo.channels(community.id);
+  const me = viewer.profile!.id;
+  const channels = await readableChannels(repo, access, await repo.channels(community.id), me);
   const channel = channelId === null ? channels[0] : channels.find((c) => c.id === channelId);
   if (!channel) return null;
-  const [posts, members] = await Promise.all([
-    repo.posts(channel.id).then((rows) => postItems(repo, viewer, rows, access)),
+  const isChat = channel.kind === 'chat';
+  const [rules, posts, messages, members] = await Promise.all([
+    channelAccess(repo, access, channel, me),
+    isChat ? [] : repo.posts(channel.id).then((rows) => postItems(repo, viewer, rows, access)),
+    isChat ? chatLines(repo, viewer, { channelId: channel.id }, access.moderatePosts) : [],
     directory(repo, community, now),
   ]);
   return {
@@ -108,10 +129,22 @@ export async function communityPage(
     access,
     channels,
     channel,
-    canPost: canPostIn(access, channel),
+    canPost: rules.post,
     posts,
+    messages,
     members: mentionOptions(members),
   };
+}
+
+/** Latest lines of a chat channel or DM thread, shaped for the viewer. */
+export async function chatLines(
+  repo: Repo,
+  viewer: Viewer,
+  where: { channelId: string } | { threadId: string },
+  moderate: boolean,
+): Promise<MessageItem[]> {
+  const [rows, names] = await Promise.all([repo.messages(where, CHAT_LIMIT), spaceNames(repo, viewer.space.id)]);
+  return messageItems(rows, names, viewer.profile?.id ?? null, moderate);
 }
 
 export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId: string, now: Date): Promise<PostPage | null> {
@@ -122,18 +155,22 @@ export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId:
   if (!row || (row.hiddenAt !== null && !access.moderatePosts)) return null;
   const channel = await repo.channel(row.channelId);
   if (!channel || channel.communityId !== community.id) return null;
+  const me = viewer.profile!.id;
+  if (!(await channelAccess(repo, access, channel, me)).read) return null;
   const commentsWithReactions = repo
     .comments('post', [row.id])
     .then(async (cs) => ({ cs, reactions: await repo.reactions('comment', cs.map((c) => c.id)) }));
-  const [[post], { cs: comments, reactions }, who, members] = await Promise.all([
+  const [[post], { cs: comments, reactions }, who, members, channels] = await Promise.all([
     postItems(repo, viewer, [row], access),
     commentsWithReactions,
     spaceNames(repo, viewer.space.id),
     directory(repo, community, now),
+    repo.channels(community.id).then((all) => readableChannels(repo, access, all, me)),
   ]);
   return {
     community,
     access,
+    channels,
     channel,
     post: post!,
     comments: buildThread(comments, reactions, who, viewer.profile?.id ?? null, access.moderateComments),

@@ -20,7 +20,7 @@ beforeEach(async () => {
   offer = await repo.createOffer({ spaceId: 's1', slug: 'full', title: 'Full', priceCents: 4900, currency: 'EUR' });
   await repo.updateOffer(offer.id, { status: 'published' });
   const p = await repo.createProduct({ spaceId: 's1', kind: 'program', slug: 'a', title: 'Shibari 101' });
-  await repo.setOfferProducts(offer.id, [p.id]);
+  await repo.setOfferItems(offer.id, [{ productId: p.id, accessGroupId: null }]);
 });
 
 const notSetUp: CheckoutDeps = { env: 'live', resolveProvider: async () => ({ kind: 'not_set_up' }) };

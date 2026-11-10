@@ -22,7 +22,7 @@ export async function editCommunityAction(_prev: EditState, form: FormData): Pro
   if (!viewer) return { message: FORBIDDEN };
 
   const { command } = parsed;
-  const result = await editCommunity(getRepo(), viewer, command);
+  const result = await editCommunity(getRepo(), viewer, command, new Date());
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };
   if (command.op === 'createCommunity' && result.id) redirect(studioCommunityHref(result.id));
   refresh();

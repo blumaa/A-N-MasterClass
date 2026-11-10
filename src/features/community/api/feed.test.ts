@@ -48,7 +48,7 @@ describe('communityPage', () => {
     await repo.setReaction({ targetType: 'post', targetId: p.id, profileId: SEED_IDS.student, emoji: '🔥', createdAt: NOW }, true);
     const page = await communityPage(repo, await as(SEED_IDS.student), 'community', null, NOW);
     if (page?.kind !== 'open') throw new Error('expected open');
-    expect(page.channels.map((c) => c.title)).toEqual(['General', 'Announcements']);
+    expect(page.channels.map((c) => c.title)).toEqual(['General', 'Announcements', 'Lounge']);
     expect(page.channel.id).toBe(SEED_IDS.general);
     expect(page.canPost).toBe(true);
     expect(page.posts).toEqual([
@@ -87,6 +87,54 @@ describe('communityPage', () => {
   });
 });
 
+describe('communityPage: groups, privacy and chat', () => {
+  const vipChannel = async () => {
+    const vip = await repo.createAccessGroup({ communityId: SEED_IDS.community, title: 'VIP' });
+    return repo.createChannel({
+      communityId: SEED_IDS.community,
+      accessGroupId: vip.id,
+      title: 'Backstage',
+      kind: 'feed',
+      privacy: 'public',
+      readOnly: false,
+    });
+  };
+
+  it('lists only channels of the member\'s groups; staff see all', async () => {
+    await vipChannel();
+    const student = await communityPage(repo, await as(SEED_IDS.student), 'community', null, NOW);
+    const owner = await communityPage(repo, await as(SEED_IDS.alexanderOwner), 'community', null, NOW);
+    if (student?.kind !== 'open' || owner?.kind !== 'open') throw new Error('expected open');
+    expect(student.channels.map((c) => c.title)).not.toContain('Backstage');
+    expect(owner.channels.map((c) => c.title)).toContain('Backstage');
+  });
+
+  it('returns null for a channel the member cannot read', async () => {
+    const backstage = await vipChannel();
+    expect(await communityPage(repo, await as(SEED_IDS.student), 'community', backstage.id, NOW)).toBeNull();
+  });
+
+  it('opens a chat channel with its messages, oldest first; author or moderator deletes', async () => {
+    await repo.createMessage({
+      channelId: SEED_IDS.lounge,
+      threadId: null,
+      authorId: SEED_IDS.student,
+      body: 'hi!',
+      createdAt: NOW,
+    });
+    const student = await communityPage(repo, await as(SEED_IDS.student), 'community', SEED_IDS.lounge, NOW);
+    const owner = await communityPage(repo, await as(SEED_IDS.alexanderOwner), 'community', SEED_IDS.lounge, NOW);
+    if (student?.kind !== 'open' || owner?.kind !== 'open') throw new Error('expected open');
+    expect(student.posts).toEqual([]);
+    expect(student.canPost).toBe(true);
+    expect(student.messages.map((m) => [m.body, m.author.name, m.canDelete])).toEqual([
+      ['Hello everyone, say hi here.', 'Alexander', false],
+      ['hi!', 'Robin (student)', true],
+    ]);
+    expect(owner.messages.map((m) => m.canDelete)).toEqual([true, true]);
+  });
+});
+
 describe('postPage', () => {
   it('returns the post with its thread for members', async () => {
     const p = await post(SEED_IDS.general, SEED_IDS.student, 'hello');
@@ -105,6 +153,21 @@ describe('postPage', () => {
     expect(page?.comments.map((n) => n.id)).toEqual([c.id]);
   });
 
+  it('lists only channels the viewer reads (nav must not leak private titles)', async () => {
+    const p = await post(SEED_IDS.general, SEED_IDS.student, 'hello');
+    await repo.createChannel({
+      communityId: SEED_IDS.community,
+      accessGroupId: SEED_IDS.members,
+      title: 'Secret',
+      kind: 'chat',
+      privacy: 'private',
+      readOnly: false,
+    });
+    const titles = (await postPage(repo, await as(SEED_IDS.student), 'community', p.id, NOW))?.channels.map((c) => c.title);
+    expect(titles).not.toContain('Secret');
+    expect(titles).toContain('General');
+  });
+
   it('returns null without access, for a post of another community, or a hidden post for members', async () => {
     const p = await post(SEED_IDS.general, SEED_IDS.student, 'hello');
     expect(await postPage(repo, await as(null), 'community', p.id, NOW)).toBeNull();
@@ -112,6 +175,20 @@ describe('postPage', () => {
     await repo.updatePost(p.id, { hiddenAt: NOW });
     expect(await postPage(repo, await as(SEED_IDS.student), 'community', p.id, NOW)).toBeNull();
     expect(await postPage(repo, await as(SEED_IDS.alexanderOwner), 'community', p.id, NOW)).not.toBeNull();
+  });
+
+  it('returns null for a post in a channel the member cannot read', async () => {
+    const vip = await repo.createAccessGroup({ communityId: SEED_IDS.community, title: 'VIP' });
+    const backstage = await repo.createChannel({
+      communityId: SEED_IDS.community,
+      accessGroupId: vip.id,
+      title: 'Backstage',
+      kind: 'feed',
+      privacy: 'public',
+      readOnly: false,
+    });
+    const p = await post(backstage.id, SEED_IDS.alexanderOwner, 'vip only');
+    expect(await postPage(repo, await as(SEED_IDS.student), 'community', p.id, NOW)).toBeNull();
   });
 });
 

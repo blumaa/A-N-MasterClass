@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { ALWAYS_REACH, MATRIX, ROLES } from '@/lib/auth/capabilities';
 import { CURRENCIES, MAX_PRICE_CENTS } from '@/lib/commerce/money';
 import {
-  CHANNEL_VISIBILITIES,
+  CHANNEL_KINDS,
+  CHANNEL_PRIVACIES,
   COMMENT_TARGETS,
   NOTIFICATION_TYPES,
   REACTION_EMOJIS,
@@ -126,8 +127,12 @@ describe('SQL mirrors: commerce', () => {
 });
 
 describe('SQL mirrors: community', () => {
-  it('channels visibility check equals CHANNEL_VISIBILITIES', () => {
-    expect(list(/channels_visibility check \(visibility in \(([^)]+)\)\)/)).toEqual([...CHANNEL_VISIBILITIES]);
+  it('channels kind check equals CHANNEL_KINDS', () => {
+    expect(list(/channels_kind check \(kind in \(([^)]+)\)\)/)).toEqual([...CHANNEL_KINDS]);
+  });
+
+  it('channels privacy check equals CHANNEL_PRIVACIES', () => {
+    expect(list(/channels_privacy check \(privacy in \(([^)]+)\)\)/)).toEqual([...CHANNEL_PRIVACIES]);
   });
 
   it('comments target check equals COMMENT_TARGETS', () => {

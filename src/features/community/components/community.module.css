@@ -54,3 +54,8 @@
   flex-wrap: wrap;
   gap: var(--mds-space-1);
 }
+
+.message {
+  padding-block-end: var(--mds-space-2);
+  border-block-end: 1px solid var(--mds-border-subtle);
+}

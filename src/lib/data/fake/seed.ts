@@ -1,5 +1,6 @@
 // Dev seed for DATA_SOURCE=fake. Two spaces, staff of each role, one student with a grant,
 // a program tree showing every access state (open, step-locked, drip, fixed date).
+import type { Channel } from '../types';
 import { emptyDb, type Db } from './db';
 
 const DAY = 86_400_000;
@@ -15,6 +16,8 @@ export const SEED_IDS = {
   community: 'prod-community',
   general: 'chan-general',
   announcements: 'chan-announcements',
+  lounge: 'chan-lounge',
+  members: 'group-members',
 } as const;
 
 export function seedDb(now: Date = new Date()): Db {
@@ -145,6 +148,7 @@ export function seedDb(now: Date = new Date()): Db {
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
     orderId: null,
+    accessGroupId: null,
   });
 
   db.grants.push({
@@ -156,11 +160,40 @@ export function seedDb(now: Date = new Date()): Db {
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
     orderId: null,
+    accessGroupId: null,
+  });
+  db.accessGroups.push({
+    id: ids.members,
+    communityId: ids.community,
+    title: 'Members',
+    isDefault: true,
+    directory: true,
+    dms: true,
+  });
+  const channel = (id: string, title: string, position: number, extra: Partial<Channel> = {}): Channel => ({
+    id,
+    communityId: ids.community,
+    accessGroupId: ids.members,
+    title,
+    kind: 'feed',
+    privacy: 'public',
+    readOnly: false,
+    position,
+    ...extra,
   });
   db.channels.push(
-    { id: ids.general, communityId: ids.community, title: 'General', visibility: 'public', position: 0 },
-    { id: ids.announcements, communityId: ids.community, title: 'Announcements', visibility: 'read_only', position: 1 },
+    channel(ids.general, 'General', 0),
+    channel(ids.announcements, 'Announcements', 1, { readOnly: true }),
+    channel(ids.lounge, 'Lounge', 2, { kind: 'chat' }),
   );
+  db.messages.push({
+    id: 'msg-hello',
+    channelId: ids.lounge,
+    threadId: null,
+    authorId: ids.alexanderOwner,
+    body: 'Hello everyone, say hi here.',
+    createdAt: new Date(now.getTime() - DAY),
+  });
   db.posts.push({
     id: 'post-welcome',
     channelId: ids.announcements,

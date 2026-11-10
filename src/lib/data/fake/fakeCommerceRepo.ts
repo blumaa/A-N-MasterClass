@@ -1,5 +1,6 @@
 // Commerce part of the fake repo. Same constraints as supabase/migrations/*_commerce.sql:
-// unique (space_id, slug) offers, price range check, offer products in the offer's space,
+// unique (space_id, slug) offers, price range check, offer products in the offer's space
+// (with an access group of that community, if any),
 // unique (provider, provider_order_id) and (provider, capture_id), no offer delete once sold,
 // one credentials row per (space, env), contacts unique on (space, lower(email)).
 import { MAX_PRICE_CENTS } from '@/lib/commerce/money';
@@ -17,8 +18,8 @@ type CommerceRepo = Pick<
   | 'createOffer'
   | 'updateOffer'
   | 'deleteOffer'
-  | 'offerProductIds'
-  | 'setOfferProducts'
+  | 'offerItems'
+  | 'setOfferItems'
   | 'orders'
   | 'order'
   | 'orderByProviderId'
@@ -83,16 +84,21 @@ export function createFakeCommerceRepo(db: Db, id: (prefix: string) => string): 
       db.offerProducts = db.offerProducts.filter((op) => op.offerId !== oid);
       db.offers = db.offers.filter((o) => o.id !== oid);
     },
-    offerProductIds: async (oid) => db.offerProducts.filter((op) => op.offerId === oid).map((op) => op.productId),
-    async setOfferProducts(oid, productIds) {
+    offerItems: async (oid) =>
+      db.offerProducts.filter((op) => op.offerId === oid).map(({ productId, accessGroupId }) => ({ productId, accessGroupId })),
+    async setOfferItems(oid, items) {
       const row = findOffer(oid);
-      for (const pid of productIds) {
-        const product = db.products.find((p) => p.id === pid);
+      for (const item of items) {
+        const product = db.products.find((p) => p.id === item.productId);
         if (!product || product.spaceId !== row.spaceId) throw new ConstraintError('product not in offer space');
+        if (item.accessGroupId !== null && db.accessGroups.find((g) => g.id === item.accessGroupId)?.communityId !== product.id) {
+          throw new ConstraintError('access group must belong to its community');
+        }
       }
+      const byProduct = new Map(items.map((i) => [i.productId, i.accessGroupId]));
       db.offerProducts = [
         ...db.offerProducts.filter((op) => op.offerId !== oid),
-        ...[...new Set(productIds)].map((productId) => ({ offerId: oid, productId })),
+        ...[...byProduct].map(([productId, accessGroupId]) => ({ offerId: oid, productId, accessGroupId })),
       ];
     },
 

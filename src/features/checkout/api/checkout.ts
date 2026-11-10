@@ -40,7 +40,7 @@ const invalid = (message: string): Invalid => ({ ok: false, error: 'invalid', me
 export async function checkoutOffer(repo: Repo, spaceId: string, slug: string): Promise<CheckoutOffer | null> {
   const offer = await repo.offerBySlug(spaceId, slug);
   if (!offer || offer.status !== 'published') return null;
-  const products = await Promise.all((await repo.offerProductIds(offer.id)).map((id) => repo.product(id)));
+  const products = await Promise.all((await repo.offerItems(offer.id)).map((item) => repo.product(item.productId)));
   return {
     id: offer.id,
     slug: offer.slug,

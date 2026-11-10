@@ -34,7 +34,14 @@ function parseOffer(form: FormData): OfferCommand {
         description: r.raw('description') ?? '',
       };
     case 'setProducts':
-      return { op, offerId, productIds: form.getAll('productId').filter((v): v is string => typeof v === 'string') };
+      return {
+        op,
+        offerId,
+        items: form
+          .getAll('productId')
+          .filter((v): v is string => typeof v === 'string')
+          .map((productId) => ({ productId, accessGroupId: r.raw(`group:${productId}`) || null })),
+      };
     case 'publish':
     case 'unpublish':
     case 'delete':

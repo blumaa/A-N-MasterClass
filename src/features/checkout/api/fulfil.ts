@@ -38,9 +38,11 @@ export async function fulfilOrder(repo: Repo, order: Order, capture: Capture | n
   const profile = existing ?? (await repo.createProfile(order.email));
   await repo.ensureSpaceProfile({ spaceId: order.spaceId, profileId: profile.id, displayName: order.email.split('@')[0] });
 
-  for (const productId of await repo.offerProductIds(order.offerId)) {
-    if (await repo.activeGrant(productId, profile.id, now)) continue;
-    await repo.createGrant({ productId, profileId: profile.id, source: 'purchase', orderId: order.id });
+  // A grant is per product + access group: holding the default group does not cover a VIP group.
+  const held = await repo.grants(order.spaceId, profile.id, now);
+  for (const { productId, accessGroupId } of await repo.offerItems(order.offerId)) {
+    if (held.some((g) => g.productId === productId && g.accessGroupId === accessGroupId)) continue;
+    await repo.createGrant({ productId, profileId: profile.id, source: 'purchase', orderId: order.id, accessGroupId });
   }
 
   await repo.upsertContact({

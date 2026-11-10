@@ -36,9 +36,9 @@ begin
   insert into public.grants (product_id, profile_id, source) values
     (comm, tests.get_supabase_uid('member'), 'manual'),
     (prog, tests.get_supabase_uid('member'), 'manual');
-  insert into public.channels (id, community_id, title, visibility, position) values
-    (general, comm, 'General', 'public', 0),
-    (news, comm, 'News', 'read_only', 1);
+  insert into public.channels (id, community_id, title, read_only, position) values
+    (general, comm, 'General', false, 0),
+    (news, comm, 'News', true, 1);
   insert into public.posts (id, channel_id, author_id, body) values
     (post, general, tests.get_supabase_uid('member'), 'hello');
   insert into public.posts (id, channel_id, author_id, body, hidden_at) values

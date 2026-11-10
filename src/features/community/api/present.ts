@@ -1,5 +1,5 @@
 // Row -> view shaping shared by feed, post page and step comments. Pure.
-import type { Comment, Reaction, ReactionEmoji } from '@/lib/data/types';
+import type { Comment, Message, Reaction, ReactionEmoji } from '@/lib/data/types';
 import { REACTION_EMOJIS } from '@/lib/data/types';
 
 export type Author = { id: string; name: string };
@@ -16,6 +16,12 @@ export type CommentItem = {
   canDelete: boolean;
 };
 export type CommentNode = CommentItem & { replies: CommentItem[] };
+
+/** A chat line in a chat channel or a DM thread. */
+export type MessageItem = { id: string; body: string; author: Author; createdAt: Date; canDelete: boolean };
+
+/** Chat and DM views load the latest messages only, oldest first. */
+export const CHAT_LIMIT = 100;
 
 /** Fallback when a space profile is missing (account deleted or never named). */
 export const UNKNOWN_NAME = 'Member';
@@ -63,3 +69,13 @@ export function buildThread(
     .filter((c) => c.parentId === null)
     .map((top) => ({ ...item(top), replies: visible.filter((c) => c.parentId === top.id).map(item) }));
 }
+
+/** Author or moderator deletes a chat line. */
+export const messageItems = (rows: readonly Message[], names: Names, me: string | null, moderate: boolean): MessageItem[] =>
+  rows.map((m) => ({
+    id: m.id,
+    body: m.body,
+    author: authorOf(names, m.authorId),
+    createdAt: m.createdAt,
+    canDelete: moderate || m.authorId === me,
+  }));

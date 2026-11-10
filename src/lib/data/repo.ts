@@ -1,7 +1,14 @@
 // Data port. Raw reads/writes, no authorization: the DAL (features/*/api) checks
 // capabilities + step access before calling. Supabase adapter adds RLS as second wall.
 import type {
+  AccessGroup,
+  Block,
   Channel,
+  CommunitySettings,
+  DmRead,
+  DmThread,
+  Message,
+  OfferItem,
   ClaimToken,
   Comment,
   CommentTarget,
@@ -41,7 +48,10 @@ export type NewStep = Pick<Step, 'moduleId' | 'title'>;
 export type StepPatch = Partial<Pick<Step, 'title' | 'description' | 'status'>>;
 export type NewPart = Pick<Part, 'stepId' | 'kind'>;
 export type PartPatch = Partial<Pick<Part, 'title' | 'text' | 'vimeoId' | 'aspect' | 'filePath'>>;
-export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'> & { orderId?: string | null };
+export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'> & {
+  orderId?: string | null;
+  accessGroupId?: string | null;
+};
 
 export type NewPage = Pick<Page, 'spaceId' | 'kind' | 'slug' | 'title'>;
 export type PagePatch = Partial<
@@ -61,8 +71,13 @@ export type ContactUpsert = {
   consent: { source: string; at: Date } | null;
 };
 
-export type NewChannel = Pick<Channel, 'communityId' | 'title' | 'visibility'>;
-export type ChannelPatch = Partial<Pick<Channel, 'title' | 'visibility'>>;
+export type NewAccessGroup = Pick<AccessGroup, 'communityId' | 'title'> & { isDefault?: boolean };
+export type AccessGroupPatch = Partial<Pick<AccessGroup, 'title' | 'directory' | 'dms'>>;
+/** Kind and group are fixed once created: posts or messages and private members depend on them. */
+export type NewChannel = Pick<Channel, 'communityId' | 'accessGroupId' | 'title' | 'kind' | 'privacy' | 'readOnly'>;
+export type ChannelPatch = Partial<Pick<Channel, 'title' | 'privacy' | 'readOnly'>>;
+export type NewMessage = Pick<Message, 'channelId' | 'threadId' | 'authorId' | 'body' | 'createdAt'>;
+export type MessageWhere = { channelId: string } | { threadId: string };
 export type NewPost = Pick<Post, 'channelId' | 'authorId' | 'body' | 'createdAt'>;
 export type PostPatch = Partial<Pick<Post, 'pinned' | 'hiddenAt'>>;
 export type NewComment = Pick<Comment, 'spaceId' | 'targetType' | 'targetId' | 'parentId' | 'authorId' | 'body' | 'createdAt'>;
@@ -124,6 +139,10 @@ export interface Repo {
   grants(spaceId: string, profileId: string, now: Date): Promise<Grant[]>;
   grantsForProduct(productId: string): Promise<Grant[]>;
   grantsForOrder(orderId: string): Promise<Grant[]>;
+  /**
+   * One active grant per (product, profile, access group) is a constraint. An access group must
+   * belong to the product.
+   */
   createGrant(input: NewGrant): Promise<Grant>;
   revokeGrant(id: string): Promise<void>;
 
@@ -155,9 +174,12 @@ export interface Repo {
   updateOffer(id: string, patch: OfferPatch): Promise<Offer>;
   /** Refused (constraint) once the offer has orders: unpublish instead. */
   deleteOffer(id: string): Promise<void>;
-  offerProductIds(offerId: string): Promise<string[]>;
-  /** Replaces the set. Products must be in the offer's space. */
-  setOfferProducts(offerId: string, productIds: readonly string[]): Promise<void>;
+  offerItems(offerId: string): Promise<OfferItem[]>;
+  /**
+   * Replaces the set (one row per product). Products must be in the offer's space; an access group
+   * must belong to its product (community products only).
+   */
+  setOfferItems(offerId: string, items: readonly OfferItem[]): Promise<void>;
 
   // commerce: orders (newest first)
   orders(spaceId: string): Promise<Order[]>;
@@ -181,14 +203,50 @@ export interface Repo {
   /** Marks a valid (unused, unexpired, same space) token used and returns it; else null. Atomic in SQL. */
   consumeClaimToken(spaceId: string, tokenHash: string, now: Date): Promise<ClaimToken | null>;
 
-  // community (G12): channels ordered by position
+  // community (G12): access groups, default first then by title
+  accessGroups(communityId: string): Promise<AccessGroup[]>;
+  accessGroup(id: string): Promise<AccessGroup | null>;
+  /** Community must be a product of kind 'community'; at most one default group per community. */
+  createAccessGroup(input: NewAccessGroup): Promise<AccessGroup>;
+  updateAccessGroup(id: string, patch: AccessGroupPatch): Promise<AccessGroup>;
+  /** Refused for the default group and for a group used by channels, grants or offers. */
+  deleteAccessGroup(id: string): Promise<void>;
+
+  // community: channels ordered by position
   channels(communityId: string): Promise<Channel[]>;
   channel(id: string): Promise<Channel | null>;
-  /** Community must be a product of kind 'community'. */
+  /** Community must be a product of kind 'community'; the access group must be one of its groups. */
   createChannel(input: NewChannel): Promise<Channel>;
   updateChannel(id: string, patch: ChannelPatch): Promise<Channel>;
-  /** Cascades to posts, their comments and reactions. */
+  /** Cascades to posts (with comments and reactions), messages and channel members. */
   deleteChannel(id: string): Promise<void>;
+  /** Profile ids invited to a private channel. */
+  channelMembers(channelId: string): Promise<string[]>;
+  setChannelMember(channelId: string, profileId: string, on: boolean): Promise<void>;
+
+  /** The latest `limit` messages, returned oldest first. */
+  messages(where: MessageWhere, limit: number): Promise<Message[]>;
+  message(id: string): Promise<Message | null>;
+  /** Body 1..4000 chars. Exactly one of channelId (a chat channel) or threadId (constraint). */
+  createMessage(input: NewMessage): Promise<Message>;
+  deleteMessage(id: string): Promise<void>;
+
+  /** Threads the profile takes part in, in one community. */
+  dmThreads(communityId: string, profileId: string): Promise<DmThread[]>;
+  dmThread(id: string): Promise<DmThread | null>;
+  dmThreadBetween(communityId: string, x: string, y: string): Promise<DmThread | null>;
+  /** Stores the pair ordered (aId < bId); unique per community (constraint). x !== y. */
+  createDmThread(communityId: string, x: string, y: string): Promise<DmThread>;
+  dmReads(profileId: string, threadIds: readonly string[]): Promise<DmRead[]>;
+  /** Upsert on (thread, profile). */
+  markDmRead(threadId: string, profileId: string, now: Date): Promise<void>;
+  /** Blocks in either direction that involve the profile. */
+  blocks(communityId: string, profileId: string): Promise<Block[]>;
+  setBlock(row: Block, on: boolean): Promise<void>;
+  /** Defaults when no row is stored. */
+  communitySettings(communityId: string): Promise<CommunitySettings>;
+  /** Upsert on community_id. */
+  saveCommunitySettings(row: CommunitySettings): Promise<void>;
   /** Profile ids of assistant/support staff ticked for the community (space_member_communities). */
   communityStaff(communityId: string): Promise<string[]>;
   /** Profile must be staff of the community's space. */

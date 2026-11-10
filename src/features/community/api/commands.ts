@@ -7,7 +7,7 @@ import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import { REACTION_EMOJIS, type Comment, type Post, type Product, type ReactionEmoji } from '@/lib/data/types';
 import { mentionIdsFromBody } from '@/lib/mentions/parse';
-import { canPostIn, communityAccess, type CommunityAccess } from './access';
+import { channelAccess, communityAccess, type CommunityAccess } from './access';
 import { directory } from './feed';
 import { buildNotifications, type Candidate, type NotificationBase } from './notify';
 
@@ -42,14 +42,15 @@ async function channelScope(ctx: Ctx, channelId: string) {
   const channel = await ctx.repo.channel(channelId);
   const community = channel ? await ctx.repo.product(channel.communityId) : null;
   if (!channel || !community || community.spaceId !== ctx.viewer.space.id) return null;
-  return { channel, community, access: await communityAccess(ctx.repo, ctx.viewer, community, ctx.now) };
+  const access = await communityAccess(ctx.repo, ctx.viewer, community, ctx.now);
+  return { channel, community, access, rules: await channelAccess(ctx.repo, access, channel, ctx.me) };
 }
 
 async function postScope(ctx: Ctx, postId: string): Promise<Found<Extract<Scope, { kind: 'post' }>>> {
   const post = await ctx.repo.post(postId);
   const found = post ? await channelScope(ctx, post.channelId) : null;
   if (!post || !found) return fail(NOT_FOUND);
-  if (!found.access.read) return fail(FORBIDDEN);
+  if (!found.rules.read) return fail(FORBIDDEN);
   if (post.hiddenAt !== null && !found.access.moderatePosts) return fail(NOT_FOUND);
   return { ok: true, value: { kind: 'post', post, community: found.community, access: found.access } };
 }
@@ -107,7 +108,8 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
     case 'createPost': {
       const found = await channelScope(ctx, cmd.channelId);
       if (!found) return NOT_FOUND;
-      if (!canPostIn(found.access, found.channel)) return FORBIDDEN;
+      if (found.channel.kind !== 'feed') return { ok: false, error: 'invalid', message: 'Chat channels take messages.' };
+      if (!found.rules.post) return FORBIDDEN;
       const post = await repo.createPost({ channelId: cmd.channelId, authorId: ctx.me, body: cmd.body, createdAt: ctx.now });
       await notify(ctx, { kind: 'post', post, community: found.community, access: found.access }, mentions(cmd.body));
       return { ok: true, id: post.id };

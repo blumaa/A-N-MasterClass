@@ -106,6 +106,28 @@ describe('grants', () => {
     await expect(repo.createGrant({ productId: p.id, profileId: 'u1', source: 'free' })).rejects.toThrow(/grant/);
   });
 
+  it('keys community grants by access group too; the group must be the product\'s', async () => {
+    const circle = await repo.createProduct({ spaceId: 's1', kind: 'community', slug: 'circle', title: 'Circle' });
+    const other = await repo.createProduct({ spaceId: 's1', kind: 'community', slug: 'other', title: 'Other' });
+    const vip = await repo.createAccessGroup({ communityId: circle.id, title: 'VIP' });
+    const [otherDefault] = await repo.accessGroups(other.id);
+    await repo.createGrant({ productId: circle.id, profileId: 'u1', source: 'manual' });
+    const g = await repo.createGrant({ productId: circle.id, profileId: 'u1', source: 'manual', accessGroupId: vip.id });
+    expect(g.accessGroupId).toBe(vip.id);
+    await expect(repo.createGrant({ productId: circle.id, profileId: 'u1', source: 'free', accessGroupId: vip.id })).rejects.toThrow(/grant/);
+    await expect(
+      repo.createGrant({ productId: circle.id, profileId: 'u2', source: 'free', accessGroupId: otherDefault!.id }),
+    ).rejects.toThrow(/group/);
+  });
+
+  it('gives every new community one default access group', async () => {
+    const circle = await repo.createProduct({ spaceId: 's1', kind: 'community', slug: 'circle', title: 'Circle' });
+    expect(await repo.accessGroups(circle.id)).toEqual([
+      expect.objectContaining({ communityId: circle.id, title: 'Members', isDefault: true, directory: true, dms: true }),
+    ]);
+    expect(await repo.accessGroups((await program()).id)).toEqual([]);
+  });
+
   it('ignores revoked and expired grants', async () => {
     const p = await program();
     const g = await repo.createGrant({ productId: p.id, profileId: 'u1', source: 'manual' });

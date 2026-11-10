@@ -7,10 +7,14 @@ vi.mock('../../studioActions', () => ({ editOfferAction: vi.fn(), savePaymentsAc
 
 const detail = (over = {}) => ({
   offer: offer(over),
-  productIds: ['p1'],
+  items: [
+    { productId: 'p1', accessGroupId: null },
+    { productId: 'p3', accessGroupId: 'g-vip' },
+  ],
   products: [
-    { id: 'p1', title: 'Shibari 101', kind: 'program' as const },
-    { id: 'p2', title: 'Circle', kind: 'community' as const },
+    { id: 'p1', title: 'Shibari 101', kind: 'program' as const, groups: [] },
+    { id: 'p2', title: 'Circle', kind: 'community' as const, groups: [] },
+    { id: 'p3', title: 'Inner circle', kind: 'community' as const, groups: [{ id: 'g-vip', title: 'VIP' }] },
   ],
 });
 
@@ -25,6 +29,12 @@ describe('OfferEditor', () => {
     render(<OfferEditor detail={detail()} />);
     expect(screen.getByLabelText('Shibari 101 (program)')).toBeChecked();
     expect(screen.getByLabelText('Circle (community)')).not.toBeChecked();
+  });
+
+  it('offers an access group pick only for communities with extra groups', () => {
+    render(<OfferEditor detail={detail()} />);
+    expect(screen.getByLabelText('Access group in Inner circle')).toHaveValue('g-vip');
+    expect(screen.queryByLabelText('Access group in Circle')).toBeNull();
   });
 
   it('draft: offers publish, no checkout link', () => {

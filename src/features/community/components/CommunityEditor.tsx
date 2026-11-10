@@ -1,54 +1,11 @@
-// Studio > one community: settings, channels (add, rename, visibility, reorder, delete), staff ticks (G15).
+// Studio > one community: settings, channels, access groups + messaging, staff ticks (G15).
 import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
-import { Badge, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
-import { CHANNEL_VISIBILITIES, type Channel, type ChannelVisibility } from '@/lib/data/types';
+import { Badge, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import type { StaffTick, StudioCommunity } from '../api/studio';
+import { ChannelEditor } from './ChannelEditor';
 import { CommunityForm } from './CommunityForm';
+import { GroupEditor } from './GroupEditor';
 import styles from './community.module.css';
-
-const VISIBILITY_LABELS: Record<ChannelVisibility, string> = {
-  public: 'Members can post',
-  read_only: 'Read only (staff post)',
-};
-
-function VisibilitySelect({ value }: { value: ChannelVisibility }) {
-  return (
-    <Field label="Who can post">
-      <Select name="visibility" defaultValue={value}>
-        {CHANNEL_VISIBILITIES.map((v) => (
-          <option key={v} value={v}>
-            {VISIBILITY_LABELS[v]}
-          </option>
-        ))}
-      </Select>
-    </Field>
-  );
-}
-
-function ChannelRow({ channel, first, last }: { channel: Channel; first: boolean; last: boolean }) {
-  const id = { channelId: channel.id };
-  return (
-    <li className={styles.channelRow}>
-      <CommunityForm inline fields={{ op: 'updateChannel', ...id }} submit="Save">
-        <Field label="Channel title">
-          <Input name="title" defaultValue={channel.title} required />
-        </Field>
-        <VisibilitySelect value={channel.visibility} />
-      </CommunityForm>
-      <div className={styles.rowActions}>
-        {first ? null : <CommunityForm inline variant="ghost" submit="Move up" fields={{ op: 'moveChannel', ...id, direction: 'up' }} />}
-        {last ? null : <CommunityForm inline variant="ghost" submit="Move down" fields={{ op: 'moveChannel', ...id, direction: 'down' }} />}
-        <CommunityForm
-          inline
-          variant="danger"
-          submit="Delete"
-          confirm={`Delete channel "${channel.title}" and all its posts?`}
-          fields={{ op: 'deleteChannel', ...id }}
-        />
-      </div>
-    </li>
-  );
-}
 
 function StaffRow({ communityId, tick }: { communityId: string; tick: StaffTick }) {
   return (
@@ -66,7 +23,7 @@ function StaffRow({ communityId, tick }: { communityId: string; tick: StaffTick 
 }
 
 export function CommunityEditor({ view }: { view: StudioCommunity }) {
-  const { community, channels, staff, canManageStaff } = view;
+  const { community, channels, groups, members, channelMembers, staff, canManageStaff } = view;
   const communityId = community.id;
   return (
     <Stack gap="loose">
@@ -80,22 +37,14 @@ export function CommunityEditor({ view }: { view: StudioCommunity }) {
         <StatusSelect value={community.status} />
       </CommunityForm>
 
-      <Stack gap="base">
-        <Heading level={2} variant="subtitle">
-          Channels
-        </Heading>
-        <ul aria-label="Channels" className={styles.rows}>
-          {channels.map((c, i) => (
-            <ChannelRow key={c.id} channel={c} first={i === 0} last={i === channels.length - 1} />
-          ))}
-        </ul>
-        <CommunityForm inline fields={{ op: 'createChannel', communityId }} submit="Add channel">
-          <Field label="New channel title">
-            <Input name="title" required />
-          </Field>
-          <VisibilitySelect value="public" />
-        </CommunityForm>
-      </Stack>
+      <ChannelEditor
+        communityId={communityId}
+        channels={channels}
+        groups={groups}
+        members={members}
+        channelMembers={channelMembers}
+      />
+      <GroupEditor communityId={communityId} groups={groups} settings={view.settings} />
 
       {canManageStaff ? (
         <Stack gap="base">

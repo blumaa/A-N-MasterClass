@@ -65,6 +65,39 @@ describe('posts', () => {
   });
 });
 
+describe('posts: groups, privacy, chat', () => {
+  const vipChannel = async () => {
+    const group = await repo.createAccessGroup({ communityId: SEED_IDS.community, title: 'VIP' });
+    return (
+      await repo.createChannel({
+        communityId: SEED_IDS.community,
+        accessGroupId: group.id,
+        title: 'VIP',
+        kind: 'feed',
+        privacy: 'public',
+        readOnly: false,
+      })
+    ).id;
+  };
+
+  it('refuses members in channels of groups they do not hold; staff post anywhere', async () => {
+    const channelId = await vipChannel();
+    expect(await run(SEED_IDS.student, { op: 'createPost', channelId, body: 'x' })).toEqual({ ok: false, error: 'forbidden' });
+    const id = createdId(await run(SEED_IDS.alexanderOwner, { op: 'createPost', channelId, body: 'vip' }));
+    expect(await run(SEED_IDS.student, { op: 'react', target: { type: 'post', id }, emoji: '🔥', on: true })).toEqual({
+      ok: false,
+      error: 'forbidden',
+    });
+  });
+
+  it('refuses posts in chat channels', async () => {
+    expect(await run(SEED_IDS.alexanderOwner, { op: 'createPost', channelId: SEED_IDS.lounge, body: 'x' })).toMatchObject({
+      ok: false,
+      error: 'invalid',
+    });
+  });
+});
+
 describe('comments', () => {
   it('commenting notifies the post author; replying notifies the parent author first', async () => {
     const postId = await studentPost();

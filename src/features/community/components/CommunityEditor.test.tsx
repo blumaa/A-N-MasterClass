@@ -18,17 +18,31 @@ const community: Product = {
   position: 0,
   themeOverride: null,
 };
-const channel = (id: string, title: string, position: number): Channel => ({
+const channel = (id: string, title: string, position: number, over: Partial<Channel> = {}): Channel => ({
   id,
   communityId: 'c1',
+  accessGroupId: 'members',
   title,
-  visibility: 'public',
+  kind: 'feed',
+  privacy: 'public',
+  readOnly: false,
   position,
+  ...over,
 });
 
 const view = (over: Partial<StudioCommunity> = {}): StudioCommunity => ({
   community,
-  channels: [channel('g', 'General', 0), channel('w', 'Wins', 1)],
+  channels: [channel('g', 'General', 0), channel('w', 'Wins', 1, { privacy: 'private', kind: 'chat' })],
+  groups: [
+    { id: 'members', communityId: 'c1', title: 'Members', isDefault: true, directory: true, dms: true },
+    { id: 'vip', communityId: 'c1', title: 'VIP', isDefault: false, directory: true, dms: false },
+  ],
+  settings: { communityId: 'c1', dmsEnabled: true, founderDms: true },
+  members: [
+    { id: 'p1', name: 'Robin', staff: false },
+    { id: 'p2', name: 'Kim', staff: false },
+  ],
+  channelMembers: { w: ['p1'] },
   staff: [{ profileId: 'a', name: 'Sam', role: 'assistant', ticked: true }],
   canManageStaff: true,
   ...over,
@@ -50,6 +64,28 @@ describe('CommunityEditor', () => {
     expect(within(rows[0]!).getByRole('button', { name: 'Move down' })).toBeInTheDocument();
     expect(within(rows[1]!).getByRole('button', { name: 'Move up' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add channel' })).toBeInTheDocument();
+  });
+
+  it('private channels pick members: picked ones can be removed, the rest added', () => {
+    render(<CommunityEditor view={view()} />);
+    const rows = within(screen.getByRole('list', { name: 'Channels' })).getAllByRole('listitem');
+    expect(within(rows[0]!).queryByRole('list', { name: 'Members of General' })).toBeNull();
+    const picked = within(rows[1]!).getByRole('list', { name: 'Members of Wins' });
+    expect(within(picked).getByText('Robin')).toBeInTheDocument();
+    expect(within(picked).getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+    expect(within(rows[1]!).getByRole('option', { name: 'Kim' })).toBeInTheDocument();
+    expect(within(rows[1]!).queryByRole('option', { name: 'Robin' })).toBeNull();
+  });
+
+  it('lists access groups; only non-default groups can be deleted', () => {
+    render(<CommunityEditor view={view()} />);
+    const groups = within(screen.getByRole('list', { name: 'Access groups' })).getAllByRole('listitem');
+    expect(groups).toHaveLength(2);
+    expect(within(groups[0]!).getByText('Default')).toBeInTheDocument();
+    expect(within(groups[0]!).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(within(groups[1]!).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add group' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save messaging' })).toBeInTheDocument();
   });
 
   it('shows staff ticks only with staff.manage', () => {

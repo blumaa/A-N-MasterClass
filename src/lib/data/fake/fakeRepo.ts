@@ -6,6 +6,7 @@ import { grantIsActive } from '../grants';
 import type { Direction, Reorderable, Repo } from '../repo';
 import type { Grant, Module, Part, Product, Profile, Step } from '../types';
 import type { Db } from './db';
+import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
 import { createFakeCommunityRepo } from './fakeCommunityRepo';
 import { createFakeSiteRepo } from './fakeSiteRepo';
@@ -65,9 +66,12 @@ export function createFakeRepo(db: Db): FakeRepo {
     }
   }
 
+  const chat = createFakeChatRepo(db, id);
+
   return {
     db,
     ...createFakeSiteRepo(db, id),
+    ...chat,
     ...createFakeCommerceRepo(db, id),
     ...createFakeCommunityRepo(db, id),
 
@@ -129,6 +133,8 @@ export function createFakeRepo(db: Db): FakeRepo {
         position: nextPosition(db.products.filter((p) => p.spaceId === input.spaceId)),
       };
       db.products.push(row);
+      // SQL: trigger on products insert.
+      if (row.kind === 'community') await chat.createAccessGroup({ communityId: row.id, title: DEFAULT_GROUP_TITLE, isDefault: true });
       return row;
     },
     async updateProduct(pid, patch) {
@@ -221,11 +227,16 @@ export function createFakeRepo(db: Db): FakeRepo {
     grantsForProduct: async (productId) => db.grants.filter((g) => g.productId === productId),
     grantsForOrder: async (orderId) => db.grants.filter((g) => g.orderId === orderId),
     async createGrant(input) {
-      if (db.grants.some((g) => g.productId === input.productId && g.profileId === input.profileId && g.status === 'active')) {
-        throw new ConstraintError('active grant exists');
+      const accessGroupId = input.accessGroupId ?? null;
+      if (accessGroupId !== null && db.accessGroups.find((g) => g.id === accessGroupId)?.communityId !== input.productId) {
+        throw new ConstraintError('access group must belong to the granted community');
       }
+      const same = (g: Grant) =>
+        g.productId === input.productId && g.profileId === input.profileId && g.accessGroupId === accessGroupId;
+      if (db.grants.some((g) => same(g) && g.status === 'active')) throw new ConstraintError('active grant exists');
       const row: Grant = {
         ...input,
+        accessGroupId,
         orderId: input.orderId ?? null,
         id: id('grant'),
         status: 'active',

@@ -1,8 +1,12 @@
-// Member directory of a community (G2: names from space profiles).
+// Member directory of a community (G2: names from space profiles). Shown while one of the
+// viewer's access groups has the directory on (or the viewer is staff); Message buttons for DM targets.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Heading, Stack } from '@/components/ui/mds';
-import { communityPage, directory } from '@/features/community/api/feed';
+import { dmTargets } from '@/features/community/api/dms';
+import { directory } from '@/features/community/api/feed';
+import { communityShell } from '@/features/community/api/shell';
+import { chatAction } from '@/features/community/chatActions';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
 import { MemberList } from '@/features/community/components/MemberList';
 import { currentViewer } from '@/lib/auth/currentViewer';
@@ -16,16 +20,16 @@ export default async function MembersRoute({ params }: PageProps<'/[space]/commu
   if (!viewer) notFound();
   const repo = getRepo();
   const now = new Date();
-  const page = await communityPage(repo, viewer, community, null, now);
-  if (page?.kind !== 'open') notFound();
-  const members = await directory(repo, page.community, now);
+  const shell = await communityShell(repo, viewer, community, now);
+  if (!shell?.access.directory) notFound();
+  const [members, targets] = await Promise.all([directory(repo, shell.community, now), dmTargets(repo, viewer, shell.community, now)]);
   return (
-    <CommunityFrame community={page.community} channels={page.channels} activeId={null}>
+    <CommunityFrame community={shell.community} channels={shell.channels} activeId="members" extras={shell.nav}>
       <Stack gap="loose">
         <Heading level={1} variant="title">
           Members
         </Heading>
-        <MemberList members={members} />
+        <MemberList members={members} dm={{ communityId: shell.community.id, targets: [...targets], action: chatAction }} />
       </Stack>
     </CommunityFrame>
   );

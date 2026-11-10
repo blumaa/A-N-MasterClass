@@ -77,10 +77,22 @@ describe('offers', () => {
     const p1 = await repo.createProduct({ spaceId: 's1', kind: 'program', slug: 'a', title: 'A' });
     const p2 = await repo.createProduct({ spaceId: 's1', kind: 'program', slug: 'b', title: 'B' });
     const foreign = await repo.createProduct({ spaceId: 's2', kind: 'program', slug: 'c', title: 'C' });
-    await repo.setOfferProducts(o.id, [p1.id, p2.id]);
-    await repo.setOfferProducts(o.id, [p2.id]);
-    expect(await repo.offerProductIds(o.id)).toEqual([p2.id]);
-    await expect(repo.setOfferProducts(o.id, [foreign.id])).rejects.toThrow(/space/);
+    await repo.setOfferItems(o.id, [p1, p2].map((p) => ({ productId: p.id, accessGroupId: null })));
+    await repo.setOfferItems(o.id, [{ productId: p2.id, accessGroupId: null }]);
+    expect(await repo.offerItems(o.id)).toEqual([{ productId: p2.id, accessGroupId: null }]);
+    await expect(repo.setOfferItems(o.id, [{ productId: foreign.id, accessGroupId: null }])).rejects.toThrow(/space/);
+  });
+
+  it('links a community with one of its own access groups only', async () => {
+    const o = await offer();
+    const circle = await repo.createProduct({ spaceId: 's1', kind: 'community', slug: 'circle', title: 'Circle' });
+    const other = await repo.createProduct({ spaceId: 's1', kind: 'community', slug: 'other', title: 'Other' });
+    const vip = await repo.createAccessGroup({ communityId: circle.id, title: 'VIP' });
+    const [otherDefault] = await repo.accessGroups(other.id);
+    await repo.setOfferItems(o.id, [{ productId: circle.id, accessGroupId: vip.id }]);
+    expect(await repo.offerItems(o.id)).toEqual([{ productId: circle.id, accessGroupId: vip.id }]);
+    await expect(repo.setOfferItems(o.id, [{ productId: circle.id, accessGroupId: otherDefault!.id }])).rejects.toThrow(/group/);
+    await expect(repo.deleteAccessGroup(vip.id)).rejects.toThrow(/in use/);
   });
 
   it('deletes an offer without orders, refuses one with orders', async () => {

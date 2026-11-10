@@ -5,10 +5,10 @@ import { ALWAYS_REACH } from '@/lib/auth/capabilities';
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
-import type { ChannelPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
-import type { Channel, ChannelVisibility, Product, Role } from '@/lib/data/types';
+import type { AccessGroupPatch, ChannelPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
+import type { AccessGroup, Channel, ChannelKind, ChannelPrivacy, CommunitySettings, Product, Role } from '@/lib/data/types';
 import { reachesAsStaff } from './access';
-import { spaceNames } from './feed';
+import { directory, spaceNames, type DirectoryEntry } from './feed';
 import { authorOf } from './present';
 
 /** Name of the channel every new community starts with. */
@@ -23,6 +23,12 @@ export type StaffTick = {
 export type StudioCommunity = {
   community: Product;
   channels: Channel[];
+  groups: AccessGroup[];
+  settings: CommunitySettings;
+  /** Everyone in the community (private channel member picker). */
+  members: DirectoryEntry[];
+  /** Picked members per private channel. */
+  channelMembers: Record<string, string[]>;
   staff: StaffTick[];
   canManageStaff: boolean;
 };
@@ -47,19 +53,29 @@ export async function studioCommunity(
   repo: Repo,
   viewer: Viewer,
   communityId: string,
+  now: Date,
 ): Promise<StudioCommunity | null> {
   if (!viewerCan(viewer, 'products.edit')) return null;
   const community = await editable(repo, viewer, communityId);
   if (!community) return null;
-  const [channels, members, ticked, names] = await Promise.all([
+  const [channels, members, ticked, names, groups, settings, people] = await Promise.all([
     repo.channels(community.id),
     repo.members(viewer.space.id),
     repo.communityStaff(community.id),
     spaceNames(repo, viewer.space.id),
+    repo.accessGroups(community.id),
+    repo.communitySettings(community.id),
+    directory(repo, community, now),
   ]);
+  const privates = channels.filter((c) => c.privacy === 'private');
+  const picked = await Promise.all(privates.map((c) => repo.channelMembers(c.id)));
   return {
     community,
     channels,
+    groups,
+    settings,
+    members: people,
+    channelMembers: Object.fromEntries(privates.map((c, i) => [c.id, picked[i] ?? []])),
     staff: members
       .filter((m) => tickable(m.role))
       .map((m) => ({
@@ -79,11 +95,20 @@ export type StudioCommunityCommand =
       op: 'createChannel';
       communityId: string;
       title: string;
-      visibility: ChannelVisibility;
+      kind: ChannelKind;
+      privacy: ChannelPrivacy;
+      readOnly: boolean;
+      /** Default group when absent. */
+      accessGroupId?: string;
     }
   | { op: 'updateChannel'; channelId: string; patch: ChannelPatch }
   | { op: 'deleteChannel'; channelId: string }
   | { op: 'moveChannel'; channelId: string; direction: Direction }
+  | { op: 'setChannelMember'; channelId: string; profileId: string; on: boolean }
+  | { op: 'createGroup'; communityId: string; title: string }
+  | { op: 'updateGroup'; groupId: string; patch: AccessGroupPatch }
+  | { op: 'deleteGroup'; groupId: string }
+  | { op: 'saveSettings'; communityId: string; dmsEnabled: boolean; founderDms: boolean }
   | { op: 'setStaff'; communityId: string; profileId: string; on: boolean };
 
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
@@ -100,16 +125,41 @@ const targetOf = (repo: Repo, c: StudioCommunityCommand): Promise<string | null>
       return null;
     case 'updateCommunity':
     case 'createChannel':
+    case 'createGroup':
+    case 'saveSettings':
     case 'setStaff':
       return Promise.resolve(c.communityId);
     case 'updateChannel':
     case 'deleteChannel':
     case 'moveChannel':
+    case 'setChannelMember':
       return communityOfChannel(repo, c.channelId);
+    case 'updateGroup':
+    case 'deleteGroup':
+      return repo.accessGroup(c.groupId).then((g) => g?.communityId ?? null);
   }
 };
 
-async function run(repo: Repo, viewer: Viewer, me: string, c: StudioCommunityCommand): Promise<string | undefined> {
+async function defaultGroup(repo: Repo, communityId: string): Promise<string> {
+  const group = (await repo.accessGroups(communityId)).find((g) => g.isDefault);
+  if (!group) throw new ConstraintError('community has no default group');
+  return group.id;
+}
+
+async function setChannelMember(repo: Repo, c: Extract<StudioCommunityCommand, { op: 'setChannelMember' }>, now: Date) {
+  const channel = await repo.channel(c.channelId);
+  const community = channel && (await repo.product(channel.communityId));
+  if (!channel || !community) throw new ConstraintError('channel not found');
+  if (channel.privacy !== 'private') throw new ConstraintError('only private channels have picked members');
+  if (c.on && !(await directory(repo, community, now)).some((m) => m.id === c.profileId)) {
+    throw new ConstraintError('not a member of this community');
+  }
+  await repo.setChannelMember(c.channelId, c.profileId, c.on);
+}
+
+type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date };
+
+async function run({ repo, viewer, me, now }: Ctx, c: StudioCommunityCommand): Promise<string | undefined> {
   switch (c.op) {
     case 'createCommunity': {
       const community = await repo.createProduct({
@@ -118,10 +168,14 @@ async function run(repo: Repo, viewer: Viewer, me: string, c: StudioCommunityCom
         slug: c.slug,
         title: c.title,
       });
+      // The default access group comes with the product (repo / DB trigger).
       await repo.createChannel({
         communityId: community.id,
+        accessGroupId: await defaultGroup(repo, community.id),
         title: DEFAULT_CHANNEL,
-        visibility: 'public',
+        kind: 'feed',
+        privacy: 'public',
+        readOnly: false,
       });
       // Ticked staff keep reaching what they create.
       if (viewer.role && tickable(viewer.role)) await repo.setCommunityStaff(community.id, me, true);
@@ -133,8 +187,11 @@ async function run(repo: Repo, viewer: Viewer, me: string, c: StudioCommunityCom
       return (
         await repo.createChannel({
           communityId: c.communityId,
+          accessGroupId: c.accessGroupId ?? (await defaultGroup(repo, c.communityId)),
           title: c.title,
-          visibility: c.visibility,
+          kind: c.kind,
+          privacy: c.privacy,
+          readOnly: c.readOnly,
         })
       ).id;
     case 'updateChannel':
@@ -148,6 +205,20 @@ async function run(repo: Repo, viewer: Viewer, me: string, c: StudioCommunityCom
     }
     case 'moveChannel':
       return void (await repo.move('channels', c.channelId, c.direction));
+    case 'setChannelMember':
+      return void (await setChannelMember(repo, c, now));
+    case 'createGroup':
+      return (await repo.createAccessGroup({ communityId: c.communityId, title: c.title })).id;
+    case 'updateGroup':
+      return void (await repo.updateAccessGroup(c.groupId, c.patch));
+    case 'deleteGroup':
+      return void (await repo.deleteAccessGroup(c.groupId));
+    case 'saveSettings':
+      return void (await repo.saveCommunitySettings({
+        communityId: c.communityId,
+        dmsEnabled: c.dmsEnabled,
+        founderDms: c.founderDms,
+      }));
     case 'setStaff': {
       const member = (await repo.members(viewer.space.id)).find((m) => m.profileId === c.profileId);
       if (!member || !tickable(member.role))
@@ -157,7 +228,12 @@ async function run(repo: Repo, viewer: Viewer, me: string, c: StudioCommunityCom
   }
 }
 
-export async function editCommunity(repo: Repo, viewer: Viewer, c: StudioCommunityCommand): Promise<CommandResult> {
+export async function editCommunity(
+  repo: Repo,
+  viewer: Viewer,
+  c: StudioCommunityCommand,
+  now: Date,
+): Promise<CommandResult> {
   if (!viewer.profile || !viewerCan(viewer, 'products.edit')) return FORBIDDEN;
   if (c.op === 'setStaff' && !viewerCan(viewer, 'staff.manage')) return FORBIDDEN;
   const pending = targetOf(repo, c);
@@ -166,7 +242,7 @@ export async function editCommunity(repo: Repo, viewer: Viewer, c: StudioCommuni
     if (!communityId || !(await editable(repo, viewer, communityId))) return NOT_FOUND;
   }
   try {
-    return { ok: true, id: await run(repo, viewer, viewer.profile.id, c) };
+    return { ok: true, id: await run({ repo, viewer, me: viewer.profile.id, now }, c) };
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

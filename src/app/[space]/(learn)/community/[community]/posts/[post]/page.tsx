@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Stack } from '@/components/ui/mds';
+import { communityNav } from '@/features/community/api/dms';
 import { postPage } from '@/features/community/api/feed';
 import { CommentThread } from '@/features/community/components/CommentThread';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
@@ -17,10 +18,8 @@ async function load(params: Props['params']) {
   const { space, community, post } = await params;
   const viewer = await currentViewer(space);
   if (!viewer) return null;
-  const repo = getRepo();
-  const page = await postPage(repo, viewer, community, post, new Date());
-  if (!page) return null;
-  return { page, channels: await repo.channels(page.community.id), signedIn: viewer.profile !== null };
+  const page = await postPage(getRepo(), viewer, community, post, new Date());
+  return page ? { page, viewer } : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -31,10 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PostRoute({ params }: Props) {
   const data = await load(params);
   if (!data) notFound();
-  const { page, channels, signedIn } = data;
-  const { community, access, channel, post, comments, members } = page;
+  const { page, viewer } = data;
+  const { community, access, channels, channel, post, comments, members } = page;
+  const signedIn = viewer.profile !== null;
+  const nav = await communityNav(getRepo(), viewer, community, access.directory, new Date());
   return (
-    <CommunityFrame community={community} channels={channels} activeId={channel.id}>
+    <CommunityFrame community={community} channels={channels} activeId={channel.id} extras={nav}>
       <Stack gap="loose">
         <PostCard
           post={post}

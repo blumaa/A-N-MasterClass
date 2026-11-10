@@ -19,7 +19,7 @@ beforeEach(async () => {
   const a = await repo.createProduct({ spaceId: 's1', kind: 'program', slug: 'a', title: 'A' });
   const b = await repo.createProduct({ spaceId: 's1', kind: 'community', slug: 'b', title: 'B' });
   productIds = [a.id, b.id];
-  await repo.setOfferProducts(offer.id, productIds);
+  await repo.setOfferItems(offer.id, productIds.map((productId) => ({ productId, accessGroupId: null })));
 });
 
 const newOrder = (extra: Partial<Order> = {}) =>
@@ -70,6 +70,16 @@ describe('fulfilOrder', () => {
     const order = await newOrder();
     await fulfilOrder(repo, order, capture(), NOW);
     expect((await repo.grantsForOrder(order.id)).map((g) => g.productId)).toEqual([productIds[1]]);
+  });
+
+  it('grants the offer\'s access group even when the buyer already has the default one', async () => {
+    const existing = await repo.createProfile('buyer@test.com');
+    await repo.createGrant({ productId: productIds[1], profileId: existing.id, source: 'manual' });
+    const vip = await repo.createAccessGroup({ communityId: productIds[1], title: 'VIP' });
+    await repo.setOfferItems(offer.id, [{ productId: productIds[1], accessGroupId: vip.id }]);
+    const order = await newOrder();
+    await fulfilOrder(repo, order, capture(), NOW);
+    expect((await repo.grantsForOrder(order.id)).map((g) => g.accessGroupId)).toEqual([vip.id]);
   });
 
   it('is idempotent: a second fulfilment changes nothing', async () => {

@@ -23,7 +23,7 @@ async function created(slug = 'full'): Promise<string> {
 describe('studioOffers', () => {
   it('lists the space offers with product and sale counts, for offers.manage only', async () => {
     const id = await created();
-    await editOffers(repo, await owner(), { op: 'setProducts', offerId: id, productIds: [SEED_IDS.program] });
+    await editOffers(repo, await owner(), { op: 'setProducts', offerId: id, items: [{ productId: SEED_IDS.program, accessGroupId: null }] });
     const list = await studioOffers(repo, await owner());
     expect(list).toEqual([expect.objectContaining({ offer: expect.objectContaining({ id, status: 'draft' }), productCount: 1, sold: 0 })]);
     expect(await studioOffers(repo, await as(SEED_IDS.assistant))).toBeNull();
@@ -36,8 +36,16 @@ describe('studioOffer', () => {
     const id = await created();
     const detail = await studioOffer(repo, await owner(), id);
     expect(detail?.offer.id).toBe(id);
-    expect(detail?.productIds).toEqual([]);
+    expect(detail?.items).toEqual([]);
     expect(detail?.products.map((p) => p.id)).toContain(SEED_IDS.program);
+  });
+
+  it('lists the extra access groups of each community to pick from', async () => {
+    const id = await created();
+    const vip = await repo.createAccessGroup({ communityId: SEED_IDS.community, title: 'VIP' });
+    const detail = await studioOffer(repo, await owner(), id);
+    expect(detail?.products.find((p) => p.id === SEED_IDS.community)?.groups).toEqual([{ id: vip.id, title: 'VIP' }]);
+    expect(detail?.products.find((p) => p.id === SEED_IDS.program)?.groups).toEqual([]);
   });
 
   it('hides an offer of another space', async () => {
@@ -75,7 +83,7 @@ describe('editOffers', () => {
     const id = await created();
     const v = await owner();
     expect(await editOffers(repo, v, { op: 'publish', offerId: id })).toMatchObject({ error: 'invalid', message: expect.stringMatching(/product/) });
-    await editOffers(repo, v, { op: 'setProducts', offerId: id, productIds: [SEED_IDS.program] });
+    await editOffers(repo, v, { op: 'setProducts', offerId: id, items: [{ productId: SEED_IDS.program, accessGroupId: null }] });
     expect(await editOffers(repo, v, { op: 'publish', offerId: id })).toEqual({ ok: true });
     expect((await repo.offer(id))?.status).toBe('published');
     await editOffers(repo, v, { op: 'unpublish', offerId: id });
@@ -85,9 +93,9 @@ describe('editOffers', () => {
   it('refuses to unlink every product of a published offer', async () => {
     const id = await created();
     const v = await owner();
-    await editOffers(repo, v, { op: 'setProducts', offerId: id, productIds: [SEED_IDS.program] });
+    await editOffers(repo, v, { op: 'setProducts', offerId: id, items: [{ productId: SEED_IDS.program, accessGroupId: null }] });
     await editOffers(repo, v, { op: 'publish', offerId: id });
-    expect(await editOffers(repo, v, { op: 'setProducts', offerId: id, productIds: [] })).toMatchObject({ error: 'invalid' });
+    expect(await editOffers(repo, v, { op: 'setProducts', offerId: id, items: [] })).toMatchObject({ error: 'invalid' });
   });
 
   it('deletes an unsold offer; a sold one must be unpublished instead', async () => {
@@ -121,10 +129,18 @@ describe('editOffers', () => {
     });
   });
 
+  it('links a community with an access group', async () => {
+    const id = await created();
+    const vip = await repo.createAccessGroup({ communityId: SEED_IDS.community, title: 'VIP' });
+    const items = [{ productId: SEED_IDS.community, accessGroupId: vip.id }];
+    expect(await editOffers(repo, await owner(), { op: 'setProducts', offerId: id, items })).toEqual({ ok: true });
+    expect((await studioOffer(repo, await owner(), id))?.items).toEqual(items);
+  });
+
   it('refuses products of another space', async () => {
     const id = await created();
     const foreign = await repo.createProduct({ spaceId: SEED_IDS.natasha, kind: 'program', slug: 'other', title: 'Other' });
-    expect(await editOffers(repo, await owner(), { op: 'setProducts', offerId: id, productIds: [foreign.id] })).toMatchObject({
+    expect(await editOffers(repo, await owner(), { op: 'setProducts', offerId: id, items: [{ productId: foreign.id, accessGroupId: null }] })).toMatchObject({
       error: 'invalid',
     });
   });

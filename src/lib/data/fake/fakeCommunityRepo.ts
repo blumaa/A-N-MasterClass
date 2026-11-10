@@ -1,7 +1,8 @@
 // Community part of the fake repo. Same constraints as supabase/migrations/*_community.sql:
 // channels only on community products, non-blank titles, body length checks, one reply level
 // on the same target, unique reactions, staff ticks only for staff of the community's space,
-// cascades (channel > posts > comments > reactions; post > notifications).
+// channel group in the same community, cascades (channel > posts > comments > reactions,
+// messages, private members; post > notifications).
 import { ConstraintError } from '../errors';
 import type { Repo } from '../repo';
 import type { Channel, Comment, Notification, Post, Reaction } from '../types';
@@ -74,6 +75,8 @@ export function createFakeCommunityRepo(db: Db, id: (prefix: string) => string):
     async createChannel(input) {
       const community = db.products.find((p) => p.id === input.communityId);
       if (!community || community.kind !== 'community') throw new ConstraintError('channel needs a community product');
+      const group = db.accessGroups.find((g) => g.id === input.accessGroupId);
+      if (!group || group.communityId !== input.communityId) throw new ConstraintError('channel group must belong to its community');
       checkTitle(input.title);
       const siblings = db.channels.filter((c) => c.communityId === input.communityId);
       const row: Channel = { ...input, id: id('chan'), position: siblings.reduce((m, c) => Math.max(m, c.position + 1), 0) };
@@ -86,6 +89,8 @@ export function createFakeCommunityRepo(db: Db, id: (prefix: string) => string):
     },
     async deleteChannel(cid) {
       removePosts(new Set(db.posts.filter((p) => p.channelId === cid).map((p) => p.id)));
+      db.messages = db.messages.filter((m) => m.channelId !== cid);
+      db.channelMembers = db.channelMembers.filter((m) => m.channelId !== cid);
       db.channels = db.channels.filter((c) => c.id !== cid);
     },
 

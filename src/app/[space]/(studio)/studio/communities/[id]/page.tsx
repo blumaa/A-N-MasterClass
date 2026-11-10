@@ -12,7 +12,7 @@ type Props = PageProps<'/[space]/studio/communities/[id]'>;
 async function load(params: Props['params']) {
   const { space, id } = await params;
   const viewer = await currentViewer(space);
-  return viewer ? studioCommunity(getRepo(), viewer, id) : null;
+  return viewer ? studioCommunity(getRepo(), viewer, id, new Date()) : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

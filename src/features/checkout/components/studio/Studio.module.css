@@ -19,6 +19,11 @@
   margin: 0;
 }
 
+.product {
+  display: grid;
+  gap: var(--mds-space-1, 0.25rem);
+}
+
 .mono {
   font-family: var(--mds-font-mono, monospace);
   overflow-wrap: anywhere;
