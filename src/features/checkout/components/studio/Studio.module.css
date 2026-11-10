@@ -1,0 +1,25 @@
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--mds-space-3, 0.75rem);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--mds-space-3, 0.75rem);
+}
+
+.products {
+  display: grid;
+  gap: var(--mds-space-2, 0.5rem);
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--mds-font-mono, monospace);
+  overflow-wrap: anywhere;
+}

@@ -5,9 +5,20 @@ import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { Direction, Repo } from '@/lib/data/repo';
-import type { LegalKind, NavItem, Page, PageKind, PageVersion } from '@/lib/data/types';
+import type { LegalKind, NavItem, Page, PageKind, PageVersion, Space } from '@/lib/data/types';
 import { LEGAL_KINDS } from '@/lib/data/types';
-import { SECTION_SPECS, newSection, validateSection, type SectionKind, type SiteSection } from '@/lib/site/sections';
+import { formatMoney } from '@/lib/commerce/money';
+import { checkoutPath } from '@/lib/commerce/paths';
+import {
+  SECTION_SPECS,
+  isRefType,
+  newSection,
+  validateSection,
+  type RefType,
+  type SectionChoices,
+  type SectionKind,
+  type SiteSection,
+} from '@/lib/site/sections';
 import { SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { pageHref } from '../paths';
 import { LEGAL_LABELS, RESERVED_PAGE_SLUGS, checkNav, legalGaps } from '../rules';
@@ -50,16 +61,48 @@ export async function siteChrome(repo: Repo, spaceId: string): Promise<SiteChrom
 }
 
 export type CurriculumPreview = { title: string; modules: { title: string; steps: string[] }[] };
+export type OfferPreview = { title: string; description: string | null; price: string; href: string };
+export type SectionRefs = { curricula: Record<string, CurriculumPreview>; offers: Record<string, OfferPreview> };
 
-/** Published outline of each program a curriculum section names, looked up in this space only. */
-export async function curricula(
+/** Distinct non-empty slugs the sections' ref fields of one type point at. */
+function refSlugs(sections: readonly SiteSection[], type: RefType): string[] {
+  const slugs = new Set<string>();
+  for (const s of sections) {
+    for (const f of SECTION_SPECS[s.kind].fields) {
+      const slug = s.fields[f.name];
+      if (f.type === type && slug) slugs.add(slug);
+    }
+  }
+  return [...slugs];
+}
+
+async function bySlug<T>(slugs: readonly string[], find: (slug: string) => Promise<T | null>): Promise<Record<string, T>> {
+  const entries = await Promise.all(slugs.map(async (slug) => [slug, await find(slug)] as const));
+  return Object.fromEntries(entries.filter((e): e is readonly [string, Awaited<T>] => e[1] !== null));
+}
+
+/** What curriculum and offer sections show: published programs and offers of this space only. */
+export async function sectionRefs(
   repo: Repo,
-  spaceId: string,
+  space: Pick<Space, 'id' | 'locale'>,
   sections: readonly SiteSection[],
-): Promise<Record<string, CurriculumPreview>> {
-  const slugs = new Set(sections.filter((s) => s.kind === 'curriculum').map((s) => s.fields.programSlug ?? ''));
-  const entries = await Promise.all([...slugs].map(async (slug) => [slug, await outline(repo, spaceId, slug)] as const));
-  return Object.fromEntries(entries.filter((e): e is readonly [string, CurriculumPreview] => e[1] !== null));
+): Promise<SectionRefs> {
+  const [curricula, offers] = await Promise.all([
+    bySlug(refSlugs(sections, 'program'), (slug) => outline(repo, space.id, slug)),
+    bySlug(refSlugs(sections, 'offer'), (slug) => offerPreview(repo, space, slug)),
+  ]);
+  return { curricula, offers };
+}
+
+async function offerPreview(repo: Repo, space: Pick<Space, 'id' | 'locale'>, slug: string): Promise<OfferPreview | null> {
+  const offer = await repo.offerBySlug(space.id, slug);
+  if (offer?.status !== 'published') return null;
+  return {
+    title: offer.title,
+    description: offer.description,
+    price: formatMoney(offer.priceCents, offer.currency, space.locale),
+    href: checkoutPath(offer.slug),
+  };
 }
 
 async function outline(repo: Repo, spaceId: string, slug: string): Promise<CurriculumPreview | null> {
@@ -106,9 +149,11 @@ export async function draftPreview(repo: Repo, viewer: Viewer, pageId: string): 
   return found && { page: found.page, sections: found.page.draft.filter((s) => !s.hidden) };
 }
 
-/** Programs a curriculum section may point at. */
-export async function programOptions(repo: Repo, spaceId: string): Promise<{ slug: string; title: string }[]> {
-  return (await repo.products(spaceId)).filter((p) => p.kind === 'program').map((p) => ({ slug: p.slug, title: p.title }));
+/** Records the ref fields of a section may point at (any status: link first, publish later). */
+export async function sectionChoices(repo: Repo, spaceId: string): Promise<SectionChoices> {
+  const [products, offers] = await Promise.all([repo.products(spaceId), repo.offers(spaceId)]);
+  const choice = ({ slug, title }: { slug: string; title: string }) => ({ slug, title });
+  return { program: products.filter((p) => p.kind === 'program').map(choice), offer: offers.map(choice) };
 }
 
 // ---------- commands ----------
@@ -249,7 +294,7 @@ async function editSection(
     case 'updateSection': {
       const checked = validateSection(section, cmd.fields, cmd.items);
       if (!checked.ok) return invalid(checked.message);
-      const problem = await programProblem(repo, page.spaceId, checked.section);
+      const problem = await refProblem(repo, page.spaceId, checked.section);
       if (problem) return invalid(problem);
       draft[i] = checked.section;
       break;
@@ -274,12 +319,22 @@ async function editSection(
   return OK;
 }
 
-async function programProblem(repo: Repo, spaceId: string, section: SiteSection): Promise<string | null> {
-  const programField = SECTION_SPECS[section.kind].fields.find((f) => f.type === 'program');
-  const slug = programField ? section.fields[programField.name] : '';
-  if (!slug) return null;
-  const program = await repo.productBySlug(spaceId, slug);
-  return program?.kind === 'program' ? null : 'Pick a program from the list.';
+const REF_EXISTS: Record<RefType, (repo: Repo, spaceId: string, slug: string) => Promise<boolean>> = {
+  program: async (repo, spaceId, slug) => (await repo.productBySlug(spaceId, slug))?.kind === 'program',
+  offer: async (repo, spaceId, slug) => (await repo.offerBySlug(spaceId, slug)) !== null,
+};
+const REF_PROBLEM: Record<RefType, string> = {
+  program: 'Pick a program from the list.',
+  offer: 'Pick an offer from the list.',
+};
+
+/** Ref fields must name a record of this space (tenant wall). */
+async function refProblem(repo: Repo, spaceId: string, section: SiteSection): Promise<string | null> {
+  for (const f of SECTION_SPECS[section.kind].fields) {
+    const slug = section.fields[f.name];
+    if (isRefType(f.type) && slug && !(await REF_EXISTS[f.type](repo, spaceId, slug))) return REF_PROBLEM[f.type];
+  }
+  return null;
 }
 
 async function saveNav(repo: Repo, spaceId: string, header: NavItem[], footer: NavItem[]): Promise<CommandResult> {

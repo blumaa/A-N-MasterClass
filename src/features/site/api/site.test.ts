@@ -6,12 +6,13 @@ import type { LegalKind, Page } from '@/lib/data/types';
 import type { SiteSection } from '@/lib/site/sections';
 import {
   blogPosts,
-  curricula,
   draftPreview,
   editSite,
   homePage,
   publicPage,
   publicPost,
+  sectionChoices,
+  sectionRefs,
   siteChrome,
   studioPage,
   studioSite,
@@ -32,6 +33,11 @@ const as = async (profileId: string | null, space = 'alexander'): Promise<Viewer
   (await resolveViewer(repo, space, profileId))!;
 const owner = () => as(SEED_IDS.alexanderOwner);
 const run = async (cmd: SiteCommand, viewer?: Viewer) => editSite(repo, viewer ?? (await owner()), cmd, NOW, newId);
+
+async function offer(slug: string, status: 'draft' | 'published') {
+  const o = await repo.createOffer({ spaceId: SEED_IDS.alexander, slug, title: slug === 'full' ? 'Full access' : slug, priceCents: 4900, currency: 'EUR' });
+  return status === 'published' ? repo.updateOffer(o.id, { status }) : o;
+}
 
 async function create(title: string, slug: string, kind: Page['kind'] = 'page'): Promise<string> {
   const r = await run({ op: 'createPage', kind, title, slug });
@@ -162,6 +168,16 @@ describe('sections', () => {
     expect(await set('shibari-101')).toEqual({ ok: true });
   });
 
+  it('only accepts offers of this space in an offer section', async () => {
+    await offer('full', 'draft');
+    const id = await create('About', 'about');
+    await run({ op: 'addSection', pageId: id, kind: 'offer' });
+    const s = (await page(id)).draft[0]!;
+    const set = (offerSlug: string) => run({ op: 'updateSection', pageId: id, sectionId: s.id, fields: { offerSlug }, items: [] });
+    expect(await set('nope')).toEqual({ ok: false, error: 'invalid', message: 'Pick an offer from the list.' });
+    expect(await set('full')).toEqual({ ok: true });
+  });
+
   it('reports an unknown section as not found', async () => {
     const id = await create('About', 'about');
     expect(await run({ op: 'removeSection', pageId: id, sectionId: 'x' })).toEqual({ ok: false, error: 'not_found' });
@@ -252,11 +268,37 @@ describe('public reads', () => {
     const sections: SiteSection[] = [
       { id: 's', kind: 'curriculum', hidden: false, fields: { heading: '', programSlug: 'shibari-101' }, items: [] },
     ];
-    const map = await curricula(repo, SEED_IDS.alexander, sections);
-    const program = map['shibari-101']!;
+    const refs = await sectionRefs(repo, { id: SEED_IDS.alexander, locale: 'en' }, sections);
+    const program = refs.curricula['shibari-101']!;
     expect(program.title).toBeTruthy();
     expect(program.modules.length).toBeGreaterThan(0);
-    expect(await curricula(repo, SEED_IDS.natasha, sections)).toEqual({});
+    expect(await sectionRefs(repo, { id: SEED_IDS.natasha, locale: 'en' }, sections)).toEqual({ curricula: {}, offers: {} });
+  });
+
+  it('resolves published offers of this space for offer sections, price in the space locale', async () => {
+    const full = await offer('full', 'published');
+    await offer('draft', 'draft');
+    await repo.updateOffer(full.id, { description: 'Everything' });
+    const sections: SiteSection[] = ['full', 'draft', 'gone'].map((offerSlug, i) => ({
+      id: `s${i}`,
+      kind: 'offer',
+      hidden: false,
+      fields: { heading: '', offerSlug },
+      items: [],
+    }));
+    const refs = await sectionRefs(repo, { id: SEED_IDS.alexander, locale: 'en' }, sections);
+    expect(refs.offers).toEqual({
+      full: { title: 'Full access', description: 'Everything', price: '€49.00', href: '/checkout/full' },
+    });
+    expect((await sectionRefs(repo, { id: SEED_IDS.natasha, locale: 'en' }, sections)).offers).toEqual({});
+  });
+
+  it('lists programs and offers of this space as section choices', async () => {
+    await offer('full', 'draft');
+    const choices = await sectionChoices(repo, SEED_IDS.alexander);
+    expect(choices.program.map((p) => p.slug)).toContain('shibari-101');
+    expect(choices.offer).toEqual([{ slug: 'full', title: 'Full access' }]);
+    expect((await sectionChoices(repo, SEED_IDS.natasha)).offer).toEqual([]);
   });
 });
 

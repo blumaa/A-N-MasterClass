@@ -3,9 +3,9 @@ import 'server-only';
 import { cache } from 'react';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
-import { blogPosts, curricula, homePage, publicPage, publicPost, type CurriculumPreview, type PublicPage } from './site';
+import { blogPosts, homePage, publicPage, publicPost, sectionRefs, type PublicPage, type SectionRefs } from './site';
 
-export type LoadedPage = PublicPage & { curricula: Record<string, CurriculumPreview> };
+export type LoadedPage = PublicPage & { refs: SectionRefs };
 type Target = { kind: 'home' } | { kind: 'page' | 'post'; slug: string };
 
 async function load(spaceSlug: string, target: Target): Promise<LoadedPage | null> {
@@ -19,7 +19,7 @@ async function load(spaceSlug: string, target: Target): Promise<LoadedPage | nul
       : target.kind === 'page'
         ? await publicPage(repo, spaceId, target.slug)
         : await publicPost(repo, spaceId, target.slug);
-  return found ? { ...found, curricula: await curricula(repo, spaceId, found.sections) } : null;
+  return found ? { ...found, refs: await sectionRefs(repo, viewer.space, found.sections) } : null;
 }
 
 // cache() keys on argument identity, so targets are passed as primitives.

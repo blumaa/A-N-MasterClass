@@ -1,12 +1,21 @@
 // Page builder sections (G11): pages -> sections -> fields/items. One spec per kind drives
 // the generic Studio editor, the server-side validation and the stored JSON shape.
-// Stored in pages.draft / pages.published (jsonb). Offer/pricing section arrives with commerce.
+// Stored in pages.draft / pages.published (jsonb).
 import { vimeoIdOf } from '@/lib/video/vimeo';
 
-export const SECTION_KINDS = ['hero', 'text', 'video', 'curriculum', 'testimonials', 'faq', 'cta'] as const;
+export const SECTION_KINDS = ['hero', 'text', 'video', 'curriculum', 'offer', 'testimonials', 'faq', 'cta'] as const;
 export type SectionKind = (typeof SECTION_KINDS)[number];
 
-export type FieldType = 'text' | 'textarea' | 'href' | 'vimeo' | 'program';
+/** Field types that point at another record of the space by slug (checked on save). */
+export const REF_TYPES = ['program', 'offer'] as const;
+export type RefType = (typeof REF_TYPES)[number];
+export const isRefType = (v: string): v is RefType => REF_TYPES.includes(v as RefType);
+
+/** Records a ref field may point at, per ref type (Studio select options). */
+export type RefChoice = { slug: string; title: string };
+export type SectionChoices = Record<RefType, readonly RefChoice[]>;
+
+export type FieldType = 'text' | 'textarea' | 'href' | 'vimeo' | RefType;
 export type FieldSpec = { name: string; label: string; type: FieldType; required?: boolean };
 export type SectionSpec = {
   label: string;
@@ -38,6 +47,10 @@ export const SECTION_SPECS: Readonly<Record<SectionKind, SectionSpec>> = {
   curriculum: {
     label: 'Curriculum',
     fields: [heading, { name: 'programSlug', label: 'Program', type: 'program', required: true }],
+  },
+  offer: {
+    label: 'Offer',
+    fields: [heading, { name: 'offerSlug', label: 'Offer', type: 'offer', required: true }],
   },
   testimonials: {
     label: 'Testimonials',

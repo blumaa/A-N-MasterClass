@@ -9,6 +9,7 @@ export {
   CardHeader,
   Checkbox,
   Container,
+  DataTable,
   EmptyState,
   Field,
   Heading,

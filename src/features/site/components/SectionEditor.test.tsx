@@ -17,7 +17,7 @@ const hidden = (name: string) => document.querySelector(`input[type="hidden"][na
 
 describe('SectionEditor', () => {
   it('posts fields as f.<name> and item rows as i.<row>.<name>, plus one blank row', () => {
-    render(<SectionEditor pageId="p1" section={faq} programs={[]} first last />);
+    render(<SectionEditor pageId="p1" section={faq} choices={{ program: [], offer: [] }} first last />);
     expect(screen.getByLabelText('Heading')).toHaveAttribute('name', 'f.heading');
     expect(screen.getByDisplayValue('Beginners?')).toHaveAttribute('name', 'i.0.question');
     expect(document.querySelector('[name="i.1.question"]')).toHaveValue('');
@@ -27,13 +27,21 @@ describe('SectionEditor', () => {
 
   it('offers programs for a curriculum section', () => {
     const section: SiteSection = { id: 's2', kind: 'curriculum', hidden: false, fields: { heading: '', programSlug: 'b' }, items: [] };
-    render(<SectionEditor pageId="p1" section={section} programs={[{ slug: 'a', title: 'A' }, { slug: 'b', title: 'B' }]} first last />);
+    render(<SectionEditor pageId="p1" section={section} choices={{ program: [{ slug: "a", title: "A" }, { slug: "b", title: "B" }], offer: [] }} first last />);
     expect(screen.getByLabelText(/^Program/)).toHaveValue('b');
     expect(screen.getByRole('option', { name: 'A' })).toBeInTheDocument();
   });
 
+  it('offers offers for an offer section', () => {
+    const section: SiteSection = { id: 's3', kind: 'offer', hidden: false, fields: { heading: '', offerSlug: '' }, items: [] };
+    render(<SectionEditor pageId="p1" section={section} choices={{ program: [], offer: [{ slug: 'full', title: 'Full access' }] }} first last />);
+    expect(screen.getByLabelText(/^Offer/)).toHaveAttribute('name', 'f.offerSlug');
+    expect(screen.getByRole('option', { name: 'Full access' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Choose an offer' })).toBeInTheDocument();
+  });
+
   it('shows only the moves that make sense and labels hidden sections', () => {
-    render(<SectionEditor pageId="p1" section={{ ...faq, hidden: true }} programs={[]} first last={false} />);
+    render(<SectionEditor pageId="p1" section={{ ...faq, hidden: true }} choices={{ program: [], offer: [] }} first last={false} />);
     expect(screen.queryByRole('button', { name: 'Move up' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Move down' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show' })).toBeInTheDocument();

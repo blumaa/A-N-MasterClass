@@ -1,0 +1,131 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
+import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
+import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import { editOffers, studioOffer, studioOffers } from './offers';
+
+const NOW = new Date('2026-11-10T12:00:00Z');
+let repo: FakeRepo;
+
+beforeEach(() => {
+  repo = createFakeRepo(seedDb(NOW));
+});
+
+const as = async (profileId: string, space = 'alexander'): Promise<Viewer> => (await resolveViewer(repo, space, profileId))!;
+const owner = () => as(SEED_IDS.alexanderOwner);
+
+async function created(slug = 'full'): Promise<string> {
+  const r = await editOffers(repo, await owner(), { op: 'create', title: 'Full access', slug, priceCents: 4900, currency: 'EUR' });
+  if (!r.ok || !r.id) throw new Error('create failed');
+  return r.id;
+}
+
+describe('studioOffers', () => {
+  it('lists the space offers with product and sale counts, for offers.manage only', async () => {
+    const id = await created();
+    await editOffers(repo, await owner(), { op: 'setProducts', offerId: id, productIds: [SEED_IDS.program] });
+    const list = await studioOffers(repo, await owner());
+    expect(list).toEqual([expect.objectContaining({ offer: expect.objectContaining({ id, status: 'draft' }), productCount: 1, sold: 0 })]);
+    expect(await studioOffers(repo, await as(SEED_IDS.assistant))).toBeNull();
+    expect(await studioOffers(repo, await as(SEED_IDS.student))).toBeNull();
+  });
+});
+
+describe('studioOffer', () => {
+  it('returns the offer, its linked products and the space products to pick from', async () => {
+    const id = await created();
+    const detail = await studioOffer(repo, await owner(), id);
+    expect(detail?.offer.id).toBe(id);
+    expect(detail?.productIds).toEqual([]);
+    expect(detail?.products.map((p) => p.id)).toContain(SEED_IDS.program);
+  });
+
+  it('hides an offer of another space', async () => {
+    const id = await created();
+    expect(await studioOffer(repo, await as(SEED_IDS.natashaOwner, 'natasha'), id)).toBeNull();
+  });
+});
+
+describe('editOffers', () => {
+  it('creates a draft offer and refuses a blank title, bad slug or duplicate slug', async () => {
+    await created();
+    const v = await owner();
+    const base = { op: 'create' as const, priceCents: 0, currency: 'EUR' as const };
+    expect(await editOffers(repo, v, { ...base, title: ' ', slug: 'x' })).toMatchObject({ error: 'invalid', message: 'Title is required.' });
+    expect(await editOffers(repo, v, { ...base, title: 'X', slug: 'Bad Slug' })).toMatchObject({ error: 'invalid' });
+    expect(await editOffers(repo, v, { ...base, title: 'X', slug: 'full' })).toMatchObject({ error: 'invalid' });
+  });
+
+  it('updates title, slug, description, price and currency', async () => {
+    const id = await created();
+    const r = await editOffers(repo, await owner(), {
+      op: 'update',
+      offerId: id,
+      title: 'Full program',
+      slug: 'program',
+      description: '  Lifetime access. ',
+      priceCents: 9900,
+      currency: 'USD',
+    });
+    expect(r).toEqual({ ok: true });
+    expect(await repo.offer(id)).toMatchObject({ title: 'Full program', slug: 'program', description: 'Lifetime access.', priceCents: 9900, currency: 'USD' });
+  });
+
+  it('publishes only with at least one product; unpublish returns to draft', async () => {
+    const id = await created();
+    const v = await owner();
+    expect(await editOffers(repo, v, { op: 'publish', offerId: id })).toMatchObject({ error: 'invalid', message: expect.stringMatching(/product/) });
+    await editOffers(repo, v, { op: 'setProducts', offerId: id, productIds: [SEED_IDS.program] });
+    expect(await editOffers(repo, v, { op: 'publish', offerId: id })).toEqual({ ok: true });
+    expect((await repo.offer(id))?.status).toBe('published');
+    await editOffers(repo, v, { op: 'unpublish', offerId: id });
+    expect((await repo.offer(id))?.status).toBe('draft');
+  });
+
+  it('refuses to unlink every product of a published offer', async () => {
+    const id = await created();
+    const v = await owner();
+    await editOffers(repo, v, { op: 'setProducts', offerId: id, productIds: [SEED_IDS.program] });
+    await editOffers(repo, v, { op: 'publish', offerId: id });
+    expect(await editOffers(repo, v, { op: 'setProducts', offerId: id, productIds: [] })).toMatchObject({ error: 'invalid' });
+  });
+
+  it('deletes an unsold offer; a sold one must be unpublished instead', async () => {
+    const id = await created();
+    const v = await owner();
+    expect(await editOffers(repo, v, { op: 'delete', offerId: id })).toEqual({ ok: true });
+    const sold = await created('sold');
+    await repo.createOrder({
+      spaceId: SEED_IDS.alexander,
+      offerId: sold,
+      email: 'b@test',
+      provider: 'fake',
+      providerOrderId: 'po-1',
+      amountCents: 4900,
+      currency: 'EUR',
+      livemode: false,
+      waiverVersion: 'v1',
+      waiverAcceptedAt: NOW,
+      marketingConsent: false,
+      createdAt: NOW,
+    });
+    expect(await editOffers(repo, v, { op: 'delete', offerId: sold })).toMatchObject({ error: 'invalid', message: expect.stringMatching(/unpublish/i) });
+  });
+
+  it('refuses without offers.manage and for offers of another space', async () => {
+    const id = await created();
+    expect(await editOffers(repo, await as(SEED_IDS.assistant), { op: 'publish', offerId: id })).toEqual({ ok: false, error: 'forbidden' });
+    expect(await editOffers(repo, await as(SEED_IDS.natashaOwner, 'natasha'), { op: 'delete', offerId: id })).toEqual({
+      ok: false,
+      error: 'not_found',
+    });
+  });
+
+  it('refuses products of another space', async () => {
+    const id = await created();
+    const foreign = await repo.createProduct({ spaceId: SEED_IDS.natasha, kind: 'program', slug: 'other', title: 'Other' });
+    expect(await editOffers(repo, await owner(), { op: 'setProducts', offerId: id, productIds: [foreign.id] })).toMatchObject({
+      error: 'invalid',
+    });
+  });
+});

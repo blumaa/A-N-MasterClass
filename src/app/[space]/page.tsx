@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SpaceHome({ params }: Props) {
   const { space } = await params;
   const home = await loadHome(space);
-  if (home) return <PublicPageView page={home.page} sections={home.sections} curricula={home.curricula} />;
+  if (home) return <PublicPageView page={home.page} sections={home.sections} refs={home.refs} />;
   const viewer = await currentViewer(space);
   if (!viewer) notFound();
   const items = await library(getRepo(), viewer, new Date());

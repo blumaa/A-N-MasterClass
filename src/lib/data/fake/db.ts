@@ -1,11 +1,18 @@
 // In-memory tables for DATA_SOURCE=fake. REPLACED BY: Supabase tables (supabase/migrations).
 import type {
+  ClaimToken,
+  Contact,
   Grant,
   Member,
   Module,
+  Offer,
+  OfferProduct,
+  Order,
   Page,
   PageVersion,
   Part,
+  PaymentCredentials,
+  PaymentEnv,
   Product,
   Profile,
   SiteNav,
@@ -31,6 +38,14 @@ export type Db = {
   pages: Page[];
   pageVersions: PageVersion[];
   siteNav: SiteNav[];
+  offers: Offer[];
+  offerProducts: OfferProduct[];
+  orders: Order[];
+  paymentCredentials: PaymentCredentials[];
+  /** Stands in for Supabase Vault. */
+  paymentSecrets: { spaceId: string; env: PaymentEnv; secret: string }[];
+  contacts: Contact[];
+  claimTokens: ClaimToken[];
 };
 
 export const emptyDb = (): Db => ({
@@ -48,4 +63,11 @@ export const emptyDb = (): Db => ({
   pages: [],
   pageVersions: [],
   siteNav: [],
+  offers: [],
+  offerProducts: [],
+  orders: [],
+  paymentCredentials: [],
+  paymentSecrets: [],
+  contacts: [],
+  claimTokens: [],
 });

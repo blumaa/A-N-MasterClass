@@ -130,6 +130,7 @@ export function seedDb(now: Date = new Date()): Db {
     status: 'active',
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
+    orderId: null,
   });
 
   // Natasha gets her own look so the two dev spaces visibly differ; Alexander keeps defaults.

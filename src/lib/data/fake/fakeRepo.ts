@@ -3,8 +3,9 @@
 import { SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { ConstraintError } from '../errors';
 import type { Direction, Repo } from '../repo';
-import type { Grant, Module, Part, Product, Step } from '../types';
+import type { Grant, Module, Part, Product, Profile, Step } from '../types';
 import type { Db } from './db';
+import { createFakeCommerceRepo } from './fakeCommerceRepo';
 import { createFakeSiteRepo } from './fakeSiteRepo';
 
 export type FakeRepo = Repo & { db: Db };
@@ -59,12 +60,26 @@ export function createFakeRepo(db: Db): FakeRepo {
   return {
     db,
     ...createFakeSiteRepo(db, id),
+    ...createFakeCommerceRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     profile: async (pid) => db.profiles.find((p) => p.id === pid) ?? null,
     member: async (spaceId, profileId) =>
       db.members.find((m) => m.spaceId === spaceId && m.profileId === profileId) ?? null,
     spaceProfiles: async (spaceId) => db.spaceProfiles.filter((sp) => sp.spaceId === spaceId),
+    profileByEmail: async (email) => db.profiles.find((p) => p.email === email.toLowerCase()) ?? null,
+    async createProfile(email) {
+      const key = email.toLowerCase();
+      if (db.profiles.some((p) => p.email === key)) throw new ConstraintError('email taken');
+      const row: Profile = { id: id('user'), email: key, isPlatformAdmin: false };
+      db.profiles.push(row);
+      return row;
+    },
+    async ensureSpaceProfile(row) {
+      if (!db.spaceProfiles.some((sp) => sp.spaceId === row.spaceId && sp.profileId === row.profileId)) {
+        db.spaceProfiles.push({ ...row });
+      }
+    },
 
     branding: async (spaceId) => db.branding.find((b) => b.spaceId === spaceId) ?? null,
     async saveBranding(row) {
@@ -190,11 +205,19 @@ export function createFakeRepo(db: Db): FakeRepo {
       return db.grants.filter((g) => g.profileId === profileId && inSpace.has(g.productId) && isActive(g, now));
     },
     grantsForProduct: async (productId) => db.grants.filter((g) => g.productId === productId),
+    grantsForOrder: async (orderId) => db.grants.filter((g) => g.orderId === orderId),
     async createGrant(input) {
       if (db.grants.some((g) => g.productId === input.productId && g.profileId === input.profileId && g.status === 'active')) {
         throw new ConstraintError('active grant exists');
       }
-      const row: Grant = { ...input, id: id('grant'), status: 'active', grantedAt: new Date(), expiresAt: null };
+      const row: Grant = {
+        ...input,
+        orderId: input.orderId ?? null,
+        id: id('grant'),
+        status: 'active',
+        grantedAt: new Date(),
+        expiresAt: null,
+      };
       db.grants.push(row);
       return row;
     },

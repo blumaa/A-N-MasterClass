@@ -11,7 +11,7 @@ as $$
       select bool_and(
         jsonb_typeof(e) = 'object'
         and jsonb_typeof(e -> 'id') = 'string'
-        and e ->> 'kind' in ('hero', 'text', 'video', 'curriculum', 'testimonials', 'faq', 'cta')
+        and e ->> 'kind' in ('hero', 'text', 'video', 'curriculum', 'offer', 'testimonials', 'faq', 'cta')
         and jsonb_typeof(e -> 'hidden') = 'boolean'
         and jsonb_typeof(e -> 'fields') = 'object'
         and jsonb_typeof(e -> 'items') = 'array'

@@ -1,13 +1,20 @@
 // Data port. Raw reads/writes, no authorization: the DAL (features/*/api) checks
 // capabilities + step access before calling. Supabase adapter adds RLS as second wall.
 import type {
+  ClaimToken,
+  Contact,
   Grant,
   Member,
   Module,
+  Offer,
+  Order,
+  OrderProvider,
   Page,
   PageVersion,
   PageKind,
   Part,
+  PaymentCredentials,
+  PaymentEnv,
   Product,
   Profile,
   SiteNav,
@@ -27,13 +34,25 @@ export type NewStep = Pick<Step, 'moduleId' | 'title'>;
 export type StepPatch = Partial<Pick<Step, 'title' | 'description' | 'status'>>;
 export type NewPart = Pick<Part, 'stepId' | 'kind'>;
 export type PartPatch = Partial<Pick<Part, 'title' | 'text' | 'vimeoId' | 'aspect' | 'filePath'>>;
-export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'>;
+export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'> & { orderId?: string | null };
 
 export type NewPage = Pick<Page, 'spaceId' | 'kind' | 'slug' | 'title'>;
 export type PagePatch = Partial<
   Pick<Page, 'slug' | 'title' | 'isHome' | 'legalKind' | 'seoTitle' | 'seoDescription' | 'draft' | 'published' | 'publishedAt'>
 >;
 export type NewPageVersion = Omit<PageVersion, 'id'>;
+
+export type NewOffer = Pick<Offer, 'spaceId' | 'slug' | 'title' | 'priceCents' | 'currency'>;
+export type OfferPatch = Partial<Pick<Offer, 'slug' | 'title' | 'description' | 'priceCents' | 'currency' | 'status'>>;
+export type NewOrder = Omit<Order, 'id' | 'profileId' | 'captureId' | 'status' | 'paidAt'>;
+export type OrderPatch = Partial<Pick<Order, 'profileId' | 'captureId' | 'status' | 'paidAt'>>;
+/** consent null = leave marketing consent as it is (never withdrawn by a purchase). */
+export type ContactUpsert = {
+  spaceId: string;
+  email: string;
+  profileId: string | null;
+  consent: { source: string; at: Date } | null;
+};
 
 export type Direction = 'up' | 'down';
 
@@ -43,6 +62,12 @@ export interface Repo {
   profile(id: string): Promise<Profile | null>;
   member(spaceId: string, profileId: string): Promise<Member | null>;
   spaceProfiles(spaceId: string): Promise<SpaceProfile[]>;
+  /** Email compared lowercased (citext in SQL). */
+  profileByEmail(email: string): Promise<Profile | null>;
+  /** OWES: Supabase auth.admin.createUser (profile row follows by trigger). */
+  createProfile(email: string): Promise<Profile>;
+  /** Insert if missing; keeps an existing display name. */
+  ensureSpaceProfile(row: SpaceProfile): Promise<void>;
 
   // branding (one row per space; none = defaults)
   branding(spaceId: string): Promise<SpaceBranding | null>;
@@ -78,6 +103,7 @@ export interface Repo {
   activeGrant(productId: string, profileId: string, now: Date): Promise<Grant | null>;
   grants(spaceId: string, profileId: string, now: Date): Promise<Grant[]>;
   grantsForProduct(productId: string): Promise<Grant[]>;
+  grantsForOrder(orderId: string): Promise<Grant[]>;
   createGrant(input: NewGrant): Promise<Grant>;
   revokeGrant(id: string): Promise<void>;
 
@@ -100,6 +126,40 @@ export interface Repo {
   siteNav(spaceId: string): Promise<SiteNav>;
   /** Upsert on space_id. */
   saveSiteNav(nav: SiteNav): Promise<SiteNav>;
+
+  // commerce: offers (ordered by title)
+  offers(spaceId: string): Promise<Offer[]>;
+  offer(id: string): Promise<Offer | null>;
+  offerBySlug(spaceId: string, slug: string): Promise<Offer | null>;
+  createOffer(input: NewOffer): Promise<Offer>;
+  updateOffer(id: string, patch: OfferPatch): Promise<Offer>;
+  /** Refused (constraint) once the offer has orders: unpublish instead. */
+  deleteOffer(id: string): Promise<void>;
+  offerProductIds(offerId: string): Promise<string[]>;
+  /** Replaces the set. Products must be in the offer's space. */
+  setOfferProducts(offerId: string, productIds: readonly string[]): Promise<void>;
+
+  // commerce: orders (newest first)
+  orders(spaceId: string): Promise<Order[]>;
+  order(id: string): Promise<Order | null>;
+  orderByProviderId(provider: OrderProvider, providerOrderId: string): Promise<Order | null>;
+  orderByCaptureId(provider: OrderProvider, captureId: string): Promise<Order | null>;
+  createOrder(input: NewOrder): Promise<Order>;
+  /** Unique (provider, capture_id) is a constraint. */
+  updateOrder(id: string, patch: OrderPatch): Promise<Order>;
+
+  // commerce: PayPal credentials (G28). Secret apart: Vault in SQL, never sent to the browser.
+  paymentCredentials(spaceId: string, env: PaymentEnv): Promise<PaymentCredentials | null>;
+  paymentSecret(spaceId: string, env: PaymentEnv): Promise<string | null>;
+  /** Upsert on (space, env). secret null = keep the stored one. */
+  savePaymentCredentials(row: PaymentCredentials, secret: string | null): Promise<void>;
+
+  // commerce: contacts (G16, ordered by email) + claim links (G4)
+  contacts(spaceId: string): Promise<Contact[]>;
+  upsertContact(input: ContactUpsert): Promise<Contact>;
+  createClaimToken(row: ClaimToken): Promise<void>;
+  /** Marks a valid (unused, unexpired, same space) token used and returns it; else null. Atomic in SQL. */
+  consumeClaimToken(spaceId: string, tokenHash: string, now: Date): Promise<ClaimToken | null>;
 
   // dev only (fake auth switcher)
   profilesInSpace(spaceId: string): Promise<Profile[]>;

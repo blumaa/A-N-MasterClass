@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Stack, Text } from '@/components/ui/mds';
 import { AppLink } from '@/components/ui/links';
-import { curricula, draftPreview } from '@/features/site/api/site';
+import { draftPreview, sectionRefs } from '@/features/site/api/site';
 import { PublicPageView } from '@/features/site/components/PublicPageView';
 import { studioPageHref } from '@/features/site/paths';
 import { currentViewer } from '@/lib/auth/currentViewer';
@@ -16,13 +16,13 @@ export default async function StudioPagePreview({ params }: PageProps<'/[space]/
   const viewer = await currentViewer(space);
   const preview = viewer ? await draftPreview(getRepo(), viewer, id) : null;
   if (!viewer || !preview) notFound();
-  const programs = await curricula(getRepo(), viewer.space.id, preview.sections);
+  const refs = await sectionRefs(getRepo(), viewer.space, preview.sections);
   return (
     <Stack gap="loose">
       <Text role="status" tone="secondary">
         Draft preview. <AppLink href={studioPageHref(id)}>Back to editor</AppLink>
       </Text>
-      <PublicPageView page={preview.page} sections={preview.sections} curricula={programs} />
+      <PublicPageView page={preview.page} sections={preview.sections} refs={refs} />
     </Stack>
   );
 }

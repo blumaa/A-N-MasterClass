@@ -5,11 +5,11 @@ import { ButtonLink } from '@/components/ui/links';
 import { VimeoEmbed } from '@/components/VimeoEmbed/VimeoEmbed';
 import type { SiteSection } from '@/lib/site/sections';
 import { vimeoPlayerUrl } from '@/lib/video/vimeo';
-import type { CurriculumPreview } from '../api/site';
+import type { SectionRefs } from '../api/site';
 import styles from './Sections.module.css';
 
 type Level = 1 | 2;
-type Props = { sections: SiteSection[]; curricula: Record<string, CurriculumPreview>; headingLevel?: Level };
+type Props = { sections: SiteSection[]; refs: SectionRefs; headingLevel?: Level };
 
 function Cta({ fields }: { fields: Record<string, string> }) {
   return fields.ctaLabel && fields.ctaHref ? <ButtonLink href={fields.ctaHref}>{fields.ctaLabel}</ButtonLink> : null;
@@ -27,7 +27,7 @@ function Body({ text }: { text: string | undefined }) {
   return text ? <Text className={styles.text}>{text}</Text> : null;
 }
 
-function SectionBody({ section, curricula, headingLevel }: { section: SiteSection } & Required<Omit<Props, 'sections'>>) {
+function SectionBody({ section, refs, headingLevel }: { section: SiteSection } & Required<Omit<Props, 'sections'>>) {
   const { fields, items } = section;
   switch (section.kind) {
     case 'hero':
@@ -61,7 +61,7 @@ function SectionBody({ section, curricula, headingLevel }: { section: SiteSectio
         </>
       ) : null;
     case 'curriculum': {
-      const program = curricula[fields.programSlug ?? ''];
+      const program = refs.curricula[fields.programSlug ?? ''];
       if (!program) return null;
       return (
         <>
@@ -80,6 +80,23 @@ function SectionBody({ section, curricula, headingLevel }: { section: SiteSectio
               </li>
             ))}
           </ol>
+        </>
+      );
+    }
+    case 'offer': {
+      const offer = refs.offers[fields.offerSlug ?? ''];
+      if (!offer) return null;
+      return (
+        <>
+          <Title text={fields.heading} />
+          <div className={styles.offer}>
+            <Title text={offer.title} level={3} />
+            <Body text={offer.description ?? undefined} />
+            <Text variant="label" className={styles.price}>
+              {offer.price}
+            </Text>
+            <ButtonLink href={offer.href}>Buy now</ButtonLink>
+          </div>
         </>
       );
     }
@@ -125,9 +142,9 @@ function SectionBody({ section, curricula, headingLevel }: { section: SiteSectio
 }
 
 /** headingLevel 1 = a leading hero owns the page h1; 2 = the route already rendered one. */
-export function Sections({ sections, curricula, headingLevel = 1 }: Props) {
+export function Sections({ sections, refs, headingLevel = 1 }: Props) {
   return sections.map((section, i) => {
-    const body = SectionBody({ section, curricula, headingLevel: i === 0 ? headingLevel : 2 });
+    const body = SectionBody({ section, refs, headingLevel: i === 0 ? headingLevel : 2 });
     return body ? (
       <section key={section.id} className={styles.section}>
         <Stack gap="base">{body}</Stack>

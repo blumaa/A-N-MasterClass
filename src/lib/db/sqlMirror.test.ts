@@ -4,7 +4,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MATRIX, ROLES } from '@/lib/auth/capabilities';
-import { LEGAL_KINDS, PAGE_KINDS } from '@/lib/data/types';
+import { CURRENCIES, MAX_PRICE_CENTS } from '@/lib/commerce/money';
+import { LEGAL_KINDS, ORDER_PROVIDERS, ORDER_STATUSES, PAGE_KINDS, PAYMENT_ENVS } from '@/lib/data/types';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { SECTION_KINDS } from '@/lib/site/sections';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
@@ -79,5 +80,41 @@ describe('SQL mirrors: site', () => {
 
   it('pages slug check equals SLUG_PATTERN', () => {
     expect(sql.match(/pages_slug_format check \(slug ~ '([^']+)'\)/)?.[1]).toBe(SLUG_PATTERN.source);
+  });
+});
+
+describe('SQL mirrors: commerce', () => {
+  const list = (re: RegExp) =>
+    sql
+      .match(re)?.[1]
+      .split(',')
+      .map((s) => s.trim().replace(/'/g, ''));
+
+  it('currency checks equal CURRENCIES', () => {
+    const lists = [...sql.matchAll(/currency text not null check \(currency in \(([^)]+)\)\)/g)].map((m) =>
+      m[1].split(',').map((s) => s.trim().replace(/'/g, '')),
+    );
+    expect(lists).toHaveLength(2);
+    for (const l of lists) expect(l).toEqual([...CURRENCIES]);
+  });
+
+  it('offers price check equals MAX_PRICE_CENTS', () => {
+    expect(Number(sql.match(/offers_price check \(price_cents between 0 and (\d+)\)/)?.[1])).toBe(MAX_PRICE_CENTS);
+  });
+
+  it('offers slug check equals SLUG_PATTERN', () => {
+    expect(sql.match(/offers_slug_format check \(slug ~ '([^']+)'\)/)?.[1]).toBe(SLUG_PATTERN.source);
+  });
+
+  it('orders provider check equals ORDER_PROVIDERS', () => {
+    expect(list(/orders_provider check \(provider in \(([^)]+)\)\)/)).toEqual([...ORDER_PROVIDERS]);
+  });
+
+  it('orders status check equals ORDER_STATUSES', () => {
+    expect(list(/orders_status check \(status in \(([^)]+)\)\)/)).toEqual([...ORDER_STATUSES]);
+  });
+
+  it('payment_credentials env check equals PAYMENT_ENVS', () => {
+    expect(list(/payment_credentials_env check \(env in \(([^)]+)\)\)/)).toEqual([...PAYMENT_ENVS]);
   });
 });

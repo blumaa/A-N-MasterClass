@@ -17,5 +17,5 @@ export default async function SitePage({ params }: Props) {
   const { space, page } = await params;
   const found = await loadPage(space, page);
   if (!found) notFound();
-  return <PublicPageView page={found.page} sections={found.sections} curricula={found.curricula} />;
+  return <PublicPageView page={found.page} sections={found.sections} refs={found.refs} />;
 }

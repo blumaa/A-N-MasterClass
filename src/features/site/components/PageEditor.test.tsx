@@ -23,7 +23,7 @@ const draftOnly: Page = {
 
 describe('PageEditor', () => {
   it('offers publish for a draft page and links the preview', () => {
-    render(<PageEditor page={draftOnly} versions={[]} programs={[]} />);
+    render(<PageEditor page={draftOnly} versions={[]} choices={{ program: [], offer: [] }} />);
     expect(screen.getByRole('button', { name: 'Publish' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Unpublish' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Preview draft' })).toHaveAttribute('href', '/studio/site/pages/p1/preview');
@@ -36,7 +36,7 @@ describe('PageEditor', () => {
       <PageEditor
         page={{ ...draftOnly, published: draftOnly.draft, publishedAt: at }}
         versions={[{ id: 'v1', pageId: 'p1', sections: [], publishedAt: at }]}
-        programs={[]}
+        choices={{ program: [], offer: [] }}
       />,
     );
     expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
@@ -45,7 +45,7 @@ describe('PageEditor', () => {
   });
 
   it('hides home and legal settings for a blog post', () => {
-    render(<PageEditor page={{ ...draftOnly, kind: 'post' }} versions={[]} programs={[]} />);
+    render(<PageEditor page={{ ...draftOnly, kind: 'post' }} versions={[]} choices={{ program: [], offer: [] }} />);
     expect(screen.queryByLabelText('Legal page')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/home page/i)).not.toBeInTheDocument();
   });

@@ -14,18 +14,18 @@ const text: SiteSection = { id: 't', kind: 'text', hidden: false, fields: { head
 
 describe('PublicPageView', () => {
   it('lets a leading hero own the h1', () => {
-    render(<PublicPageView page={page} sections={[hero, text]} curricula={{}} />);
+    render(<PublicPageView page={page} sections={[hero, text]} refs={{ curricula: {}, offers: {} }} />);
     expect(screen.getAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual(['Welcome']);
   });
 
   it('renders the page title as h1 when no hero leads', () => {
-    render(<PublicPageView page={page} sections={[text]} curricula={{}} />);
+    render(<PublicPageView page={page} sections={[text]} refs={{ curricula: {}, offers: {} }} />);
     expect(screen.getByRole('heading', { level: 1, name: 'About' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Story' })).toBeInTheDocument();
   });
 
   it('heads a post with its title and date', () => {
-    render(<PublicPageView page={{ ...page, kind: 'post' }} sections={[hero]} curricula={{}} />);
+    render(<PublicPageView page={{ ...page, kind: 'post' }} sections={[hero]} refs={{ curricula: {}, offers: {} }} />);
     expect(screen.getByRole('heading', { level: 1, name: 'About' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Welcome' })).toBeInTheDocument();
     expect(screen.getByText('November 1, 2026')).toHaveAttribute('datetime', '2026-11-01T00:00:00.000Z');

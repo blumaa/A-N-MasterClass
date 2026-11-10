@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { Heading, Stack } from '@/components/ui/mds';
 import { AppLink } from '@/components/ui/links';
-import { programOptions, studioPage } from '@/features/site/api/site';
+import { sectionChoices, studioPage } from '@/features/site/api/site';
 import { PageEditor } from '@/features/site/components/PageEditor';
 import { studioSiteHref } from '@/features/site/paths';
 import { currentViewer } from '@/lib/auth/currentViewer';
@@ -15,8 +15,8 @@ type Props = PageProps<'/[space]/studio/site/pages/[id]'>;
 const load = cache(async (space: string, id: string) => {
   const viewer = await currentViewer(space);
   if (!viewer) return null;
-  const [found, programs] = await Promise.all([studioPage(getRepo(), viewer, id), programOptions(getRepo(), viewer.space.id)]);
-  return found && { ...found, programs };
+  const [found, choices] = await Promise.all([studioPage(getRepo(), viewer, id), sectionChoices(getRepo(), viewer.space.id)]);
+  return found && { ...found, choices };
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -35,7 +35,7 @@ export default async function StudioPageEditor({ params }: Props) {
       <Heading level={1} variant="title">
         {data.page.title}
       </Heading>
-      <PageEditor page={data.page} versions={data.versions} programs={data.programs} />
+      <PageEditor page={data.page} versions={data.versions} choices={data.choices} />
     </Stack>
   );
 }

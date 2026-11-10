@@ -17,5 +17,5 @@ export default async function BlogPost({ params }: Props) {
   const { space, post } = await params;
   const found = await loadPost(space, post);
   if (!found) notFound();
-  return <PublicPageView page={found.page} sections={found.sections} curricula={found.curricula} />;
+  return <PublicPageView page={found.page} sections={found.sections} refs={found.refs} />;
 }
