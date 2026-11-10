@@ -3,13 +3,12 @@
 import type { Direction } from '@/lib/data/repo';
 import { FormError, formReader, optional, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
 import { slugify } from '@/lib/text/slugify';
-import { PART_KINDS, type PartKind, type PublishStatus } from '@/lib/data/types';
+import { PART_KINDS, PUBLISH_STATUSES, type PartKind } from '@/lib/data/types';
 import { vimeoIdOf } from '@/lib/video/vimeo';
 import type { CurriculumCommand } from './api/curriculum';
 
 export type Parsed = { ok: true; command: CurriculumCommand } | { ok: false; message: string };
 
-const STATUSES: readonly PublishStatus[] = ['draft', 'published'];
 const TABLES = ['modules', 'steps', 'parts'] as const;
 const DIRECTIONS: readonly Direction[] = ['up', 'down'];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -31,7 +30,7 @@ function asVimeoId(v: string): string {
 }
 
 function statusField(r: Reader) {
-  return r.raw('status') === undefined ? {} : { status: r.oneOf('status', STATUSES) };
+  return r.raw('status') === undefined ? {} : { status: r.oneOf('status', PUBLISH_STATUSES) };
 }
 function titleField(r: Reader) {
   return r.raw('title') === undefined ? {} : { title: r.required('title') };

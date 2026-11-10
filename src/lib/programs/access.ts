@@ -1,5 +1,6 @@
 // Step access: publish state, grant, module lock (G7), drip (G8). SQL mirror: can_read_step().
-export type PublishStatus = 'draft' | 'published';
+export const PUBLISH_STATUSES = ['draft', 'published'] as const;
+export type PublishStatus = (typeof PUBLISH_STATUSES)[number];
 
 export type AccessInput = {
   productStatus: PublishStatus;

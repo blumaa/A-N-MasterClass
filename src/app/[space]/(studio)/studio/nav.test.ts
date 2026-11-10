@@ -6,9 +6,9 @@ const labels = (role: Role) => studioNav(role).map((i) => i.label);
 
 describe('studioNav', () => {
   it('shows each section only to roles with its capability (G15)', () => {
-    expect(labels('owner')).toEqual(['Programs', 'Communities', 'Site', 'Branding', 'Offers', 'Customers', 'Payments']);
-    expect(labels('admin')).toEqual(['Programs', 'Communities', 'Site', 'Branding', 'Offers', 'Customers']);
-    expect(labels('assistant')).toEqual(['Programs', 'Communities', 'Site']);
+    expect(labels('owner')).toEqual(['Programs', 'Communities', 'Coaching', 'Site', 'Branding', 'Offers', 'Customers', 'Payments']);
+    expect(labels('admin')).toEqual(['Programs', 'Communities', 'Coaching', 'Site', 'Branding', 'Offers', 'Customers']);
+    expect(labels('assistant')).toEqual(['Programs', 'Communities', 'Coaching', 'Site']);
     expect(labels('support')).toEqual(['Customers']);
   });
 

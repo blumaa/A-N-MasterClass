@@ -18,7 +18,7 @@ const utc = (d: Date): string => d.toISOString().replace(/[-:]/g, '').replace(/\
 
 /** TEXT escaping (3.3.11): backslash, semicolon, comma, newline. */
 const text = (s: string): string =>
-  s.replaceAll('\\', '\\\\').replaceAll(';', '\;').replaceAll(',', '\\,').replace(/\r?\n/g, '\\n');
+  s.replaceAll('\\', '\\\\').replaceAll(';', '\\;').replaceAll(',', '\\,').replace(/\r?\n/g, '\\n');
 
 /** Folding (3.1): at most 75 octets per line, continuation lines start with one space. */
 function fold(line: string): string {

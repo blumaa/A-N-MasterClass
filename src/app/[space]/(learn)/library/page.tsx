@@ -1,7 +1,9 @@
-// Student library: programs with progress + Continue, then the viewer's communities.
+// Student library: programs with progress + Continue, then the viewer's communities and coaching.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Heading, Stack } from '@/components/ui/mds';
+import { myCoaching } from '@/features/coaching/api/booking';
+import { CoachingTiles } from '@/features/coaching/components/CoachingTiles';
 import { myCommunities } from '@/features/community/api/feed';
 import { CommunityTiles } from '@/features/community/components/CommunityTiles';
 import { library } from '@/features/programs/api/library';
@@ -16,7 +18,11 @@ export default async function LibraryPage({ params }: PageProps<'/[space]/librar
   if (!viewer) notFound();
   const repo = getRepo();
   const now = new Date();
-  const [items, communities] = await Promise.all([library(repo, viewer, now), myCommunities(repo, viewer, now)]);
+  const [items, communities, coaching] = await Promise.all([
+    library(repo, viewer, now),
+    myCommunities(repo, viewer, now),
+    myCoaching(repo, viewer, now),
+  ]);
   return (
     <Stack gap="loose">
       <Heading level={1} variant="title">
@@ -24,6 +30,7 @@ export default async function LibraryPage({ params }: PageProps<'/[space]/librar
       </Heading>
       <LibraryList items={items} />
       <CommunityTiles communities={communities} />
+      <CoachingTiles coaching={coaching} />
     </Stack>
   );
 }

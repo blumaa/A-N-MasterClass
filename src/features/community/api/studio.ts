@@ -8,7 +8,8 @@ import { ConstraintError } from '@/lib/data/errors';
 import type { AccessGroupPatch, ChannelPatch, CommunitySettingsPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
 import type { AccessGroup, Channel, ChannelKind, ChannelPrivacy, CommunitySettings, Product, Role } from '@/lib/data/types';
 import { reachesAsStaff } from './access';
-import { directory, spaceNames, type DirectoryEntry } from './feed';
+import { spaceNames } from '@/lib/data/names';
+import { directory, type DirectoryEntry } from './feed';
 import { authorOf } from './present';
 
 /** Name of the channel every new community starts with. */

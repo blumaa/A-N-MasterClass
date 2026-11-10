@@ -9,7 +9,7 @@ import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import type { Challenge, ChallengeEntry, Product } from '@/lib/data/types';
 import { communityAccess, reachesGroup, type CommunityAccess } from './access';
-import { spaceNames } from './feed';
+import { spaceNames } from '@/lib/data/names';
 import { authorOf, type Author } from './present';
 
 export type ChallengeState = 'upcoming' | 'open' | 'ended';

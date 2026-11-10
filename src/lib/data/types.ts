@@ -7,6 +7,7 @@ import type { SiteSection } from '@/lib/site/sections';
 import type { BrandColors } from '@/tokens/resolveBrand';
 
 export type { Currency, PublishStatus, Role };
+export { PUBLISH_STATUSES } from '@/lib/programs/access';
 
 export type Space = {
   id: string;
@@ -442,4 +443,80 @@ export type Notification = {
   stepId: string | null;
   createdAt: Date;
   readAt: Date | null;
+};
+
+// ---------------------------------------------------------------------------------------------
+// Coaching (G18, G19): Kajabi Coaching + Scheduler. One schedule per space (the instructor).
+
+/** one_on_one = clients book their own sessions from the coach's availability; group = coach schedules. */
+export const COACHING_KINDS = ['one_on_one', 'group'] as const;
+export type CoachingKind = (typeof COACHING_KINDS)[number];
+
+/** Settings of a coaching product. */
+export type CoachingProgram = {
+  productId: string;
+  kind: CoachingKind;
+  /** 15..360 */
+  sessionMinutes: number;
+  /** Sessions a client may book per grant (one_on_one). >= 1 */
+  sessionsIncluded: number;
+  /** Default join link (https) copied onto new sessions, or null. */
+  location: string | null;
+};
+
+/** Scheduler settings of a space (the coach). Windows and dates are read in timeZone. */
+export type CoachSettings = {
+  spaceId: string;
+  timeZone: string;
+  bufferBeforeMin: number;
+  bufferAfterMin: number;
+  minNoticeMin: number;
+  /** How far ahead clients may book, 1..200 days. */
+  windowDays: number;
+  /** Clients cannot reschedule or cancel later than this before the start. */
+  cancelCutoffHours: number;
+};
+
+/** Weekly availability window, minutes after local midnight, weekday 0 = Sunday. */
+export type AvailabilityRule = { id: string; spaceId: string; weekday: number; startMinute: number; endMinute: number };
+/** Replaces the weekly rules on one local date; null start/end = unavailable all day. */
+export type AvailabilityOverride = {
+  id: string;
+  spaceId: string;
+  date: string;
+  startMinute: number | null;
+  endMinute: number | null;
+};
+
+export const SESSION_STATUSES = ['scheduled', 'cancelled'] as const;
+export type SessionStatus = (typeof SESSION_STATUSES)[number];
+
+/** A coaching session. clientId null = group session for every holder of the product. */
+export type CoachingSession = {
+  id: string;
+  productId: string;
+  spaceId: string;
+  clientId: string | null;
+  title: string;
+  startsAt: Date;
+  endsAt: Date;
+  status: SessionStatus;
+  /** What the client wants to cover (written when booking). */
+  agenda: string;
+  location: string | null;
+  googleEventId: string | null;
+  createdAt: Date;
+  cancelledAt: Date | null;
+};
+
+/** Private coach notes on a session (staff only). */
+export type SessionNote = { sessionId: string; body: string; updatedAt: Date };
+
+/** Google Calendar connection of a space. The refresh token lives in Vault, never in this row. */
+export type CalendarConnection = {
+  spaceId: string;
+  provider: 'google';
+  accountEmail: string;
+  calendarId: string;
+  connectedAt: Date;
 };

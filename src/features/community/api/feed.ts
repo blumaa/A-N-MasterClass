@@ -2,6 +2,7 @@
 import { ALWAYS_REACH } from '@/lib/auth/capabilities';
 import type { Viewer } from '@/lib/auth/viewer';
 import { grantIsActive } from '@/lib/data/grants';
+import { spaceNames } from '@/lib/data/names';
 import type { Repo } from '@/lib/data/repo';
 import type { Channel, Post, Product } from '@/lib/data/types';
 import type { MentionOption } from '@/lib/mentions/markup';
@@ -15,7 +16,6 @@ import {
   type Author,
   type CommentNode,
   type MessageItem,
-  type Names,
   type ReactionCount,
 } from './present';
 
@@ -62,10 +62,6 @@ export type PostPage = {
   members: MentionOption[];
 };
 
-/** Display names of a space, by profile id. */
-export async function spaceNames(repo: Repo, spaceId: string): Promise<Names> {
-  return new Map((await repo.spaceProfiles(spaceId)).map((sp) => [sp.profileId, sp.displayName]));
-}
 
 /** A community product of the viewer's space; drafts only exist for those who reach them. */
 export async function loadCommunity(repo: Repo, viewer: Viewer, slug: string, now: Date) {

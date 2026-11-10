@@ -1,6 +1,13 @@
 // In-memory tables for DATA_SOURCE=fake. REPLACED BY: Supabase tables (supabase/migrations).
 import type {
   AccessGroup,
+  AvailabilityOverride,
+  AvailabilityRule,
+  CalendarConnection,
+  CoachingProgram,
+  CoachingSession,
+  CoachSettings,
+  SessionNote,
   Block,
   Challenge,
   ChallengeEntry,
@@ -84,6 +91,15 @@ export type Db = {
   challengeEntries: ChallengeEntry[];
   meetups: Meetup[];
   meetupRsvps: MeetupRsvp[];
+  coachingPrograms: CoachingProgram[];
+  coachSettings: CoachSettings[];
+  availabilityRules: AvailabilityRule[];
+  availabilityOverrides: AvailabilityOverride[];
+  coachingSessions: CoachingSession[];
+  sessionNotes: SessionNote[];
+  calendarConnections: CalendarConnection[];
+  /** Stands in for Supabase Vault. */
+  calendarSecrets: { spaceId: string; refreshToken: string }[];
 };
 
 export const emptyDb = (): Db => ({
@@ -127,4 +143,12 @@ export const emptyDb = (): Db => ({
   challengeEntries: [],
   meetups: [],
   meetupRsvps: [],
+  coachingPrograms: [],
+  coachSettings: [],
+  availabilityRules: [],
+  availabilityOverrides: [],
+  coachingSessions: [],
+  sessionNotes: [],
+  calendarConnections: [],
+  calendarSecrets: [],
 });

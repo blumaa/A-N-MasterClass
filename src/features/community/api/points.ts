@@ -5,7 +5,7 @@ import type { Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { CommunitySettings, Product } from '@/lib/data/types';
 import type { CommunityAccess } from './access';
-import { spaceNames } from './feed';
+import { spaceNames } from '@/lib/data/names';
 import { authorOf, type Author } from './present';
 
 export const LEADERBOARD_PERIODS = ['week', 'month', 'all'] as const;

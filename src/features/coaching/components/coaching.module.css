@@ -1,0 +1,23 @@
+.rows {
+  display: grid;
+  gap: var(--mds-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mds-space-2);
+  align-items: end;
+  padding-block-end: var(--mds-space-3);
+  border-block-end: 1px solid var(--mds-border-subtle);
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mds-space-2);
+  align-items: end;
+}

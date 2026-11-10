@@ -23,7 +23,7 @@ describe('icsFor (RFC 5545)', () => {
       'DTSTAMP:20261110T120000Z',
       'DTSTART:20261112T180000Z',
       'DTEND:20261112T193000Z',
-      'SUMMARY:Q&A\; live\\, part 1',
+      'SUMMARY:Q&A\\; live\\, part 1',
       'DESCRIPTION:Line one\\nLine two',
       'LOCATION:https://zoom.us/j/1',
       'END:VEVENT',

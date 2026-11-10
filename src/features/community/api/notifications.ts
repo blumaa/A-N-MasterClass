@@ -4,7 +4,7 @@ import { viewerCan } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { Notification, NotificationType } from '@/lib/data/types';
 import type { StepGate } from './commands';
-import { spaceNames } from './feed';
+import { spaceNames } from '@/lib/data/names';
 import { authorOf, buildThread, type CommentNode } from './present';
 
 /** Where a notification leads. The app turns this into a URL (programs paths live in another feature). */

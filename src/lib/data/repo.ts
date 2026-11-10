@@ -2,6 +2,13 @@
 // capabilities + step access before calling. Supabase adapter adds RLS as second wall.
 import type {
   AccessGroup,
+  AvailabilityOverride,
+  AvailabilityRule,
+  CalendarConnection,
+  CoachingProgram,
+  CoachingSession,
+  CoachSettings,
+  SessionNote,
   Challenge,
   ChallengeEntry,
   GroupFeature,
@@ -97,6 +104,15 @@ export type PostPatch = Partial<Pick<Post, 'pinned' | 'hiddenAt'>>;
 export type NewComment = Pick<Comment, 'spaceId' | 'targetType' | 'targetId' | 'parentId' | 'authorId' | 'body' | 'createdAt'>;
 export type CommentPatch = Partial<Pick<Comment, 'hiddenAt'>>;
 export type NewNotification = Omit<Notification, 'id' | 'readAt'>;
+
+export type NewAvailabilityRule = Omit<AvailabilityRule, 'id'>;
+export type NewAvailabilityOverride = Omit<AvailabilityOverride, 'id'>;
+export type NewCoachingSession = Omit<CoachingSession, 'id' | 'status' | 'googleEventId' | 'cancelledAt'>;
+export type CoachingSessionPatch = Partial<
+  Pick<CoachingSession, 'title' | 'startsAt' | 'endsAt' | 'location' | 'agenda' | 'status' | 'cancelledAt' | 'googleEventId'>
+>;
+/** Sessions of one space, optionally narrowed to a product and/or a client. */
+export type SessionWhere = { spaceId: string; productId?: string; clientId?: string };
 
 export type Direction = 'up' | 'down';
 export type Reorderable = 'modules' | 'steps' | 'parts' | 'channels';
@@ -323,6 +339,47 @@ export interface Repo {
   deleteMeetup(id: string): Promise<void>;
   meetupRsvps(meetupId: string): Promise<MeetupRsvp[]>;
   setRsvp(meetupId: string, profileId: string, on: boolean, now: Date): Promise<void>;
+
+  // coaching (G18, G19)
+  coachingProgram(productId: string): Promise<CoachingProgram | null>;
+  /** Upsert. Product kind coaching; 15..360 minutes; >= 1 session; https location (constraints). */
+  saveCoachingProgram(row: CoachingProgram): Promise<void>;
+  coachSettings(spaceId: string): Promise<CoachSettings | null>;
+  /** Upsert. Valid zone; buffers and notice >= 0; window 1..200 days; cutoff >= 0. */
+  saveCoachSettings(row: CoachSettings): Promise<void>;
+  availabilityRules(spaceId: string): Promise<AvailabilityRule[]>;
+  /** Weekday 0..6; 0 <= start < end <= 1440. */
+  createAvailabilityRule(input: NewAvailabilityRule): Promise<AvailabilityRule>;
+  deleteAvailabilityRule(id: string): Promise<void>;
+  availabilityOverrides(spaceId: string): Promise<AvailabilityOverride[]>;
+  /** Date YYYY-MM-DD; both minutes null (day off) or 0 <= start < end <= 1440. */
+  createAvailabilityOverride(input: NewAvailabilityOverride): Promise<AvailabilityOverride>;
+  deleteAvailabilityOverride(id: string): Promise<void>;
+  /** Soonest start first. */
+  coachingSessions(where: SessionWhere): Promise<CoachingSession[]>;
+  coachingSession(id: string): Promise<CoachingSession | null>;
+  /**
+   * Coach-made session. end > start, https location, product of the space, and no overlap with
+   * another scheduled session of the space (exclusion constraint).
+   */
+  createCoachingSession(input: NewCoachingSession): Promise<CoachingSession>;
+  /**
+   * Client booking (SQL: book_coaching_session RPC, atomic). Same checks as createCoachingSession
+   * plus: one_on_one product, client holds an active grant at createdAt, and has fewer non-cancelled
+   * sessions of the product than sessionsIncluded.
+   */
+  bookCoachingSession(input: NewCoachingSession & { clientId: string }): Promise<CoachingSession>;
+  /** Same checks as create when it stays scheduled. */
+  updateCoachingSession(id: string, patch: CoachingSessionPatch): Promise<CoachingSession>;
+  sessionNote(sessionId: string): Promise<SessionNote | null>;
+  /** Upsert; body up to 20000 chars. */
+  saveSessionNote(row: SessionNote): Promise<void>;
+  calendarConnection(spaceId: string): Promise<CalendarConnection | null>;
+  /** Service role only (Vault). */
+  calendarRefreshToken(spaceId: string): Promise<string | null>;
+  /** Upsert row + token. */
+  saveCalendarConnection(row: CalendarConnection, refreshToken: string): Promise<void>;
+  deleteCalendarConnection(spaceId: string): Promise<void>;
 
   // dev only (fake auth switcher)
   profilesInSpace(spaceId: string): Promise<Profile[]>;

@@ -1,5 +1,6 @@
 // Dev seed for DATA_SOURCE=fake. Two spaces, staff of each role, one student with a grant,
 // a program tree showing every access state (open, step-locked, drip, fixed date).
+import { DEFAULT_RULES } from '@/lib/scheduling/slots';
 import { ALL_GROUP_FEATURES, type Channel } from '../types';
 import { emptyDb, type Db } from './db';
 
@@ -18,6 +19,7 @@ export const SEED_IDS = {
   announcements: 'chan-announcements',
   lounge: 'chan-lounge',
   members: 'group-members',
+  coaching: 'prod-coaching',
 } as const;
 
 export function seedDb(now: Date = new Date()): Db {
@@ -219,5 +221,52 @@ export function seedDb(now: Date = new Date()): Db {
     fontBody: 'source-sans-3',
   });
 
+  seedCoaching(db, now);
   return db;
+}
+
+/** 1:1 coaching product with three sessions, the student holds it, weekday 9-5 Berlin. */
+function seedCoaching(db: Db, now: Date): void {
+  const ids = SEED_IDS;
+  db.products.push({
+    id: ids.coaching,
+    spaceId: ids.alexander,
+    kind: 'coaching',
+    slug: 'private-coaching',
+    title: 'Private Coaching',
+    subtitle: 'Three 1:1 sessions',
+    status: 'published',
+    position: 2,
+    themeOverride: null,
+  });
+  db.coachingPrograms.push({
+    productId: ids.coaching,
+    kind: 'one_on_one',
+    sessionMinutes: 60,
+    sessionsIncluded: 3,
+    location: 'https://meet.example.test/alexander',
+  });
+  db.coachSettings.push({
+    spaceId: ids.alexander,
+    timeZone: 'Europe/Berlin',
+    bufferBeforeMin: 0,
+    bufferAfterMin: 15,
+    minNoticeMin: 12 * 60,
+    windowDays: 14,
+    cancelCutoffHours: 24,
+  });
+  db.availabilityRules.push(
+    ...DEFAULT_RULES.map((r) => ({ ...r, id: `avail-${r.weekday}`, spaceId: ids.alexander })),
+  );
+  db.grants.push({
+    id: 'grant-student-coaching',
+    productId: ids.coaching,
+    profileId: ids.student,
+    source: 'manual',
+    status: 'active',
+    grantedAt: new Date(now.getTime() - 2 * DAY),
+    expiresAt: null,
+    orderId: null,
+    accessGroupId: null,
+  });
 }

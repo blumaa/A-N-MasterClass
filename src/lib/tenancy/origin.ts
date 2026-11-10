@@ -6,3 +6,13 @@ export function requestOrigin(host: string, forwardedProto: string | null): stri
   const proto = forwardedProto ?? (LOCAL.test(host) ? 'http' : 'https');
   return `${proto}://${host}`;
 }
+
+/**
+ * Platform origin seen from a space origin: same protocol and port (dev runs every host on one
+ * port), host name = platform host. Used for the fixed OAuth callback (one per platform).
+ */
+export function platformOrigin(spaceOrigin: string, platformHost: string): string {
+  const url = new URL(spaceOrigin);
+  url.hostname = platformHost;
+  return url.origin;
+}

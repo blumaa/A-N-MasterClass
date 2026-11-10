@@ -25,6 +25,34 @@ export function readTimeZone(r: Reader): string {
   return zone;
 }
 
+/** Non-negative whole number (minutes, days, counts). Ranges are the DB's job. */
+export function readWhole(r: Reader, name: string, label: string): number {
+  const v = r.raw(name) ?? '';
+  if (!/^\d+$/.test(v)) throw new FormError(`Enter a whole number for ${label}.`);
+  return Number(v);
+}
+
+const CLOCK = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/** `<input type="time">` value as minutes after midnight; '24:00' = end of day. */
+export function readClock(r: Reader, name: string, label: string): number {
+  const v = r.raw(name) ?? '';
+  if (v === '24:00') return 1440;
+  const m = CLOCK.exec(v);
+  if (!m) throw new FormError(`Pick a valid ${label}.`);
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{3})?)?Z$/;
+
+/** UTC instant the server rendered into the form (e.g. an offered slot). */
+export function readIso(r: Reader, name: string, label: string): Date {
+  const v = r.raw(name) ?? '';
+  const at = ISO_INSTANT.test(v) ? new Date(v) : null;
+  if (!at || Number.isNaN(at.getTime())) throw new FormError(`Pick a valid ${label}.`);
+  return at;
+}
+
 /** datetime-local value `name`, typed in the form's `timeZone`, as a UTC instant. */
 export function readInstant(r: Reader, name: string, label: string): Date {
   const at = zonedToUtc(r.raw(name) ?? '', readTimeZone(r));

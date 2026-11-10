@@ -189,6 +189,17 @@ Launch 3 as built:
 - Not yet: meetup reminder emails (email provider pending), recurring meetups.
 
 **Launch 4** — coaching + own scheduler + Google Calendar.
+
+Launch 4 as built:
+- Migration `20261110090900_coaching.sql` + `supabase/tests/090-coaching.test.sql` written, not yet run.
+- Coaching product = program settings: 1:1 (clients book) or group (coach schedules), 15..360 min, sessions included per grant, default https join link copied onto new sessions.
+- One schedule per space: IANA zone, buffers before/after, minimum notice, window 1..200 days, cancel cutoff. Weekly windows + date overrides (window or day off) in the coach's zone. Kajabi default hours (weekdays 9 to 5) until the coach saves settings or adds a window.
+- Slots: 15-minute grid in the coach's zone (DST-safe), minus scheduled sessions + buffers + Google free/busy. Calendar unreachable = no slots and booking refused (fail closed). The session being moved does not block its own time.
+- DB: exclusion constraint (btree_gist) on space + time range for scheduled sessions; client booking via `book_coaching_session` (locks the program row, checks grant, balance, length); client changes via `change_coaching_session` (own session, before the cutoff). Notes staff only.
+- Google Calendar: OAuth (offline; scopes `openid`, `email`, `calendar.freebusy`, `calendar.events.owned`, SSOT `GOOGLE_SCOPES` in `src/lib/google/calendar.ts`), state cookie checked on callback, refresh token in Vault (`save_calendar_connection`, service role only, removed with the connection). DB row is the truth: sync after the write; failure = "Not synced" in Studio with "Sync again". `invalid_grant` = calendar down until reconnected.
+- Client: library tile, coaching page (balance, slots in the coach's zone, agenda), session page (join link, `.ics`, reschedule/cancel until cutoff). Studio: Coaching nav (products.edit), group sessions, program settings, hours, overrides, calendar (settings.manage), session page with notes, reschedule, cancel.
+- Not yet: confirmation/reminder emails (email provider pending), per-client time zone display (coach zone shown with label), Google app verification (testing mode refresh tokens expire after 7 days).
+
 **Launch 5** — podcast + download products.
 **Later** — drip release emails (`pg_cron`), quizzes, coupons, order bumps, upsells (G23), subscriptions/payment plans, certificates, embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.
 

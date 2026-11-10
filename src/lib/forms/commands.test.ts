@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { body, field, flag, parser, readInstant, readTimeZone } from './commands';
+import { body, field, flag, parser, readClock, readInstant, readIso, readWhole, readTimeZone } from './commands';
 import { formReader } from './formReader';
 
 const form = (entries: Record<string, string>) => {
@@ -58,5 +58,35 @@ describe('parser', () => {
   it('turns form errors into messages', () => {
     expect(parse(form({ op: 'a' }))).toEqual({ ok: false, message: 'Missing n.' });
     expect(parse(form({ op: 'zzz' }))).toEqual({ ok: false, message: 'Unknown op: zzz.' });
+  });
+});
+
+describe('readWhole', () => {
+  it('reads a whole number', () => {
+    expect(readWhole(reader({ n: '15' }), 'n', 'buffer')).toBe(15);
+    expect(readWhole(reader({ n: '0' }), 'n', 'buffer')).toBe(0);
+  });
+  it('refuses fractions, signs and text', () => {
+    for (const n of ['1.5', '-1', 'ten', '']) expect(() => readWhole(reader({ n }), 'n', 'buffer')).toThrow('Enter a whole number for buffer.');
+  });
+});
+
+describe('readClock', () => {
+  it('reads HH:MM as minutes after midnight, 24:00 as end of day', () => {
+    expect(readClock(reader({ t: '09:30' }), 't', 'start')).toBe(570);
+    expect(readClock(reader({ t: '24:00' }), 't', 'end')).toBe(1440);
+  });
+  it('refuses anything else', () => {
+    for (const t of ['9', '25:00', '10:60', '24:30']) expect(() => readClock(reader({ t }), 't', 'start')).toThrow('Pick a valid start.');
+  });
+});
+
+describe('readIso', () => {
+  it('reads an ISO instant', () => {
+    expect(readIso(reader({ at: '2026-11-11T08:00:00.000Z' }), 'at', 'time')).toEqual(new Date('2026-11-11T08:00:00Z'));
+  });
+  it('refuses a missing or broken instant', () => {
+    expect(() => readIso(reader({ at: 'soon' }), 'at', 'time')).toThrow('Pick a valid time.');
+    expect(() => readIso(reader({}), 'at', 'time')).toThrow('Pick a valid time.');
   });
 });

@@ -3,7 +3,8 @@ import type { Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { DmRead, DmThread, Message, Product } from '@/lib/data/types';
 import { canReply, canStart, dmContext, otherOf } from './chat';
-import { chatLines, spaceNames } from './feed';
+import { spaceNames } from '@/lib/data/names';
+import { chatLines } from './feed';
 import { authorOf, type Author, type MessageItem } from './present';
 
 export type InboxItem = {

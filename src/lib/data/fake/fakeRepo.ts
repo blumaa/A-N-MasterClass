@@ -6,6 +6,7 @@ import { grantIsActive } from '../grants';
 import type { Direction, Reorderable, Repo } from '../repo';
 import type { Grant, Module, Part, Product, Profile, Step } from '../types';
 import type { Db } from './db';
+import { createFakeCoachingRepo } from './fakeCoachingRepo';
 import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
 import { createFakeCommunityRepo } from './fakeCommunityRepo';
@@ -77,6 +78,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakeCommerceRepo(db, id),
     ...createFakeCommunityRepo(db, id),
     ...createFakeEventsRepo(db, id),
+    ...createFakeCoachingRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     spaceSlugByHost: async (host) => {

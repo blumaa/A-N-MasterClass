@@ -11,7 +11,7 @@ import {
   POINT_VALUE_MAX,
   type GroupFeature,
   type PointReason,
-  type PublishStatus,
+  PUBLISH_STATUSES,
 } from '@/lib/data/types';
 import { body, field, flag, parser } from '@/lib/forms/commands';
 import { FormError, type FormReader as Reader } from '@/lib/forms/formReader';
@@ -20,7 +20,6 @@ import type { ChatCommand } from './api/chat';
 import type { CommunityCommand } from './api/commands';
 import type { StudioCommunityCommand } from './api/studio';
 
-const STATUSES: readonly PublishStatus[] = ['draft', 'published'];
 const DIRECTIONS: readonly Direction[] = ['up', 'down'];
 
 /** Whole number 0..POINT_VALUE_MAX. */
@@ -82,7 +81,7 @@ const STUDIO: Record<StudioCommunityCommand['op'], (r: Reader) => StudioCommunit
     patch: {
       ...field(r, 'title', () => r.required('title')),
       ...field(r, 'subtitle', () => r.raw('subtitle') || null),
-      ...field(r, 'status', () => r.oneOf('status', STATUSES)),
+      ...field(r, 'status', () => r.oneOf('status', PUBLISH_STATUSES)),
     },
   }),
   createChannel: (r) => ({
