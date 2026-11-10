@@ -1,9 +1,9 @@
 // Data port. Raw reads/writes, no authorization: the DAL (features/*/api) checks
 // capabilities + step access before calling. Supabase adapter adds RLS as second wall.
-import type { Grant, Member, Module, Part, Product, Profile, Space, SpaceProfile, Step } from './types';
+import type { Grant, Member, Module, Part, Product, Profile, Space, SpaceBranding, SpaceProfile, Step } from './types';
 
 export type NewProduct = Pick<Product, 'spaceId' | 'kind' | 'slug' | 'title'>;
-export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status'>>;
+export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status' | 'themeOverride'>>;
 export type NewModule = Pick<Module, 'programId' | 'title'>;
 export type ModulePatch = Partial<
   Pick<Module, 'title' | 'description' | 'status' | 'unlockAfterStepId' | 'releaseAfterDays' | 'releaseAt'>
@@ -22,6 +22,11 @@ export interface Repo {
   profile(id: string): Promise<Profile | null>;
   member(spaceId: string, profileId: string): Promise<Member | null>;
   spaceProfiles(spaceId: string): Promise<SpaceProfile[]>;
+
+  // branding (one row per space; none = defaults)
+  branding(spaceId: string): Promise<SpaceBranding | null>;
+  /** Upsert on space_id. */
+  saveBranding(row: SpaceBranding): Promise<SpaceBranding>;
 
   // products + tree (ordered by position)
   products(spaceId: string): Promise<Product[]>;

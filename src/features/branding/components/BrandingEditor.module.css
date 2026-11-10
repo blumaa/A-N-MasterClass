@@ -1,0 +1,44 @@
+.layout {
+  display: grid;
+  gap: var(--mds-space-6, 1.5rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.form {
+  display: grid;
+  gap: var(--mds-space-4, 1rem);
+}
+
+.colors {
+  display: grid;
+  gap: var(--mds-space-3, 0.75rem);
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+}
+
+.failures {
+  margin: var(--mds-space-2, 0.5rem) 0 0;
+  padding-inline-start: var(--mds-space-4, 1rem);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mds-space-2, 0.5rem);
+}
+
+/* Preview paints with the resolved --mds-* values set inline on this element. */
+.preview {
+  padding: var(--mds-space-6, 1.5rem);
+  border-radius: var(--mds-radius-lg, 12px);
+  border: 1px solid var(--mds-border-subtle);
+  background: var(--mds-surface-page);
+  color: var(--mds-text-primary);
+  font-family: var(--mds-font-body);
+}

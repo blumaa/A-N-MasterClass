@@ -51,6 +51,7 @@ export function seedDb(now: Date = new Date()): Db {
       subtitle: 'Foundations, safety, first ties',
       status: 'published',
       position: 0,
+      themeOverride: null,
     },
     {
       id: 'prod-floor-work',
@@ -61,6 +62,7 @@ export function seedDb(now: Date = new Date()): Db {
       subtitle: null,
       status: 'published',
       position: 0,
+      themeOverride: null,
     },
   );
 
@@ -128,6 +130,22 @@ export function seedDb(now: Date = new Date()): Db {
     status: 'active',
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
+  });
+
+  // Natasha gets her own look so the two dev spaces visibly differ; Alexander keeps defaults.
+  db.branding.push({
+    spaceId: ids.natasha,
+    colors: {
+      accent: '#2f6b4f',
+      'accent-soft': '#dcebe2',
+      page: '#f6f3ee',
+      card: '#ffffff',
+      hairline: '#dedbd4',
+      mid: '#86827a',
+      ink: '#26302b',
+    },
+    fontHeading: 'playfair-display',
+    fontBody: 'source-sans-3',
   });
 
   return db;

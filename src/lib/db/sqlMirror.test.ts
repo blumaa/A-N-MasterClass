@@ -4,7 +4,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MATRIX, ROLES } from '@/lib/auth/capabilities';
+import { FONT_IDS } from '@/lib/fonts/catalog';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
+import { BRAND_INPUTS } from '@/tokens/brandInputs';
 
 const MIGRATIONS = join(process.cwd(), 'supabase/migrations');
 const sql = readdirSync(MIGRATIONS)
@@ -36,5 +38,20 @@ describe('SQL mirrors', () => {
     const lists = [...sql.matchAll(/role in \(([^)]+)\)/g)].map((m) => m[1].replace(/['\s]/g, '').split(','));
     expect(lists.length).toBeGreaterThan(0);
     for (const list of lists) expect(list).toEqual([...ROLES]);
+  });
+});
+
+describe('SQL mirrors: branding', () => {
+  it('is_brand_colors keys equal BRAND_INPUTS', () => {
+    const list = sql.match(/from unnest\(array\[([^\]]+)\]\) as k/)?.[1];
+    expect(list?.split(',').map((s) => s.trim().replace(/'/g, ''))).toEqual([...BRAND_INPUTS]);
+  });
+
+  it('font checks equal FONT_IDS', () => {
+    const lists = [...sql.matchAll(/font_(?:heading|body) text check \(font_\w+ in \(([^)]+)\)\)/g)].map((m) =>
+      m[1].split(',').map((s) => s.trim().replace(/'/g, '')),
+    );
+    expect(lists).toHaveLength(2);
+    for (const list of lists) expect(list).toEqual([...FONT_IDS]);
   });
 });

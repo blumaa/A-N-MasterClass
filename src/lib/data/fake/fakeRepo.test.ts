@@ -140,3 +140,25 @@ describe('progress', () => {
     expect(await repo.completedStepIds('u1', ['st'])).toEqual(new Set());
   });
 });
+
+describe('branding', () => {
+  it('has no row until saved, then upserts one row per space', async () => {
+    expect(await repo.branding('s1')).toBeNull();
+    await repo.saveBranding({ spaceId: 's1', colors: null, fontHeading: 'lora', fontBody: null });
+    await repo.saveBranding({ spaceId: 's1', colors: null, fontHeading: null, fontBody: 'inter' });
+    expect(repo.db.branding).toHaveLength(1);
+    expect((await repo.branding('s1'))?.fontBody).toBe('inter');
+    expect(await repo.branding('s2')).toBeNull();
+  });
+
+  it('refuses a branding row for a missing space (fk)', async () => {
+    await expect(repo.saveBranding({ spaceId: 'nope', colors: null, fontHeading: null, fontBody: null })).rejects.toThrow();
+  });
+
+  it('stores a product theme override', async () => {
+    const p = await program();
+    expect(p.themeOverride).toBeNull();
+    const colors = { accent: '#000000', 'accent-soft': '#000000', page: '#ffffff', card: '#ffffff', hairline: '#eeeeee', mid: '#888888', ink: '#000000' };
+    expect((await repo.updateProduct(p.id, { themeOverride: colors })).themeOverride).toEqual(colors);
+  });
+});

@@ -2,7 +2,7 @@
 import { notFound } from 'next/navigation';
 import { NavLink } from '@/components/ui/links';
 import { SideNav } from '@/components/ui/mds';
-import { studioHref } from '@/features/studio/paths';
+import { studioBrandingHref, studioHref } from '@/features/studio/paths';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { viewerCan } from '@/lib/auth/viewer';
 import styles from './layout.module.css';
@@ -14,6 +14,7 @@ export default async function StudioLayout({ children, params }: LayoutProps<'/[
     <div className={styles.layout}>
       <SideNav label="Studio">
         <NavLink href={studioHref} label="Programs" />
+        {viewerCan(viewer, 'branding.manage') ? <NavLink href={studioBrandingHref} label="Branding" /> : null}
       </SideNav>
       <div className={styles.body}>{children}</div>
     </div>

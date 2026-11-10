@@ -1,6 +1,7 @@
 // Studio curriculum: reads + one command entry point. Every command checks capability
 // (G15) and that the target row lives in the viewer's space (tenant wall before RLS).
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
+import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { Direction, ModulePatch, PartPatch, ProductPatch, Repo, StepPatch } from '@/lib/data/repo';
 import type { Module, Part, PartKind, Product, Step } from '@/lib/data/types';
@@ -42,10 +43,6 @@ export type CurriculumCommand =
   | { op: 'deletePart'; partId: string }
   | { op: 'move'; table: 'modules' | 'steps' | 'parts'; id: string; direction: Direction };
 
-export type CommandResult =
-  | { ok: true; id?: string }
-  | { ok: false; error: 'forbidden' | 'not_found' }
-  | { ok: false; error: 'invalid'; message: string };
 
 // Walk up to the owning program. null = row missing.
 async function programOfModule(repo: Repo, moduleId: string): Promise<Product | null> {

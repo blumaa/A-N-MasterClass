@@ -18,7 +18,8 @@
     "check:errors": "node scripts/check-errors.mjs",
     "gates": "pnpm check:size && pnpm check:deterministic && pnpm check:realtime && pnpm check:signing && pnpm check:errors",
     "test:sql": "node scripts/run-sql-tests.mjs",
-    "db:types": "supabase gen types typescript --linked > src/lib/db/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > src/lib/db/database.types.ts",
+    "gen:brand": "node scripts/gen-brand-graph.mjs"
   },
   "dependencies": {
     "@mond-design-system/react": "6.6.0",
@@ -47,5 +48,6 @@
   "packageManager": "pnpm@10.13.1",
   "engines": {
     "node": "24.x"
-  }
+  },
+  "type": "module"
 }

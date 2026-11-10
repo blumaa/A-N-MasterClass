@@ -64,6 +64,13 @@ export function createFakeRepo(db: Db): FakeRepo {
       db.members.find((m) => m.spaceId === spaceId && m.profileId === profileId) ?? null,
     spaceProfiles: async (spaceId) => db.spaceProfiles.filter((sp) => sp.spaceId === spaceId),
 
+    branding: async (spaceId) => db.branding.find((b) => b.spaceId === spaceId) ?? null,
+    async saveBranding(row) {
+      must(db.spaces.find((s) => s.id === row.spaceId), 'space');
+      db.branding = [...db.branding.filter((b) => b.spaceId !== row.spaceId), row];
+      return row;
+    },
+
     products: async (spaceId) => byPosition(db.products.filter((p) => p.spaceId === spaceId)),
     product: async (pid) => db.products.find((p) => p.id === pid) ?? null,
     productBySlug: async (spaceId, slug) => db.products.find((p) => p.spaceId === spaceId && p.slug === slug) ?? null,
@@ -87,6 +94,7 @@ export function createFakeRepo(db: Db): FakeRepo {
         id: id('prod'),
         subtitle: null,
         status: 'draft',
+        themeOverride: null,
         position: nextPosition(db.products.filter((p) => p.spaceId === input.spaceId)),
       };
       db.products.push(row);

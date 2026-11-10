@@ -1,6 +1,8 @@
 // Domain rows. Mirror supabase/migrations (snake_case there, camelCase here).
 import type { Role } from '@/lib/auth/capabilities';
+import type { FontId } from '@/lib/fonts/catalog';
 import type { PublishStatus } from '@/lib/programs/access';
+import type { BrandColors } from '@/tokens/resolveBrand';
 
 export type { PublishStatus, Role };
 
@@ -16,6 +18,14 @@ export type Profile = { id: string; email: string; isPlatformAdmin: boolean };
 
 export type SpaceProfile = { spaceId: string; profileId: string; displayName: string };
 
+/** null fields = brand.css defaults. */
+export type SpaceBranding = {
+  spaceId: string;
+  colors: BrandColors | null;
+  fontHeading: FontId | null;
+  fontBody: FontId | null;
+};
+
 export type Member = { spaceId: string; profileId: string; role: Role };
 
 export const PRODUCT_KINDS = ['program', 'community', 'coaching', 'podcast', 'download'] as const;
@@ -30,6 +40,8 @@ export type Product = {
   subtitle: string | null;
   status: PublishStatus;
   position: number;
+  /** Per-program brand colours (plan: per-product override). null = space brand. */
+  themeOverride: BrandColors | null;
 };
 
 export type Module = {
