@@ -1,0 +1,34 @@
+.outline {
+  display: grid;
+  gap: var(--mds-space-6, 1.5rem);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.moduleHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mds-space-2, 0.5rem);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--mds-space-2, 0.5rem);
+  padding-block: var(--mds-space-1, 0.25rem);
+}
+
+.step[aria-current='page'] {
+  font-weight: 600;
+}
+
+.mark {
+  inline-size: 1.25em;
+  text-align: center;
+  flex: none;
+}

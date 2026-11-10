@@ -1,0 +1,142 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createFakeRepo, type FakeRepo } from './fakeRepo';
+import { emptyDb } from './db';
+
+const NOW = new Date('2026-11-10T12:00:00Z');
+
+let repo: FakeRepo;
+
+beforeEach(() => {
+  repo = createFakeRepo(emptyDb());
+  repo.db.spaces.push(
+    { id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en' },
+    { id: 's2', slug: 'natasha', name: 'Natasha', status: 'live', locale: 'en' },
+  );
+  repo.db.profiles.push({ id: 'u1', email: 'u1@test', isPlatformAdmin: false });
+});
+
+async function program(spaceId = 's1', slug = 'shibari-101') {
+  return repo.createProduct({ spaceId, kind: 'program', slug, title: 'Shibari 101' });
+}
+
+describe('products', () => {
+  it('scopes by space and starts as draft', async () => {
+    await program('s1');
+    await program('s2');
+    const list = await repo.products('s1');
+    expect(list).toHaveLength(1);
+    expect(list[0]?.status).toBe('draft');
+  });
+
+  it('refuses a duplicate slug inside one space (unique space_id, slug)', async () => {
+    await program('s1');
+    await expect(program('s1')).rejects.toThrow(/slug/);
+  });
+
+  it('refuses an invalid slug (same check as SQL)', async () => {
+    await expect(program('s1', 'Bad Slug')).rejects.toThrow(/slug/);
+  });
+});
+
+describe('tree', () => {
+  it('appends modules, steps and parts at the end', async () => {
+    const p = await program();
+    const a = await repo.createModule({ programId: p.id, title: 'A' });
+    const b = await repo.createModule({ programId: p.id, title: 'B' });
+    expect((await repo.modules(p.id)).map((m) => m.id)).toEqual([a.id, b.id]);
+  });
+
+  it('moves a step up and down among its siblings only', async () => {
+    const p = await program();
+    const m1 = await repo.createModule({ programId: p.id, title: 'M1' });
+    const m2 = await repo.createModule({ programId: p.id, title: 'M2' });
+    const s1 = await repo.createStep({ moduleId: m1.id, title: 'one' });
+    const s2 = await repo.createStep({ moduleId: m1.id, title: 'two' });
+    await repo.createStep({ moduleId: m2.id, title: 'other' });
+
+    await repo.move('steps', s2.id, 'up');
+    expect((await repo.steps([m1.id])).map((s) => s.title)).toEqual(['two', 'one']);
+
+    await repo.move('steps', s2.id, 'up'); // already first: no-op
+    expect((await repo.steps([m1.id])).map((s) => s.title)).toEqual(['two', 'one']);
+
+    await repo.move('steps', s1.id, 'up');
+    expect((await repo.steps([m1.id])).map((s) => s.title)).toEqual(['one', 'two']);
+  });
+
+  it('cascades a module delete to steps, parts and progress', async () => {
+    const p = await program();
+    const m = await repo.createModule({ programId: p.id, title: 'M' });
+    const s = await repo.createStep({ moduleId: m.id, title: 'S' });
+    await repo.createPart({ stepId: s.id, kind: 'text' });
+    await repo.setStepComplete('u1', s.id, true);
+
+    await repo.deleteModule(m.id);
+
+    expect(repo.db.steps).toHaveLength(0);
+    expect(repo.db.parts).toHaveLength(0);
+    expect(repo.db.stepProgress).toHaveLength(0);
+  });
+
+  it('clears unlock_after_step_id when that step goes (on delete set null)', async () => {
+    const p = await program();
+    const m1 = await repo.createModule({ programId: p.id, title: 'M1' });
+    const s = await repo.createStep({ moduleId: m1.id, title: 'gate' });
+    const m2 = await repo.createModule({ programId: p.id, title: 'M2' });
+    await repo.updateModule(m2.id, { unlockAfterStepId: s.id });
+
+    await repo.deleteStep(s.id);
+
+    expect((await repo.module(m2.id))?.unlockAfterStepId).toBeNull();
+  });
+
+  it('refuses a non-numeric vimeo id (parts check)', async () => {
+    const p = await program();
+    const m = await repo.createModule({ programId: p.id, title: 'M' });
+    const s = await repo.createStep({ moduleId: m.id, title: 'S' });
+    const part = await repo.createPart({ stepId: s.id, kind: 'video' });
+    await expect(repo.updatePart(part.id, { vimeoId: 'abc' })).rejects.toThrow(/vimeo/);
+  });
+});
+
+describe('grants', () => {
+  it('keeps one active grant per product + profile', async () => {
+    const p = await program();
+    await repo.createGrant({ productId: p.id, profileId: 'u1', source: 'manual' });
+    await expect(repo.createGrant({ productId: p.id, profileId: 'u1', source: 'free' })).rejects.toThrow(/grant/);
+  });
+
+  it('ignores revoked and expired grants', async () => {
+    const p = await program();
+    const g = await repo.createGrant({ productId: p.id, profileId: 'u1', source: 'manual' });
+    expect(await repo.activeGrant(p.id, 'u1', NOW)).not.toBeNull();
+
+    await repo.revokeGrant(g.id);
+    expect(await repo.activeGrant(p.id, 'u1', NOW)).toBeNull();
+
+    const again = await repo.createGrant({ productId: p.id, profileId: 'u1', source: 'manual' });
+    const row = repo.db.grants.find((x) => x.id === again.id)!;
+    row.expiresAt = new Date(NOW.getTime() - 1);
+    expect(await repo.activeGrant(p.id, 'u1', NOW)).toBeNull();
+  });
+
+  it('lists a profile’s grants inside one space only', async () => {
+    const a = await program('s1');
+    const b = await program('s2');
+    await repo.createGrant({ productId: a.id, profileId: 'u1', source: 'manual' });
+    await repo.createGrant({ productId: b.id, profileId: 'u1', source: 'manual' });
+    expect((await repo.grants('s1', 'u1', NOW)).map((g) => g.productId)).toEqual([a.id]);
+  });
+});
+
+describe('progress', () => {
+  it('ticks once and un-ticks', async () => {
+    await repo.setStepComplete('u1', 'st', true);
+    await repo.setStepComplete('u1', 'st', true);
+    expect(repo.db.stepProgress).toHaveLength(1);
+    expect(await repo.completedStepIds('u1', ['st', 'x'])).toEqual(new Set(['st']));
+
+    await repo.setStepComplete('u1', 'st', false);
+    expect(await repo.completedStepIds('u1', ['st'])).toEqual(new Set());
+  });
+});

@@ -1,0 +1,58 @@
+// Step page data + Complete & Continue (G6, G7). Parts only leave the server when the step is open.
+import type { Viewer } from '@/lib/auth/viewer';
+import type { Repo } from '@/lib/data/repo';
+import type { Part } from '@/lib/data/types';
+import type { StepAccess } from '@/lib/programs/access';
+import { programOutline, type Outline, type OutlineStep } from './outline';
+
+export type StepView = {
+  outline: Outline;
+  step: OutlineStep & { moduleId: string; description: string | null };
+  access: StepAccess;
+  parts: Part[];
+  prevStepId: string | null;
+  nextStepId: string | null;
+};
+
+export async function stepView(
+  repo: Repo,
+  viewer: Viewer,
+  programSlug: string,
+  stepId: string,
+  now: Date,
+): Promise<StepView | null> {
+  const outline = await programOutline(repo, viewer, programSlug, now);
+  if (!outline) return null;
+  const flat = outline.modules.flatMap((m) => m.steps.map((s) => ({ ...s, moduleId: m.id })));
+  const at = flat.findIndex((s) => s.id === stepId);
+  const found = flat[at];
+  if (!found) return null;
+  const row = await repo.step(stepId);
+  const parts = found.access.kind === 'open' ? await repo.parts(stepId) : [];
+  return {
+    outline,
+    step: { ...found, description: row?.description ?? null },
+    access: found.access,
+    parts,
+    prevStepId: flat[at - 1]?.id ?? null,
+    nextStepId: flat[at + 1]?.id ?? null,
+  };
+}
+
+export type CompleteResult = { ok: true; nextStepId: string | null } | { ok: false; error: 'signed_out' | 'not_found' | 'not_open' };
+
+export async function completeStep(
+  repo: Repo,
+  viewer: Viewer,
+  programSlug: string,
+  stepId: string,
+  done: boolean,
+  now: Date,
+): Promise<CompleteResult> {
+  if (!viewer.profile) return { ok: false, error: 'signed_out' };
+  const view = await stepView(repo, viewer, programSlug, stepId, now);
+  if (!view) return { ok: false, error: 'not_found' };
+  if (view.access.kind !== 'open') return { ok: false, error: 'not_open' };
+  await repo.setStepComplete(viewer.profile.id, stepId, done);
+  return { ok: true, nextStepId: view.nextStepId };
+}

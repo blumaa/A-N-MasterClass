@@ -1,0 +1,25 @@
+.layout {
+  display: grid;
+  gap: var(--mds-space-6, 1.5rem);
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(16rem, 20rem) 1fr;
+    align-items: start;
+  }
+
+  .side {
+    position: sticky;
+    top: var(--mds-space-4, 1rem);
+  }
+}
+
+.body {
+  min-width: 0;
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+}

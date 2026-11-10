@@ -1,0 +1,11 @@
+.stacked {
+  display: grid;
+  gap: var(--mds-space-3, 0.75rem);
+}
+
+.inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--mds-space-2, 0.5rem);
+}
