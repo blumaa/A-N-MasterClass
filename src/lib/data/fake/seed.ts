@@ -29,8 +29,8 @@ export function seedDb(now: Date = new Date()): Db {
   const ids = SEED_IDS;
 
   db.spaces.push(
-    { id: ids.alexander, slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en' },
-    { id: ids.natasha, slug: 'natasha', name: 'Natasha', status: 'live', locale: 'en' },
+    { id: ids.alexander, slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en', isTest: false },
+    { id: ids.natasha, slug: 'natasha', name: 'Natasha', status: 'live', locale: 'en', isTest: false },
   );
   db.profiles.push(
     { id: ids.alexanderOwner, email: 'alexander@example.test', isPlatformAdmin: false },

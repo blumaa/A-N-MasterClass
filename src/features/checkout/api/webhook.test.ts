@@ -11,7 +11,7 @@ let repo: FakeRepo;
 
 beforeEach(() => {
   repo = createFakeRepo(emptyDb());
-  repo.db.spaces.push({ id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en' });
+  repo.db.spaces.push({ id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en', isTest: false });
 });
 
 const ready = (provider: PaymentProvider): (() => Promise<ProviderChoice>) => async () => ({ kind: 'ready', provider, livemode: false, clientId: 'cid' });

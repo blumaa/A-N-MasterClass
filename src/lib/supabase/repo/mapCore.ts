@@ -9,6 +9,7 @@ import type {
   Product,
   Profile,
   Space,
+  SpaceDomain,
   SpaceBranding,
   SpaceProfile,
   Step,
@@ -22,6 +23,13 @@ export const toSpace = (r: Row<'spaces'>): Space => ({
   name: r.name,
   status: r.status as Space['status'],
   locale: r.locale,
+  isTest: r.is_test,
+});
+
+export const toSpaceDomain = (r: Row<'space_domains'>): SpaceDomain => ({
+  host: r.host,
+  spaceId: r.space_id,
+  isPrimary: r.is_primary,
 });
 
 export const toProfile = (r: Row<'profiles'>): Profile => ({

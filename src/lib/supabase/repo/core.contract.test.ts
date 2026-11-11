@@ -70,6 +70,41 @@ describe.skipIf(!enabled)('core repo (Supabase contract)', () => {
     });
   });
 
+  describe('platform admin', () => {
+    it('creates a draft space, lists it, updates it, refuses a duplicate and a reserved slug', async () => {
+      const other = `${slug}-b`;
+      const s = await repo.createSpace({ slug: other, name: 'Contract B', isTest: true });
+      try {
+        expect(s).toMatchObject({ slug: other, status: 'draft', locale: 'en', isTest: true });
+        expect((await repo.spaces()).map((x) => x.id)).toContain(s.id);
+        expect(await repo.updateSpace(s.id, { status: 'live' })).toMatchObject({ status: 'live', name: 'Contract B' });
+        await expect(repo.createSpace({ slug: other, name: 'Again', isTest: true })).rejects.toThrow('slug taken');
+        await expect(repo.createSpace({ slug: 'platform', name: 'X', isTest: true })).rejects.toThrow('slug reserved');
+      } finally {
+        await adminClient().from('spaces').delete().eq('id', s.id);
+      }
+    });
+
+    it('adds a member once', async () => {
+      const p = await newProfile('owner');
+      await repo.addMember({ spaceId, profileId: p.id, role: 'owner' });
+      expect(await repo.member(spaceId, p.id)).toEqual({ spaceId, profileId: p.id, role: 'owner' });
+      await expect(repo.addMember({ spaceId, profileId: p.id, role: 'admin' })).rejects.toThrow('already a member');
+    });
+
+    it('attaches a host lowercased, refuses a taken host and a second primary, removes it', async () => {
+      const extra = `extra.${host}`;
+      await repo.addSpaceDomain({ host: extra.toUpperCase(), spaceId, isPrimary: true });
+      expect(await repo.spaceDomains(spaceId)).toContainEqual({ host: extra, spaceId, isPrimary: true });
+      await expect(repo.addSpaceDomain({ host: extra, spaceId, isPrimary: false })).rejects.toThrow('host taken');
+      await expect(repo.addSpaceDomain({ host: `two.${host}`, spaceId, isPrimary: true })).rejects.toThrow(
+        'space already has a primary domain',
+      );
+      await repo.removeSpaceDomain(extra);
+      expect((await repo.spaceDomains(spaceId)).map((d) => d.host)).toEqual([host]);
+    });
+  });
+
   describe('branding', () => {
     it('upserts one row per space', async () => {
       const font = FONT_IDS[0]!;

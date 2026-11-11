@@ -14,7 +14,7 @@ let ready: CheckoutDeps;
 
 beforeEach(async () => {
   repo = createFakeRepo(emptyDb());
-  repo.db.spaces.push({ id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en' });
+  repo.db.spaces.push({ id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en', isTest: false });
   provider = createFakeProvider();
   ready = { env: 'sandbox', resolveProvider: async () => ({ kind: 'ready', provider, livemode: false, clientId: null }) };
   offer = await repo.createOffer({ spaceId: 's1', slug: 'full', title: 'Full', priceCents: 4900, currency: 'EUR' });

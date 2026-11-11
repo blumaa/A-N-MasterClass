@@ -1,0 +1,13 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mds-space-3, 0.75rem);
+  padding: var(--mds-space-3, 0.75rem) var(--mds-space-4, 1rem);
+  border-bottom: 1px solid var(--mds-border-subtle);
+}
+
+.main {
+  padding-block: var(--mds-space-6, 1.5rem);
+}

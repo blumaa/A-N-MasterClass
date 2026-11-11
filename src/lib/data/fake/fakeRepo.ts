@@ -1,10 +1,10 @@
 // Repo over in-memory tables. Enforces the same constraints as the SQL schema
 // (unique slug, one active grant, vimeo id digits, cascades) so fakes fail like Postgres.
-import { SLUG_PATTERN } from '@/lib/tenancy/slug';
-import { ConstraintError } from '../errors';
+import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
+import { ALREADY_MEMBER, ConstraintError, HOST_TAKEN, ONE_PRIMARY_DOMAIN, SLUG_RESERVED } from '../errors';
 import { grantIsActive } from '../grants';
 import type { Direction, Reorderable, Repo } from '../repo';
-import type { Grant, Module, Part, Product, Profile, Step } from '../types';
+import type { Grant, Module, Part, Product, Profile, Space, Step } from '../types';
 import type { Db } from './db';
 import { createFakeCoachingRepo } from './fakeCoachingRepo';
 import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
@@ -104,6 +104,39 @@ export function createFakeRepo(db: Db): FakeRepo {
       if (!db.spaceProfiles.some((sp) => sp.spaceId === row.spaceId && sp.profileId === row.profileId)) {
         db.spaceProfiles.push({ ...row });
       }
+    },
+
+    spaces: async () => db.spaces.toSorted((a, b) => a.name.localeCompare(b.name)),
+    async createSpace(input) {
+      checkSlug(input.slug);
+      if (RESERVED_SLUGS.includes(input.slug)) throw new ConstraintError(SLUG_RESERVED);
+      if (db.spaces.some((s) => s.slug === input.slug)) throw new ConstraintError('slug taken');
+      const row: Space = { id: id('space'), ...input, status: 'draft', locale: 'en' };
+      db.spaces.push(row);
+      return row;
+    },
+    async updateSpace(spaceId, patch) {
+      const row = must(db.spaces.find((s) => s.id === spaceId), 'space');
+      Object.assign(row, Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)));
+      return { ...row };
+    },
+    async addMember(row) {
+      if (db.members.some((m) => m.spaceId === row.spaceId && m.profileId === row.profileId)) {
+        throw new ConstraintError(ALREADY_MEMBER);
+      }
+      db.members.push({ ...row });
+    },
+    spaceDomains: async (spaceId) => db.spaceDomains.filter((d) => d.spaceId === spaceId),
+    async addSpaceDomain(row) {
+      const host = row.host.toLowerCase();
+      if (db.spaceDomains.some((d) => d.host === host)) throw new ConstraintError(HOST_TAKEN);
+      if (row.isPrimary && db.spaceDomains.some((d) => d.spaceId === row.spaceId && d.isPrimary)) {
+        throw new ConstraintError(ONE_PRIMARY_DOMAIN);
+      }
+      db.spaceDomains.push({ ...row, host });
+    },
+    async removeSpaceDomain(host) {
+      db.spaceDomains = db.spaceDomains.filter((d) => d.host !== host.toLowerCase());
     },
 
     branding: async (spaceId) => db.branding.find((b) => b.spaceId === spaceId) ?? null,

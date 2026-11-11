@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkoutPath,
-  claimPath,
   contactsCsvHref,
   paypalWebhookPath,
   studioCustomersHref,
@@ -12,11 +11,10 @@ import {
 } from './paths';
 
 describe('checkout paths', () => {
-  it('builds checkout, thank-you and claim URLs', () => {
+  it('builds checkout and thank-you URLs', () => {
     expect(checkoutPath('full')).toBe('/checkout/full');
     expect(thanksPath('full', 'pending')).toBe('/checkout/full/thanks?status=pending');
     expect(thanksPath('full', 'welcome')).toBe('/checkout/full/thanks?status=welcome');
-    expect(claimPath('a b')).toBe('/claim/a%20b');
   });
 });
 

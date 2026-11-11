@@ -25,3 +25,8 @@ export async function resolveViewer(repo: Repo, spaceSlug: string, profileId: st
 }
 
 export const viewerCan = (viewer: Viewer, cap: Capability): boolean => viewer.role !== null && can(viewer.role, cap);
+
+/** Site, library and studio of a draft or archived space: staff and platform admins only.
+ * Login, claim and account pages stay open so a new owner can get in. */
+export const canSeeSpace = (viewer: Viewer): boolean =>
+  viewer.space.status === 'live' || viewer.role !== null || viewer.profile?.isPlatformAdmin === true;

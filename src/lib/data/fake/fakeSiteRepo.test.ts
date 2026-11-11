@@ -8,8 +8,8 @@ let repo: FakeRepo;
 beforeEach(() => {
   repo = createFakeRepo(emptyDb());
   repo.db.spaces.push(
-    { id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en' },
-    { id: 's2', slug: 'natasha', name: 'Natasha', status: 'live', locale: 'en' },
+    { id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en', isTest: false },
+    { id: 's2', slug: 'natasha', name: 'Natasha', status: 'live', locale: 'en', isTest: false },
   );
 });
 

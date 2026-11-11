@@ -14,7 +14,7 @@ let productIds: string[];
 
 beforeEach(async () => {
   repo = createFakeRepo(emptyDb());
-  repo.db.spaces.push({ id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en' });
+  repo.db.spaces.push({ id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en', isTest: false });
   offer = await repo.createOffer({ spaceId: 's1', slug: 'full', title: 'Full', priceCents: 4900, currency: 'EUR' });
   const a = await repo.createProduct({ spaceId: 's1', kind: 'program', slug: 'a', title: 'A' });
   const b = await repo.createProduct({ spaceId: 's1', kind: 'community', slug: 'b', title: 'B' });

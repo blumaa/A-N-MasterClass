@@ -1,7 +1,7 @@
 // Postgres constraint name -> the text the fake repo throws for the same rule (src/lib/data/fake).
 // Features show ConstraintError.message or match it (e.g. checkout/api/offers.ts), so both data
 // sources must say the same thing. Names: supabase/migrations. Unknown names keep Postgres' text.
-import { SESSION_OVERLAP } from '@/lib/data/errors';
+import { ALREADY_MEMBER, HOST_TAKEN, ONE_PRIMARY_DOMAIN, SESSION_OVERLAP, SLUG_RESERVED } from '@/lib/data/errors';
 import { bodyRangeMessage, COMMENT_MAX, ENTRY_MAX, MESSAGE_MAX, POST_MAX } from '@/lib/data/limits';
 
 const SLUG_TAKEN = 'slug taken';
@@ -18,7 +18,10 @@ const BY_NAME: Readonly<Record<string, string>> = {
   pages_slug_format: INVALID_SLUG,
   products_slug_check: INVALID_SLUG,
   spaces_slug_format: INVALID_SLUG,
-  spaces_slug_reserved: 'slug reserved',
+  spaces_slug_reserved: SLUG_RESERVED,
+  space_domains_pkey: HOST_TAKEN,
+  space_domains_one_primary: ONE_PRIMARY_DOMAIN,
+  space_members_pkey: ALREADY_MEMBER,
   offers_price: 'price out of range',
   // Only deleting an offer can break it: orders are created by the service path with a known offer.
   orders_offer_id_fkey: 'offer has orders',

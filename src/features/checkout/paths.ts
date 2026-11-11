@@ -8,8 +8,6 @@ export { checkoutPath };
 
 export const thanksPath = (offerSlug: string, status: PaidStatus): string => `${checkoutPath(offerSlug)}/thanks?status=${status}`;
 
-export const claimPath = (token: string): string => `/claim/${encodeURIComponent(token)}`;
-
 export const studioOffersHref = '/studio/offers';
 export const studioOfferHref = (offerId: string): string => `${studioOffersHref}/${encodeURIComponent(offerId)}`;
 export const studioPaymentsHref = '/studio/payments';

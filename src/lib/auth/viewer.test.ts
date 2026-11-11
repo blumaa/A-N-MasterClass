@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import { resolveViewer } from './viewer';
+import { canSeeSpace, resolveViewer, type Viewer } from './viewer';
 
 const repo = () => createFakeRepo(seedDb(new Date('2026-11-10T12:00:00Z')));
 
@@ -31,5 +31,26 @@ describe('resolveViewer', () => {
   it('unknown profile id = anonymous (stale cookie)', async () => {
     const v = await resolveViewer(repo(), 'alexander', 'ghost');
     expect(v?.profile).toBeNull();
+  });
+});
+
+describe('canSeeSpace', () => {
+  const space = { id: 's', slug: 's', name: 'S', status: 'draft', locale: 'en', isTest: false } as const;
+  const viewer = (over: Partial<Viewer> = {}): Viewer => ({ space, profile: null, role: null, displayName: null, ...over });
+  const student = { id: 'p', email: 'p@example.com', isPlatformAdmin: false };
+
+  it('live space: everyone', () => {
+    expect(canSeeSpace(viewer({ space: { ...space, status: 'live' } }))).toBe(true);
+  });
+
+  it('draft or archived space: anonymous and students are kept out', () => {
+    expect(canSeeSpace(viewer())).toBe(false);
+    expect(canSeeSpace(viewer({ profile: student }))).toBe(false);
+    expect(canSeeSpace(viewer({ space: { ...space, status: 'archived' }, profile: student }))).toBe(false);
+  });
+
+  it('draft space: staff and platform admins get in', () => {
+    expect(canSeeSpace(viewer({ profile: student, role: 'support' }))).toBe(true);
+    expect(canSeeSpace(viewer({ profile: { ...student, isPlatformAdmin: true } }))).toBe(true);
   });
 });

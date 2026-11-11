@@ -9,12 +9,17 @@ import type { BrandColors } from '@/tokens/resolveBrand';
 export type { Currency, PublishStatus, Role };
 export { PUBLISH_STATUSES } from '@/lib/programs/access';
 
+export const SPACE_STATUSES = ['draft', 'live', 'archived'] as const;
+export type SpaceStatus = (typeof SPACE_STATUSES)[number];
+
 export type Space = {
   id: string;
   slug: string;
   name: string;
-  status: 'draft' | 'live' | 'archived';
+  status: SpaceStatus;
   locale: string;
+  /** Dev/demo space (G10, G21): kept out of revenue and analytics. */
+  isTest: boolean;
 };
 
 /** A host attached to a space (G17). Host stored lowercase. */

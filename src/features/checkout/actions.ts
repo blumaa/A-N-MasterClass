@@ -8,13 +8,13 @@ import { paymentsEnv } from '@/config/payments';
 import { actionViewer } from '@/lib/auth/actionViewer';
 import { sessionsEnabled, startSession } from '@/lib/auth/session';
 import { getServiceRepo } from '@/lib/data/getRepo';
-import { setPasswordHref } from '@/lib/routes';
+import { claimPath, setPasswordHref } from '@/lib/routes';
 import { PaymentProviderError } from '@/lib/payments/provider';
 import { spaceProvider } from '@/lib/payments/spaceProvider';
 import { completeCheckout, startCheckout } from './api/checkout';
 import { claimAccount } from './api/claim';
 import type { FulfilResult } from './api/fulfil';
-import { claimPath, thanksPath } from './paths';
+import { thanksPath } from './paths';
 
 export type StartCheckoutState = { ok: true; providerOrderId: string } | { ok: true; next: string } | { ok: false; message: string };
 export type CompleteCheckoutState = { ok: true; next: string } | { ok: false; message: string; retry: boolean };

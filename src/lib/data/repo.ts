@@ -47,6 +47,7 @@ import type {
   SiteNav,
   Space,
   SpaceBranding,
+  SpaceDomain,
   SpaceProfile,
   Step,
   Episode,
@@ -121,6 +122,9 @@ export type CoachingSessionPatch = Partial<
 /** Sessions of one space, optionally narrowed to a product and/or a client. */
 export type SessionWhere = { spaceId: string; productId?: string; clientId?: string };
 
+export type NewSpace = { slug: string; name: string; isTest: boolean };
+export type SpacePatch = Partial<Pick<Space, 'name' | 'status'>>;
+
 export type Direction = 'up' | 'down';
 export type Reorderable = 'modules' | 'steps' | 'parts' | 'channels';
 
@@ -140,6 +144,19 @@ export interface Repo {
   createProfile(email: string): Promise<Profile>;
   /** Insert if missing; keeps an existing display name. */
   ensureSpaceProfile(row: SpaceProfile): Promise<void>;
+
+  // platform admin (G1): spaces, owners, domains
+  /** Every space, ordered by name. */
+  spaces(): Promise<Space[]>;
+  /** New space starts as draft with the default locale. */
+  createSpace(input: NewSpace): Promise<Space>;
+  updateSpace(id: string, patch: SpacePatch): Promise<Space>;
+  /** Insert a staff row; ConstraintError when the profile is already staff of the space. */
+  addMember(row: Member): Promise<void>;
+  spaceDomains(spaceId: string): Promise<SpaceDomain[]>;
+  /** Host stored lowercased; ConstraintError when taken or a second primary. */
+  addSpaceDomain(row: SpaceDomain): Promise<void>;
+  removeSpaceDomain(host: string): Promise<void>;
 
   // branding (one row per space; none = defaults)
   branding(spaceId: string): Promise<SpaceBranding | null>;

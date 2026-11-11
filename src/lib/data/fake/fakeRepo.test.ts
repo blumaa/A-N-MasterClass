@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createFakeRepo, type FakeRepo } from './fakeRepo';
 import { emptyDb } from './db';
+import { ConstraintError } from '../errors';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 
@@ -9,8 +10,8 @@ let repo: FakeRepo;
 beforeEach(() => {
   repo = createFakeRepo(emptyDb());
   repo.db.spaces.push(
-    { id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en' },
-    { id: 's2', slug: 'natasha', name: 'Natasha', status: 'live', locale: 'en' },
+    { id: 's1', slug: 'alexander', name: 'Alexander', status: 'live', locale: 'en', isTest: false },
+    { id: 's2', slug: 'natasha', name: 'Natasha', status: 'live', locale: 'en', isTest: false },
   );
   repo.db.profiles.push({ id: 'u1', email: 'u1@test', isPlatformAdmin: false });
 });
@@ -191,5 +192,41 @@ describe('custom domains', () => {
     expect(await repo.spaceSlugByHost('alexander.example')).toBe('alexander');
     expect(await repo.spaceSlugByHost('Alexander.Example')).toBe('alexander');
     expect(await repo.spaceSlugByHost('nobody.example')).toBeNull();
+  });
+});
+
+describe('platform tenancy', () => {
+  it('lists all spaces by name', async () => {
+    expect((await repo.spaces()).map((s) => s.slug)).toEqual(['alexander', 'natasha']);
+  });
+
+  it('creates a draft space and refuses a bad, reserved or duplicate slug', async () => {
+    const s = await repo.createSpace({ slug: 'fiddle', name: 'Fiddle', isTest: true });
+    expect(s).toMatchObject({ slug: 'fiddle', name: 'Fiddle', status: 'draft', locale: 'en', isTest: true });
+    expect((await repo.spaceBySlug('fiddle'))?.id).toBe(s.id);
+    await expect(repo.createSpace({ slug: 'fiddle', name: 'Again', isTest: false })).rejects.toThrow(/slug/);
+    await expect(repo.createSpace({ slug: 'Bad Slug', name: 'X', isTest: false })).rejects.toThrow(/slug/);
+    await expect(repo.createSpace({ slug: 'platform', name: 'X', isTest: false })).rejects.toThrow(/reserved/);
+  });
+
+  it('updates status and name', async () => {
+    const s = await repo.updateSpace('s1', { status: 'archived' });
+    expect(s).toMatchObject({ status: 'archived', name: 'Alexander' });
+    expect((await repo.updateSpace('s1', { name: 'Alex' })).name).toBe('Alex');
+  });
+
+  it('adds a member once', async () => {
+    await repo.addMember({ spaceId: 's1', profileId: 'u1', role: 'owner' });
+    expect(await repo.member('s1', 'u1')).toEqual({ spaceId: 's1', profileId: 'u1', role: 'owner' });
+    await expect(repo.addMember({ spaceId: 's1', profileId: 'u1', role: 'admin' })).rejects.toBeInstanceOf(ConstraintError);
+  });
+
+  it('attaches a host lowercased, refuses a taken host, removes it', async () => {
+    await repo.addSpaceDomain({ host: 'Fiddle.Example', spaceId: 's1', isPrimary: true });
+    expect(await repo.spaceDomains('s1')).toEqual([{ host: 'fiddle.example', spaceId: 's1', isPrimary: true }]);
+    expect(await repo.spaceSlugByHost('fiddle.example')).toBe('alexander');
+    await expect(repo.addSpaceDomain({ host: 'fiddle.example', spaceId: 's2', isPrimary: false })).rejects.toBeInstanceOf(ConstraintError);
+    await repo.removeSpaceDomain('FIDDLE.example');
+    expect(await repo.spaceDomains('s1')).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { platformOrigin, requestOrigin } from './origin';
+import { platformOrigin, requestOrigin, spaceOrigin } from './origin';
 
 describe('requestOrigin', () => {
   it('uses the forwarded protocol when present', () => {
@@ -17,5 +17,12 @@ describe('platformOrigin', () => {
   it('swaps the host name for the platform host, keeping protocol and port', () => {
     expect(platformOrigin('http://alexander.localhost:3000', 'localhost')).toBe('http://localhost:3000');
     expect(platformOrigin('https://alexander-ma.com', 'masterclass.example')).toBe('https://masterclass.example');
+  });
+});
+
+describe('spaceOrigin', () => {
+  it('puts the slug in front of the platform host, keeping protocol and port', () => {
+    expect(spaceOrigin('http://localhost:3000', 'fiddle')).toBe('http://fiddle.localhost:3000');
+    expect(spaceOrigin('https://masterclass.example', 'fiddle')).toBe('https://fiddle.masterclass.example');
   });
 });

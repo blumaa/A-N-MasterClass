@@ -14,6 +14,7 @@ import {
   toProduct,
   toProfile,
   toSpace,
+  toSpaceDomain,
   toSpaceProfile,
   toStep,
 } from './mapCore';
@@ -29,6 +30,13 @@ export type CoreRepo = Pick<
   | 'profileByEmail'
   | 'createProfile'
   | 'ensureSpaceProfile'
+  | 'spaces'
+  | 'createSpace'
+  | 'updateSpace'
+  | 'addMember'
+  | 'spaceDomains'
+  | 'addSpaceDomain'
+  | 'removeSpaceDomain'
   | 'branding'
   | 'saveBranding'
   | 'products'
@@ -129,6 +137,47 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
             { onConflict: 'space_id,profile_id', ignoreDuplicates: true },
           ),
       );
+    },
+
+    // platform admin (RLS: platform admin only for insert/delete + domains)
+    async spaces() {
+      return unwrap(await (await db()).from('spaces').select('*').order('name')).map(toSpace);
+    },
+    async createSpace(input) {
+      const row = unwrap(
+        await (await db())
+          .from('spaces')
+          .insert({ slug: input.slug, name: input.name, is_test: input.isTest })
+          .select('*')
+          .single(),
+      );
+      return toSpace(row);
+    },
+    async updateSpace(id, patch) {
+      const row = unwrap(await (await db()).from('spaces').update(defined(patch)).eq('id', id).select('*').single());
+      return toSpace(row);
+    },
+    async addMember(row) {
+      check(
+        await (await db())
+          .from('space_members')
+          .insert({ space_id: row.spaceId, profile_id: row.profileId, role: row.role }),
+      );
+    },
+    async spaceDomains(spaceId) {
+      return unwrap(await (await db()).from('space_domains').select('*').eq('space_id', spaceId).order('host')).map(
+        toSpaceDomain,
+      );
+    },
+    async addSpaceDomain(row) {
+      check(
+        await (await db())
+          .from('space_domains')
+          .insert({ host: row.host.toLowerCase(), space_id: row.spaceId, is_primary: row.isPrimary }),
+      );
+    },
+    async removeSpaceDomain(host) {
+      check(await (await db()).from('space_domains').delete().eq('host', host.toLowerCase()));
     },
 
     // branding

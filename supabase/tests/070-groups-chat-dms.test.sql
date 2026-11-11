@@ -42,11 +42,13 @@ begin
 end $$;
 
 -- Groups and shape guards
-select results_eq($$ select title from public.access_groups where is_default $$, $$ values ('Members') $$,
+select results_eq($$ select title from public.access_groups
+  where is_default and community_id = 'c0000000-0000-4000-8000-000000000001' $$, $$ values ('Members') $$,
   'community gets a default Members group');
 select is_empty($$ select 1 from public.access_groups where community_id = 'a0000000-0000-4000-8000-000000000001' $$,
   'programs get no group');
-select throws_ok($$ delete from public.access_groups where is_default $$, '23514', null, 'default group cannot be deleted');
+select throws_ok($$ delete from public.access_groups
+  where is_default and community_id = 'c0000000-0000-4000-8000-000000000001' $$, '23514', null, 'default group cannot be deleted');
 select throws_ok($$ delete from public.access_groups where id = '70000000-0000-4000-8000-000000000001' $$,
   '23503', null, 'group in use cannot be deleted');
 select throws_ok($$ insert into public.grants (product_id, profile_id, access_group_id, source)

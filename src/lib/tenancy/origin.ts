@@ -16,3 +16,10 @@ export function platformOrigin(spaceOrigin: string, platformHost: string): strin
   url.hostname = platformHost;
   return url.origin;
 }
+
+/** Default address of a space (G17): `<slug>.<platform host>`, same protocol and port as the platform origin. */
+export function spaceOrigin(platformOrigin: string, slug: string): string {
+  const url = new URL(platformOrigin);
+  url.hostname = `${slug}.${url.hostname}`;
+  return url.origin;
+}
