@@ -2,6 +2,9 @@
 -- Test-only: tests schema unreachable by browser roles.
 
 create extension if not exists pgtap with schema extensions;
+-- The vendored helpers call pgTAP unqualified and their bodies are checked at create time.
+-- `supabase db reset --linked` does not put `extensions` on the search path, so set it here.
+set search_path = public, extensions;
 
 -- ---------------------------------------------------------------------------
 -- usebasejump/supabase-test-helpers 0.0.6 — MIT — vendored verbatim below.

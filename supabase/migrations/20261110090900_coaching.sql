@@ -55,8 +55,10 @@ create table public.availability_overrides (
   start_minute smallint,
   end_minute smallint,
   constraint availability_overrides_window check (
+    -- Both null = day off; both set = a window. NULL comparisons pass a check, hence the explicit pairing.
     (start_minute is null and end_minute is null)
-    or (0 <= start_minute and start_minute < end_minute and end_minute <= 1440)
+    or (start_minute is not null and end_minute is not null
+        and 0 <= start_minute and start_minute < end_minute and end_minute <= 1440)
   )
 );
 create index availability_overrides_space on public.availability_overrides (space_id, date);
