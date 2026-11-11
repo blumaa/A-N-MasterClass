@@ -9,3 +9,11 @@ export async function routeHost(rawHost: string | null, pathname: string, platfo
   const customSlug = resolution.kind === 'custom' ? await findSlug(resolution.host) : null;
   return routeFor(resolution, pathname, customSlug);
 }
+
+/** Space slug a request belongs to (Server Actions), or null for platform/unknown hosts. */
+export async function spaceSlugForHost(rawHost: string | null, platformHost: string, findSlug: FindSlug): Promise<string | null> {
+  const resolution = resolveHost(rawHost, platformHost);
+  if (resolution.kind === 'subdomain') return resolution.slug;
+  if (resolution.kind === 'custom') return findSlug(resolution.host);
+  return null;
+}

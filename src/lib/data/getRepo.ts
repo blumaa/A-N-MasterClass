@@ -5,6 +5,9 @@ import type { Repo } from './repo';
 import { createFakeRepo } from './fake/fakeRepo';
 import { seedDb } from './fake/seed';
 import { seedSite } from './fake/seedSite';
+import { adminClient } from '@/lib/supabase/admin';
+import { createSupabaseRepo } from '@/lib/supabase/repo';
+import { userClient } from '@/lib/supabase/server';
 
 // globalThis keeps one fake DB across HMR reloads in dev.
 const holder = globalThis as typeof globalThis & { __masterclassFakeRepo?: Repo };
@@ -16,7 +19,7 @@ export function getRepo(): Repo {
       holder.__masterclassFakeRepo ??= createFakeRepo(seedSite(seedDb()));
       return holder.__masterclassFakeRepo;
     case 'supabase':
-      throw new Error('DATA_SOURCE=supabase: Supabase repo not built yet (Launch 1 phase 1 deferred). Use DATA_SOURCE=fake.');
+      return createSupabaseRepo({ db: userClient, admin: adminClient });
   }
 }
 
@@ -29,6 +32,6 @@ export function getServiceRepo(): Repo {
     case 'fake':
       return getRepo();
     case 'supabase':
-      throw new Error('DATA_SOURCE=supabase: Supabase repo not built yet (src/lib/supabase/repo).');
+      return createSupabaseRepo({ db: async () => adminClient(), admin: adminClient });
   }
 }

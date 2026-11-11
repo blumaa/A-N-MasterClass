@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
+import { ConstraintError } from '@/lib/data/errors';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { clientCoaching, clientSession, editBooking, myCoaching, rescheduleSlots, sessionIcs, type BookingCommand } from './booking';
@@ -84,6 +85,11 @@ describe('editBooking', () => {
     expect(await bookWed()).toMatchObject({ ok: false, error: 'invalid', message: expect.stringMatching(/no longer available/) });
     const odd = await run(SEED_IDS.student, { op: 'book', productId: SEED_IDS.coaching, startsAt: new Date('2026-11-11T08:10:00Z'), agenda: '' });
     expect(odd).toMatchObject({ ok: false, error: 'invalid' });
+  });
+
+  it('reports a slot lost to a concurrent booking (DB exclusion) as no longer available', async () => {
+    vi.spyOn(repo, 'bookCoachingSession').mockRejectedValueOnce(new ConstraintError('overlaps another session'));
+    expect(await bookWed()).toMatchObject({ ok: false, error: 'invalid', message: expect.stringMatching(/no longer available/) });
   });
 
   it('refuses when the calendar cannot be checked', async () => {

@@ -1,5 +1,6 @@
 // Events part of the fake repo: points totals, challenges with entries, meetups with RSVPs.
 // Same constraints as supabase/migrations/*_community_gamification_meetups.sql.
+import { bodyRangeMessage, ENTRY_MAX } from '../limits';
 import { ConstraintError } from '../errors';
 import type { Repo } from '../repo';
 import type { Challenge, Meetup } from '../types';
@@ -26,7 +27,6 @@ type EventsRepo = Pick<
   | 'setRsvp'
 >;
 
-export const ENTRY_MAX = 5_000;
 export const DESCRIPTION_MAX = 10_000;
 const VIMEO_ID = /^[0-9]+$/;
 
@@ -91,7 +91,7 @@ export function createFakeEventsRepo(db: Db, id: (prefix: string) => string): Ev
       db.challengeEntries.filter((e) => e.challengeId === cid).toSorted((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
     async createChallengeEntry(row) {
       const challenge = must(db.challenges.find((c) => c.id === row.challengeId), 'challenge');
-      if (row.body.trim().length === 0 || row.body.length > ENTRY_MAX) throw new ConstraintError(`body must be 1..${ENTRY_MAX} chars`);
+      if (row.body.trim().length === 0 || row.body.length > ENTRY_MAX) throw new ConstraintError(bodyRangeMessage(ENTRY_MAX));
       if (row.createdAt < challenge.startsAt || row.createdAt > challenge.endsAt) {
         throw new ConstraintError('entry outside the challenge window');
       }

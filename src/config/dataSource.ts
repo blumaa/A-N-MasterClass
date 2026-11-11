@@ -14,8 +14,10 @@ export function readDataSource(env: Env): DataSource {
   return value as DataSource;
 }
 
+/** Dev-only output (e.g. claim links in the server log while email is not set up). Never production. */
+export const devLogsAllowed = (env: Env): boolean => env.NODE_ENV !== 'production';
+
 /** Dev login switcher: fake data only, never in production. */
-export const devAuthAllowed = (env: Env): boolean =>
-  readDataSource(env) === 'fake' && env.NODE_ENV !== 'production';
+export const devAuthAllowed = (env: Env): boolean => readDataSource(env) === 'fake' && devLogsAllowed(env);
 
 export const dataSource = (): DataSource => readDataSource(process.env);

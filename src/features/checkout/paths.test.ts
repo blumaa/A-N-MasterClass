@@ -15,6 +15,7 @@ describe('checkout paths', () => {
   it('builds checkout, thank-you and claim URLs', () => {
     expect(checkoutPath('full')).toBe('/checkout/full');
     expect(thanksPath('full', 'pending')).toBe('/checkout/full/thanks?status=pending');
+    expect(thanksPath('full', 'welcome')).toBe('/checkout/full/thanks?status=welcome');
     expect(claimPath('a b')).toBe('/claim/a%20b');
   });
 });

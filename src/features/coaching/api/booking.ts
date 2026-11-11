@@ -3,7 +3,7 @@
 // Clients book, reschedule and cancel their own 1:1 sessions until the coach's cutoff.
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
-import { ConstraintError } from '@/lib/data/errors';
+import { ConstraintError, SESSION_OVERLAP } from '@/lib/data/errors';
 import { heldProducts } from '@/lib/data/held';
 import type { Repo } from '@/lib/data/repo';
 import type { CoachingProgram, CoachingSession, CoachSettings, Product } from '@/lib/data/types';
@@ -222,7 +222,7 @@ export async function editBooking(repo: Repo, viewer: Viewer, calendar: Calendar
   try {
     return c.op === 'book' ? await book(repo, viewer, calendar, c, me, now) : await change(repo, viewer, calendar, c, me, now);
   } catch (e) {
-    if (e instanceof ConstraintError) return invalid(e.message);
+    if (e instanceof ConstraintError) return e.message === SESSION_OVERLAP ? SLOT_FAILURE.taken : invalid(e.message);
     throw e;
   }
 }

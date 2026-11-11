@@ -1,8 +1,7 @@
-// Space shell: runtime theme, header (site nav, library, studio for staff, notifications, dev login on fake data),
+// Space shell: runtime theme, header (site nav, library, studio for staff, notifications, sign in/out),
 // footer with site links + legal pages (G11, G25).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { devAuthAllowed } from '@/config/dataSource';
 import { AppLink } from '@/components/ui/links';
 import { Button, Container, Text } from '@/components/ui/mds';
 import { spaceTheme } from '@/features/branding/api/branding';
@@ -10,14 +9,16 @@ import { ThemeStyle } from '@/features/branding/components/ThemeStyle';
 import { themeCss } from '@/features/branding/theme';
 import { notificationsHref } from '@/features/community/paths';
 import { unreadCount } from '@/features/community/api/notifications';
-import { devSignOutAction } from '@/features/devAuth/actions';
+import { signOutAction } from '@/features/auth/actions';
 import { libraryHref } from '@/features/programs/paths';
 import { siteChrome } from '@/features/site/api/site';
 import { SiteFooter } from '@/features/site/components/SiteFooter';
 import { studioHref } from '@/features/studio/paths';
 import { currentViewer } from '@/lib/auth/currentViewer';
+import { sessionsEnabled } from '@/lib/auth/session';
 import { viewerCan } from '@/lib/auth/viewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { signInHref } from '@/lib/routes';
 import styles from './layout.module.css';
 
 export async function generateMetadata({ params }: LayoutProps<'/[space]'>): Promise<Metadata> {
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: LayoutProps<'/[space]'>): Pro
 export default async function SpaceLayout({ children, params }: LayoutProps<'/[space]'>) {
   const viewer = await currentViewer((await params).space);
   if (!viewer) notFound();
-  const devAuth = devAuthAllowed(process.env);
+  const sessions = sessionsEnabled();
   const repo = getRepo();
   const [theme, chrome, unread] = await Promise.all([
     spaceTheme(repo, viewer.space.id),
@@ -54,16 +55,16 @@ export default async function SpaceLayout({ children, params }: LayoutProps<'/[s
               <Text as="span" variant="meta" tone="muted">
                 {viewer.displayName}
               </Text>
-              {devAuth ? (
-                <form action={devSignOutAction}>
+              {sessions ? (
+                <form action={signOutAction}>
                   <Button type="submit" variant="ghost" size="sm">
                     Sign out
                   </Button>
                 </form>
               ) : null}
             </>
-          ) : devAuth ? (
-            <AppLink href="/dev/login">Sign in</AppLink>
+          ) : sessions ? (
+            <AppLink href={signInHref}>Sign in</AppLink>
           ) : null}
         </nav>
       </header>

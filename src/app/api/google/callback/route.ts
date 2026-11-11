@@ -3,7 +3,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { googleConfig, googleRedirectUri } from '@/config/google';
 import { finishConnect } from '@/features/coaching/api/googleConnect';
-import { getRepo } from '@/lib/data/getRepo';
+import { getServiceRepo } from '@/lib/data/getRepo';
 import { createGoogleClient } from '@/lib/google/calendar';
 import { NONCE_COOKIE } from '@/lib/google/nonceCookie';
 
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!config) return new Response(null, { status: 404 });
   const q = req.nextUrl.searchParams;
   const back = await finishConnect(
-    getRepo(),
+    getServiceRepo(),
     createGoogleClient(config),
     config.stateSecret,
     googleRedirectUri(req.nextUrl.origin),

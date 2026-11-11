@@ -1,7 +1,7 @@
 -- Community: staff reach (ticks), member read, read-only channels, hidden posts, comment
 -- shape, step comments, polymorphic cleanup, reactions, notification privacy.
 begin;
-select plan(24);
+select plan(26);
 
 do $$
 declare
@@ -57,6 +57,13 @@ select throws_ok($$ insert into public.comments (space_id, target_type, target_i
   values ('11111111-1111-4111-8111-111111111111', 'step', 'd0000000-0000-4000-8000-000000000001',
           '90000000-0000-4000-8000-000000000001', tests.get_supabase_uid('owner'), 'x') $$,
   '23514', null, 'reply must be on the parent target');
+select throws_ok($$ insert into public.posts (channel_id, author_id, body)
+  values ('e0000000-0000-4000-8000-000000000001', tests.get_supabase_uid('owner'), repeat('x', 10001)) $$,
+  '23514', null, 'post body over 10000 chars refused');
+select throws_ok($$ insert into public.comments (space_id, target_type, target_id, author_id, body)
+  values ('11111111-1111-4111-8111-111111111111', 'post', 'f0000000-0000-4000-8000-000000000001',
+          tests.get_supabase_uid('owner'), repeat('x', 5001)) $$,
+  '23514', null, 'comment body over 5000 chars refused');
 
 -- Member
 select tests.authenticate_as('member');

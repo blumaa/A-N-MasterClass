@@ -2,7 +2,7 @@
 import 'server-only';
 import { devAuthAllowed } from '@/config/dataSource';
 import { paymentsEnv } from '@/config/payments';
-import { getRepo } from '@/lib/data/getRepo';
+import { getServiceRepo } from '@/lib/data/getRepo';
 import { createFakeProvider, type FakeProvider } from './fake';
 import { providerForSpace, type ProviderChoice } from './forSpace';
 
@@ -16,4 +16,4 @@ function fakeProvider(): FakeProvider | null {
 }
 
 export const spaceProvider = (spaceId: string): Promise<ProviderChoice> =>
-  providerForSpace(getRepo(), spaceId, { env: paymentsEnv(), fake: fakeProvider() });
+  providerForSpace(getServiceRepo(), spaceId, { env: paymentsEnv(), fake: fakeProvider() });

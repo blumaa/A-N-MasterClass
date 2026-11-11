@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Heading, Stack, Text } from '@/components/ui/mds';
 import { ButtonLink } from '@/components/ui/links';
 import { currentViewer } from '@/lib/auth/currentViewer';
+import { libraryHref, setPasswordHref } from '@/lib/routes';
 
 export const metadata: Metadata = { title: 'Thank you', robots: { index: false } };
 
@@ -22,7 +23,14 @@ export default async function ThanksPage({ params, searchParams }: PageProps<'/[
           ? 'PayPal is still confirming your payment. Your access starts as soon as it does; we email you then.'
           : 'Your access is ready. We also email you a receipt with a link to your account.'}
       </Text>
-      {!pending && viewer.profile ? <ButtonLink href="/library">Go to your library</ButtonLink> : null}
+      {query.status === 'welcome' && viewer.profile ? (
+        <>
+          <Text tone="secondary">Set a password now so you can sign in again later.</Text>
+          <ButtonLink href={setPasswordHref}>Set your password</ButtonLink>
+        </>
+      ) : !pending && viewer.profile ? (
+        <ButtonLink href={libraryHref}>Go to your library</ButtonLink>
+      ) : null}
     </Stack>
   );
 }

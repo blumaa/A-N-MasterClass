@@ -1,16 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { dataSource } from '@/config/dataSource';
 import { platformHost } from '@/config/platform';
-import { getServiceRepo } from '@/lib/data/getRepo';
 import { refreshSession } from '@/lib/supabase/proxySession';
-import { createHostLookup } from '@/lib/tenancy/hostLookup';
+import { findSpaceSlug } from '@/lib/tenancy/findSpaceSlug';
 import { routeHost } from '@/lib/tenancy/routeHost';
-
-// A newly attached domain is live within this long; a detached one stops within it too.
-const HOST_CACHE_MS = 60_000;
-
-// Host lookup runs before any user is known: service repo.
-const findSlug = createHostLookup((host) => getServiceRepo().spaceSlugByHost(host), { ttlMs: HOST_CACHE_MS });
 
 const keepCookies = (response: NextResponse) => response;
 
@@ -19,7 +12,7 @@ const keepCookies = (response: NextResponse) => response;
 export async function proxy(request: NextRequest) {
   const withSession = dataSource() === 'supabase' ? await refreshSession(request) : keepCookies;
 
-  const route = await routeHost(request.headers.get('host'), request.nextUrl.pathname, platformHost(), findSlug);
+  const route = await routeHost(request.headers.get('host'), request.nextUrl.pathname, platformHost(), findSpaceSlug);
   if ('notFound' in route) return withSession(new NextResponse(null, { status: 404 }));
 
   const url = request.nextUrl.clone();

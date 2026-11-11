@@ -3,11 +3,12 @@
 // never from arguments. Arguments come from the browser: coerce, the DAL validates.
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { devAuthAllowed } from '@/config/dataSource';
+import { devLogsAllowed } from '@/config/dataSource';
 import { paymentsEnv } from '@/config/payments';
 import { actionViewer } from '@/lib/auth/actionViewer';
-import { startDevSession } from '@/lib/auth/session';
-import { getRepo } from '@/lib/data/getRepo';
+import { sessionsEnabled, startSession } from '@/lib/auth/session';
+import { getServiceRepo } from '@/lib/data/getRepo';
+import { setPasswordHref } from '@/lib/routes';
 import { PaymentProviderError } from '@/lib/payments/provider';
 import { spaceProvider } from '@/lib/payments/spaceProvider';
 import { completeCheckout, startCheckout } from './api/checkout';
@@ -20,17 +21,16 @@ export type CompleteCheckoutState = { ok: true; next: string } | { ok: false; me
 
 const GONE = 'This offer is no longer available.';
 
-/** New buyer: signed in right away (G4). Dev only until Supabase Auth; the claim link goes out by email later. */
+/** New buyer: signed in right away, then asked to set a password (G4). */
 async function afterFulfil(offerSlug: string, result: FulfilResult): Promise<string> {
   if (result.status === 'pending') return thanksPath(offerSlug, 'pending');
-  if (result.newAccount && devAuthAllowed(process.env)) {
-    await startDevSession(result.profileId);
-    if (result.claimToken) {
-      // Transactional email is not set up yet: show the receipt link in the dev server log.
-      console.info(`[dev] claim link: http://${(await headers()).get('host')}${claimPath(result.claimToken)}`);
-    }
+  if (!result.newAccount || !sessionsEnabled()) return thanksPath(offerSlug, 'paid');
+  await startSession(result.profileId);
+  if (result.claimToken && devLogsAllowed(process.env)) {
+    // Transactional email is not set up yet: show the receipt link in the dev server log.
+    console.info(`[dev] claim link: http://${(await headers()).get('host')}${claimPath(result.claimToken)}`);
   }
-  return thanksPath(offerSlug, 'paid');
+  return thanksPath(offerSlug, 'welcome');
 }
 
 export async function startCheckoutAction(input: {
@@ -43,7 +43,7 @@ export async function startCheckoutAction(input: {
   if (!viewer) return { ok: false, message: GONE };
   const offerSlug = String(input.offerSlug);
   const result = await startCheckout(
-    getRepo(),
+    getServiceRepo(),
     { env: paymentsEnv(), resolveProvider: () => spaceProvider(viewer.space.id) },
     viewer.space.id,
     { offerSlug, email: String(input.email), waiverAccepted: input.waiverAccepted === true, marketingConsent: input.marketingConsent === true },
@@ -59,7 +59,7 @@ export async function completeCheckoutAction(offerSlug: string, providerOrderId:
   const choice = viewer ? await spaceProvider(viewer.space.id) : null;
   if (!viewer || choice?.kind !== 'ready') return { ok: false, message: GONE, retry: false };
   try {
-    const result = await completeCheckout(getRepo(), choice.provider, viewer.space.id, String(providerOrderId), new Date());
+    const result = await completeCheckout(getServiceRepo(), choice.provider, viewer.space.id, String(providerOrderId), new Date());
     if (!result.ok) return { ok: false, message: GONE, retry: false };
     return { ok: true, next: await afterFulfil(String(offerSlug), result.fulfilment) };
   } catch (error) {
@@ -75,8 +75,8 @@ export async function completeCheckoutAction(offerSlug: string, providerOrderId:
 export async function claimAccountAction(form: FormData): Promise<void> {
   const token = String(form.get('token') ?? '');
   const viewer = await actionViewer();
-  const profileId = viewer ? await claimAccount(getRepo(), viewer.space.id, token, new Date()) : null;
+  const profileId = viewer ? await claimAccount(getServiceRepo(), viewer.space.id, token, new Date()) : null;
   if (!profileId) redirect(`${claimPath(token)}?error=1`);
-  await startDevSession(profileId);
-  redirect('/library');
+  await startSession(profileId);
+  redirect(setPasswordHref);
 }

@@ -1,5 +1,6 @@
 // Checkout URLs (SSOT for links, redirects and the claim email).
-export type PaidStatus = 'paid' | 'pending';
+/** welcome = paid by a new buyer who is now signed in and should set a password (G4). */
+export type PaidStatus = 'paid' | 'pending' | 'welcome';
 
 import { checkoutPath } from '@/lib/commerce/paths';
 

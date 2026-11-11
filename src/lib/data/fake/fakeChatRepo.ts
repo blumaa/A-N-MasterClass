@@ -1,6 +1,7 @@
 // Chat part of the fake repo: access groups, private channel members, chat messages, DMs,
 // blocks and community settings. Same constraints as
 // supabase/migrations/*_community_groups_chat_dms.sql.
+import { bodyRangeMessage, MESSAGE_MAX } from '../limits';
 import { ConstraintError } from '../errors';
 import type { Repo } from '../repo';
 import { ALL_GROUP_FEATURES, DEFAULT_COMMUNITY_SETTINGS, type AccessGroup, type Block, type DmThread, type Message } from '../types';
@@ -31,7 +32,6 @@ type ChatRepo = Pick<
   | 'saveCommunitySettings'
 >;
 
-export const MESSAGE_MAX = 4_000;
 /** Title of the group every community product starts with. */
 export const DEFAULT_GROUP_TITLE = 'Members';
 
@@ -111,7 +111,7 @@ export function createFakeChatRepo(db: Db, id: (prefix: string) => string): Chat
       }
       if (input.threadId !== null) must(db.dmThreads.find((t) => t.id === input.threadId), 'thread');
       if (input.body.trim().length === 0 || input.body.length > MESSAGE_MAX) {
-        throw new ConstraintError(`body must be 1..${MESSAGE_MAX} chars`);
+        throw new ConstraintError(bodyRangeMessage(MESSAGE_MAX));
       }
       const row: Message = { ...input, id: id('msg') };
       db.messages.push(row);

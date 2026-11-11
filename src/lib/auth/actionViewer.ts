@@ -3,13 +3,12 @@
 import 'server-only';
 import { headers } from 'next/headers';
 import { platformHost } from '@/config/platform';
-import { resolveHost } from '@/lib/tenancy/resolveHost';
+import { findSpaceSlug } from '@/lib/tenancy/findSpaceSlug';
+import { spaceSlugForHost } from '@/lib/tenancy/routeHost';
 import { currentViewer } from './currentViewer';
 import type { Viewer } from './viewer';
 
 export async function actionViewer(): Promise<Viewer | null> {
-  const resolution = resolveHost((await headers()).get('host'), platformHost());
-  // Custom domains: slug from space_domains once the Supabase repo exists (phase 7).
-  if (resolution.kind !== 'subdomain') return null;
-  return currentViewer(resolution.slug);
+  const slug = await spaceSlugForHost((await headers()).get('host'), platformHost(), findSpaceSlug);
+  return slug ? currentViewer(slug) : null;
 }

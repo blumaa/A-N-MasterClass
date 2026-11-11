@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { devAuthAllowed, readDataSource } from './dataSource';
+import { devAuthAllowed, devLogsAllowed, readDataSource } from './dataSource';
 
 describe('readDataSource', () => {
   it('reads fake and supabase', () => {
@@ -18,5 +18,13 @@ describe('devAuthAllowed', () => {
     expect(devAuthAllowed({ DATA_SOURCE: 'fake', NODE_ENV: 'development' })).toBe(true);
     expect(devAuthAllowed({ DATA_SOURCE: 'fake', NODE_ENV: 'production' })).toBe(false);
     expect(devAuthAllowed({ DATA_SOURCE: 'supabase', NODE_ENV: 'development' })).toBe(false);
+  });
+});
+
+describe('devLogsAllowed', () => {
+  it('is on outside production, whatever the data source', () => {
+    expect(devLogsAllowed({ NODE_ENV: 'development' })).toBe(true);
+    expect(devLogsAllowed({ NODE_ENV: 'test' })).toBe(true);
+    expect(devLogsAllowed({ NODE_ENV: 'production' })).toBe(false);
   });
 });

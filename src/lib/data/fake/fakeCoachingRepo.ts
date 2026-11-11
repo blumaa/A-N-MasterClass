@@ -1,7 +1,7 @@
 // Coaching part of the fake repo: programs, coach settings, availability, sessions, notes and the
 // Google Calendar connection. Same constraints as supabase/migrations/*_coaching.sql.
 import { isTimeZone } from '@/lib/format/zoned';
-import { ConstraintError } from '../errors';
+import { ConstraintError, SESSION_OVERLAP } from '../errors';
 import { grantIsActive } from '../grants';
 import type { Repo } from '../repo';
 import type { CoachingSession } from '../types';
@@ -58,7 +58,7 @@ export function createFakeCoachingRepo(db: Db, id: (prefix: string) => string): 
     const clash = db.coachingSessions.some(
       (s) => s.id !== row.id && s.spaceId === row.spaceId && s.status === 'scheduled' && s.startsAt < row.endsAt && row.startsAt < s.endsAt,
     );
-    check(!clash, 'overlaps another session');
+    check(!clash, SESSION_OVERLAP);
   }
 
   function insert(row: CoachingSession): CoachingSession {

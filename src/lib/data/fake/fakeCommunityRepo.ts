@@ -3,6 +3,7 @@
 // on the same target, unique reactions, staff ticks only for staff of the community's space,
 // channel group in the same community, cascades (channel > posts > comments > reactions,
 // messages, private members; post > notifications).
+import { bodyRangeMessage, COMMENT_MAX, POST_MAX } from '../limits';
 import { ConstraintError } from '../errors';
 import type { Repo } from '../repo';
 import type { Channel, Comment, Notification, Post, Reaction } from '../types';
@@ -35,11 +36,9 @@ type CommunityRepo = Pick<
   | 'markNotificationsRead'
 >;
 
-export const POST_MAX = 10_000;
-export const COMMENT_MAX = 5_000;
 
 function checkBody(body: string, max: number): void {
-  if (body.trim().length === 0 || body.length > max) throw new ConstraintError(`body must be 1..${max} chars`);
+  if (body.trim().length === 0 || body.length > max) throw new ConstraintError(bodyRangeMessage(max));
 }
 
 function checkTitle(title: string): void {
