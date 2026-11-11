@@ -30,7 +30,6 @@ begin
   insert into public.products (id, space_id, kind, slug, title, status) values
     (comm, a, 'community', 'community', 'Community', 'published'),
     (prog, a, 'program', 'rope-1', 'Rope 1', 'published');
-  insert into public.programs (product_id) values (prog);
   insert into public.modules (id, program_id, title, status) values (modl, prog, 'M', 'published');
   insert into public.steps (id, module_id, title, status) values (stp, modl, 'Intro', 'published');
   insert into public.grants (product_id, profile_id, source) values

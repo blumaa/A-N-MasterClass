@@ -28,7 +28,6 @@ begin
   insert into public.products (id, space_id, kind, slug, title, status) values
     (prog, a, 'program', 'rope-1', 'Rope 1', 'published'),
     (other_prog, n, 'program', 'other', 'Other', 'published');
-  insert into public.programs (product_id) values (prog), (other_prog);
   insert into public.offers (id, space_id, slug, title, price_cents, currency, status) values
     (full_offer, a, 'full', 'Full access', 4900, 'EUR', 'published'),
     (draft_offer, a, 'later', 'Later', 1000, 'EUR', 'draft');

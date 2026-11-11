@@ -20,7 +20,6 @@ begin
   insert into public.space_members values (sp, tests.get_supabase_uid('assistant'), 'assistant', now());
   insert into public.products (id, space_id, kind, slug, title, status)
     values (prog, sp, 'program', 'rope-1', 'Rope 1', 'published');
-  insert into public.programs (product_id) values (prog);
 
   insert into public.modules (id, program_id, title, status, position) values
     (m_open, prog, 'Open', 'published', 0),
