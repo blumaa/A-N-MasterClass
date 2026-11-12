@@ -3,12 +3,10 @@ import type { Repo } from '@/lib/data/repo';
 import type { Profile, Role, Space } from '@/lib/data/types';
 import { can, type Capability } from './capabilities';
 
-export type Viewer = {
-  space: Space;
-  profile: Profile | null;
-  role: Role | null;
-  displayName: string | null;
-};
+/** Signed in (profile and name always together) or a visitor. */
+export type Viewer =
+  | { space: Space; profile: Profile; role: Role | null; displayName: string }
+  | { space: Space; profile: null; role: null; displayName: null };
 
 export async function resolveViewer(repo: Repo, spaceSlug: string, profileId: string | null): Promise<Viewer | null> {
   const space = await repo.spaceBySlug(spaceSlug);

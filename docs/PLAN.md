@@ -362,12 +362,16 @@ UI pass 1 (site sections) as built:
 - New kinds: imageText (side left/right), bio (portrait + signature), cards (photo, title, link), highlights (chips). Hero layout overlay (full-bleed photo, scrim) or split. Every section has tone plain / soft / dark. `*word*` = accent italic.
 - Bands are full-bleed; colours come from MDS tokens only, so any brand colour works.
 - Images through next/image (`images.remotePatterns` from the Supabase URL). Vercel image optimization is billed by usage on Pro; check pricing before launch, or set `unoptimized`.
-- Not yet: logo upload, header/footer polish.
+- Not yet: logo upload.
 
 UI pass 2 (demo content, visitor reads) as built:
 - Demo site: `node --env-file=.env.local scripts/seed-demo-site.ts [slug]` (default `fiddle`). Refuses spaces without `is_test`. Seeds CC0 Wikimedia photos, one offer, home (every section kind and tone), about (split hero), nav. Re-runnable.
 - Bug found: visitor pages read the `pages` table, which RLS limits to site.edit, so visitors got the fallback. Visitor reads now go through the `published_pages` view (`repo.publishedPages` / `publishedPage`, type `PublishedPage`, no draft). Studio still reads `pages`.
 - Hero overlay: backdrop now fills the whole band. Buttons on dark bands and photos use MDS `onMedia` (light ink).
+- Header (`SpaceHeader`, sticky): space name in display font, site links small caps, Sign in button for visitors, account popover (avatar + unread badge: Library, Studio, Notifications, Subscriptions, Sign out) for members. Below 48rem one Menu button opens a bottom sheet with all of it.
+- Footer: name + footer links, then legal links + copyright, on the sunken band.
+- Browser icon: `/brand-icon.svg` route per space, first letter on ink (logo replaces it once uploaded). Route handler, not `icon.tsx`, because that convention links `/<slug>/icon`, which the host rewrite breaks.
+- `Viewer` is now a union: signed in (profile + displayName) or visitor (both null).
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

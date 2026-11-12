@@ -2,6 +2,7 @@
 // MDS ships hooks without a 'use client' banner. Server Components import MDS through
 // this boundary module. Add names as screens need them (no `export *` across the boundary).
 export {
+  Avatar,
   Badge,
   Button,
   Card,
@@ -16,12 +17,17 @@ export {
   Heading,
   Inline,
   Link,
+  Popover,
+  PopoverBody,
   Input,
   ListGroup,
   ListItem,
   ProgressBar,
   Radio,
   Select,
+  Sheet,
+  SheetBody,
+  SheetHeader,
   SideNav,
   SideNavGroup,
   Stack,

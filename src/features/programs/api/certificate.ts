@@ -24,7 +24,7 @@ export async function programCertificate(
   const pdf = await certificatePdf({
     spaceName: viewer.space.name,
     programTitle: program.title,
-    memberName: viewer.displayName ?? viewer.profile.email,
+    memberName: viewer.displayName,
     issuedAt: certificate.issuedAt,
     serial: certificate.id,
     colors: program.themeOverride ?? branding?.colors ?? DEFAULT_BRAND,

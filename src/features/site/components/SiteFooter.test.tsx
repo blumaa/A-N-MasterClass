@@ -17,5 +17,5 @@ it('lists footer links then the pinned legal pages', () => {
 it('renders no empty navs', () => {
   render(<SiteFooter spaceName="Alexander" links={[]} legal={[]} />);
   expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
-  expect(screen.getByText(/Alexander/)).toBeInTheDocument();
+  expect(screen.getByText('© Alexander')).toBeInTheDocument();
 });

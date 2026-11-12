@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import type { Role } from '@/lib/data/types';
 import { canSeeSpace, resolveViewer, type Viewer } from './viewer';
 
 const repo = () => createFakeRepo(seedDb(new Date('2026-11-10T12:00:00Z')));
@@ -36,8 +37,10 @@ describe('resolveViewer', () => {
 
 describe('canSeeSpace', () => {
   const space = { id: 's', slug: 's', name: 'S', status: 'draft', locale: 'en', isTest: false } as const;
-  const viewer = (over: Partial<Viewer> = {}): Viewer => ({ space, profile: null, role: null, displayName: null, ...over });
   const student = { id: 'p', email: 'p@example.com', isPlatformAdmin: false };
+  type Over = { space?: Viewer['space']; profile?: typeof student; role?: Role };
+  const viewer = ({ space: sp = space, profile, role }: Over = {}): Viewer =>
+    profile ? { space: sp, profile, role: role ?? null, displayName: 'P' } : { space: sp, profile: null, role: null, displayName: null };
 
   it('live space: everyone', () => {
     expect(canSeeSpace(viewer({ space: { ...space, status: 'live' } }))).toBe(true);

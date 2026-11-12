@@ -1,0 +1,64 @@
+.header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mds-space-4);
+  min-block-size: 4rem;
+  padding: var(--mds-space-3) var(--mds-space-6);
+  background: var(--mds-surface-page);
+  border-bottom: 1px solid var(--mds-border-subtle);
+}
+
+.brand {
+  font-family: var(--mds-font-display);
+  font-size: var(--mds-text-xl);
+  font-weight: 600;
+  color: var(--mds-text-primary);
+}
+
+.wide {
+  display: flex;
+  align-items: center;
+  gap: var(--mds-space-6);
+}
+
+/* Small uppercase nav, the editorial look of the site model. */
+.item {
+  font-size: var(--mds-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mds-text-primary);
+}
+
+.narrow {
+  display: none;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--mds-space-3);
+  min-inline-size: 12rem;
+}
+
+.row {
+  color: var(--mds-text-primary);
+}
+
+@media (max-width: 48rem) {
+  .header {
+    padding-inline: var(--mds-space-4);
+  }
+
+  .wide {
+    display: none;
+  }
+
+  .narrow {
+    display: block;
+  }
+}

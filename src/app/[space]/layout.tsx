@@ -4,8 +4,7 @@
 // gated in (site)/layout.tsx, login and claim stay open.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AppLink } from "@/components/ui/links";
-import { Container, Text } from "@/components/ui/mds";
+import { Container } from "@/components/ui/mds";
 import { ViewerZoneScript } from "@/components/ViewerZoneScript/ViewerZoneScript";
 import { spaceTheme } from "@/features/branding/api/branding";
 import { ThemeStyle } from "@/features/branding/components/ThemeStyle";
@@ -25,6 +24,7 @@ import { accountSubscriptionsHref, signInHref } from "@/lib/routes";
 import styles from "./layout.module.css";
 import { PushHeal } from "./PushHeal";
 import { SignOutForm } from "./SignOutForm";
+import { SpaceHeader } from "./SpaceHeader";
 
 export async function generateMetadata({
   params,
@@ -37,6 +37,7 @@ export async function generateMetadata({
           template: `%s · ${viewer.space.name}`,
         },
         manifest: "/manifest.webmanifest",
+        icons: { icon: "/brand-icon.svg" },
       }
     : {};
 }
@@ -63,40 +64,31 @@ export default async function SpaceLayout({
       {pushKey ? (
         <PushHeal publicKey={pushKey} profileId={viewer.profile?.id ?? null} />
       ) : null}
-      <header className={styles.header}>
-        {chrome ? (
-          <AppLink href="/">{viewer.space.name}</AppLink>
-        ) : (
-          <Text as="span">{viewer.space.name}</Text>
-        )}
-        {chrome ? (
-          <nav aria-label="Main" className={styles.nav}>
-            {chrome.header.map((item) => (
-              <AppLink key={`${item.href}|${item.label}`} href={item.href}>
-                {item.label}
-              </AppLink>
-            ))}
-            <AppLink href={libraryHref}>Library</AppLink>
-            {viewerCan(viewer, "products.edit") ? (
-              <AppLink href={studioHref}>Studio</AppLink>
-            ) : null}
-            {viewer.profile ? (
-              <>
-                <AppLink href={notificationsHref}>
-                  {unread > 0 ? `Notifications (${unread})` : "Notifications"}
-                </AppLink>
-                <AppLink href={accountSubscriptionsHref}>Subscriptions</AppLink>
-                <Text as="span" variant="meta" tone="muted">
-                  {viewer.displayName}
-                </Text>
-                {sessions ? <SignOutForm /> : null}
-              </>
-            ) : sessions ? (
-              <AppLink href={signInHref}>Sign in</AppLink>
-            ) : null}
-          </nav>
-        ) : null}
-      </header>
+      <SpaceHeader
+        spaceName={viewer.space.name}
+        site={chrome ? chrome.header : null}
+        account={
+          viewer.profile
+            ? {
+                displayName: viewer.displayName,
+                unread,
+                links: [
+                  { label: "Library", href: libraryHref },
+                  ...(viewerCan(viewer, "products.edit")
+                    ? [{ label: "Studio", href: studioHref }]
+                    : []),
+                  {
+                    label: unread > 0 ? `Notifications (${unread})` : "Notifications",
+                    href: notificationsHref,
+                  },
+                  { label: "Subscriptions", href: accountSubscriptionsHref },
+                ],
+              }
+            : null
+        }
+        signInHref={sessions ? signInHref : null}
+        signOut={sessions ? <SignOutForm /> : null}
+      />
       <div className={styles.page}>
         <Container width="wide">
           <main className={styles.main}>{children}</main>
