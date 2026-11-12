@@ -5,7 +5,7 @@ import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { Direction, Repo } from '@/lib/data/repo';
-import type { LegalKind, NavItem, Page, PageKind, PageVersion, Space } from '@/lib/data/types';
+import type { LegalKind, NavItem, Page, PageKind, PageMeta, PageVersion, PublishedPage, Space } from '@/lib/data/types';
 import { LEGAL_KINDS } from '@/lib/data/types';
 import { formatMoney } from '@/lib/commerce/money';
 import { checkoutPath } from '@/lib/commerce/paths';
@@ -26,26 +26,27 @@ import { LEGAL_LABELS, RESERVED_PAGE_SLUGS, checkNav, legalGaps } from '../rules
 
 // ---------- public reads ----------
 
-export type PublicPage = { page: Page; sections: SiteSection[] };
+// Visitors cannot read the pages table (RLS: site.edit), so these go through the published view.
+export type PublicPage = { page: PageMeta; sections: SiteSection[] };
 
-const live = (page: Page | null | undefined): PublicPage | null =>
-  page?.published ? { page, sections: page.published.filter((s) => !s.hidden) } : null;
+const live = (page: PublishedPage | null | undefined): PublicPage | null =>
+  page ? { page, sections: page.published.filter((s) => !s.hidden) } : null;
 
 export async function homePage(repo: Repo, spaceId: string): Promise<PublicPage | null> {
-  return live((await repo.pages(spaceId)).find((p) => p.isHome));
+  return live((await repo.publishedPages(spaceId)).find((p) => p.isHome));
 }
 
 export async function publicPage(repo: Repo, spaceId: string, slug: string): Promise<PublicPage | null> {
-  return live(await repo.pageBySlug(spaceId, 'page', slug));
+  return live(await repo.publishedPage(spaceId, 'page', slug));
 }
 
 export async function publicPost(repo: Repo, spaceId: string, slug: string): Promise<PublicPage | null> {
-  return live(await repo.pageBySlug(spaceId, 'post', slug));
+  return live(await repo.publishedPage(spaceId, 'post', slug));
 }
 
-export async function blogPosts(repo: Repo, spaceId: string): Promise<Page[]> {
-  return (await repo.pages(spaceId))
-    .filter((p) => p.kind === 'post' && p.published && p.publishedAt)
+export async function blogPosts(repo: Repo, spaceId: string): Promise<PublishedPage[]> {
+  return (await repo.publishedPages(spaceId))
+    .filter((p) => p.kind === 'post' && p.publishedAt)
     .toSorted((a, b) => b.publishedAt!.getTime() - a.publishedAt!.getTime());
 }
 
@@ -53,9 +54,9 @@ export type SiteChrome = { header: NavItem[]; footer: NavItem[]; legal: NavItem[
 
 /** Header + footer links; published legal pages are pinned in the footer (G25). */
 export async function siteChrome(repo: Repo, spaceId: string): Promise<SiteChrome> {
-  const [nav, pages] = await Promise.all([repo.siteNav(spaceId), repo.pages(spaceId)]);
+  const [nav, pages] = await Promise.all([repo.siteNav(spaceId), repo.publishedPages(spaceId)]);
   const legal = LEGAL_KINDS.flatMap((kind) => {
-    const p = pages.find((x) => x.legalKind === kind && x.published);
+    const p = pages.find((x) => x.legalKind === kind);
     return p ? [{ label: LEGAL_LABELS[kind], href: pageHref(p) }] : [];
   });
   return { header: nav.header, footer: nav.footer, legal };

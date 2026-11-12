@@ -19,9 +19,10 @@ export function ButtonLink({
   href,
   children,
   variant = 'primary',
-}: Common & { variant?: 'primary' | 'secondary' | 'ghost' }) {
+  onMedia,
+}: Common & { variant?: 'primary' | 'secondary' | 'ghost'; onMedia?: boolean }) {
   return (
-    <Button as={NextLink} href={href} variant={variant}>
+    <Button as={NextLink} href={href} variant={variant} onMedia={onMedia}>
       {children}
     </Button>
   );

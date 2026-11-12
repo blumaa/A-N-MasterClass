@@ -4,13 +4,15 @@
 import type { Json } from '@/lib/db/database.types';
 import type { Repo } from '@/lib/data/repo';
 import { check, defined, isoOrNull, unwrap, unwrapMaybe, type RepoCtx } from './context';
-import { toPage, toPageVersion, toSiteNav } from './mapSite';
+import { toPage, toPageVersion, toPublishedPage, toSiteNav } from './mapSite';
 
 export type SiteRepo = Pick<
   Repo,
   | 'pages'
   | 'page'
   | 'pageBySlug'
+  | 'publishedPages'
+  | 'publishedPage'
   | 'createPage'
   | 'updatePage'
   | 'deletePage'
@@ -36,6 +38,16 @@ export function createSiteRepo({ db }: RepoCtx): SiteRepo {
         await (await db()).from('pages').select('*').eq('space_id', spaceId).eq('kind', kind).eq('slug', slug).maybeSingle(),
       );
       return row && toPage(row);
+    },
+    async publishedPages(spaceId) {
+      const rows = unwrap(await (await db()).from('published_pages').select('*').eq('space_id', spaceId));
+      return rows.map(toPublishedPage).toSorted((a, b) => a.title.localeCompare(b.title));
+    },
+    async publishedPage(spaceId, kind, slug) {
+      const row = unwrapMaybe(
+        await (await db()).from('published_pages').select('*').eq('space_id', spaceId).eq('kind', kind).eq('slug', slug).maybeSingle(),
+      );
+      return row && toPublishedPage(row);
     },
 
     async createPage(input) {

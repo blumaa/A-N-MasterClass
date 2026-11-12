@@ -43,10 +43,12 @@ export function Body({ text, ink = 'default', quiet }: { text: string | undefine
   ) : null;
 }
 
+/** On a dark band or photo the button is see-through with light ink (MDS onMedia). */
 export function Cta({ fields, ink = 'default' }: { fields: Fields; ink?: Ink }) {
   if (!fields.ctaLabel || !fields.ctaHref) return null;
+  const light = ink !== 'default';
   return (
-    <ButtonLink href={fields.ctaHref} variant={ink === 'default' ? 'primary' : 'secondary'}>
+    <ButtonLink href={fields.ctaHref} variant={light ? 'secondary' : 'primary'} onMedia={light}>
       {fields.ctaLabel}
     </ButtonLink>
   );

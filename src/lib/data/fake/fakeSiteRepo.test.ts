@@ -16,6 +16,30 @@ beforeEach(() => {
 const page = (slug = 'about', spaceId = 's1', kind: 'page' | 'post' = 'page') =>
   repo.createPage({ spaceId, kind, slug, title: 'About' });
 
+describe('published pages (visitor reads)', () => {
+  it('lists only published pages of the space, without drafts, by title', async () => {
+    const live = await page('about');
+    await page('draft-only');
+    await page('other', 's2');
+    const sections = [newSection('text', 't1')];
+    await repo.updatePage(live.id, { draft: [newSection('text', 'd1')], published: sections, publishedAt: new Date('2026-01-01T00:00:00Z') });
+    const list = await repo.publishedPages('s1');
+    expect(list.map((p) => p.slug)).toEqual(['about']);
+    expect(list[0]).toMatchObject({ published: sections, publishedAt: new Date('2026-01-01T00:00:00Z') });
+    expect(list[0]).not.toHaveProperty('draft');
+  });
+
+  it('finds one published page by kind and slug', async () => {
+    const live = await page('about');
+    await page('hidden');
+    await repo.updatePage(live.id, { published: [], publishedAt: new Date() });
+    expect((await repo.publishedPage('s1', 'page', 'about'))?.id).toBe(live.id);
+    expect(await repo.publishedPage('s1', 'post', 'about')).toBeNull();
+    expect(await repo.publishedPage('s1', 'page', 'hidden')).toBeNull();
+    expect(await repo.publishedPage('s2', 'page', 'about')).toBeNull();
+  });
+});
+
 describe('pages', () => {
   it('starts as an unpublished draft with no sections', async () => {
     const p = await page();

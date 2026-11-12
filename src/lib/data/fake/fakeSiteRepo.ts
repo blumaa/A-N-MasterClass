@@ -3,7 +3,7 @@
 import { SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { ConstraintError } from '../errors';
 import type { Repo } from '../repo';
-import type { Page } from '../types';
+import type { Page, PublishedPage } from '../types';
 import type { Db } from './db';
 
 type SiteRepo = Pick<
@@ -11,6 +11,8 @@ type SiteRepo = Pick<
   | 'pages'
   | 'page'
   | 'pageBySlug'
+  | 'publishedPages'
+  | 'publishedPage'
   | 'createPage'
   | 'updatePage'
   | 'deletePage'
@@ -29,6 +31,13 @@ function checkUnique(db: Db, row: Page): void {
   if (row.legalKind && others.some((p) => p.legalKind === row.legalKind)) throw new ConstraintError(`legal page taken: ${row.legalKind}`);
 }
 
+/** Mirrors view published_pages: published rows only, without draft and updatedAt. */
+function toPublished(p: Page): PublishedPage[] {
+  if (!p.published) return [];
+  const { draft: _draft, updatedAt: _updatedAt, ...rest } = p;
+  return [{ ...rest, published: p.published }];
+}
+
 export function createFakeSiteRepo(db: Db, id: (prefix: string) => string): SiteRepo {
   const find = (pid: string): Page => {
     const row = db.pages.find((p) => p.id === pid);
@@ -42,6 +51,13 @@ export function createFakeSiteRepo(db: Db, id: (prefix: string) => string): Site
     page: async (pid) => db.pages.find((p) => p.id === pid) ?? null,
     pageBySlug: async (spaceId, kind, slug) =>
       db.pages.find((p) => p.spaceId === spaceId && p.kind === kind && p.slug === slug) ?? null,
+    publishedPages: async (spaceId) =>
+      db.pages
+        .filter((p) => p.spaceId === spaceId)
+        .flatMap(toPublished)
+        .toSorted((a, b) => a.title.localeCompare(b.title)),
+    publishedPage: async (spaceId, kind, slug) =>
+      db.pages.filter((p) => p.spaceId === spaceId && p.kind === kind && p.slug === slug).flatMap(toPublished)[0] ?? null,
 
     async createPage(input) {
       const row: Page = {

@@ -100,8 +100,15 @@
   background: linear-gradient(to top, var(--mds-overlay), transparent 70%), var(--mds-overlay);
 }
 
+/* Static so the backdrop fills the whole band, not just the text column; the text stacks above it. */
 .section[data-layout='overlay'] .inner {
+  position: static;
   inline-size: 100%;
+}
+
+.section[data-layout='overlay'] .heroText {
+  position: relative;
+  z-index: 1;
 }
 
 .heroPhoto,

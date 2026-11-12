@@ -21,6 +21,16 @@ describe('Sections', () => {
     expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute('href', '/programs');
   });
 
+  it('gives the button light ink on a dark band', () => {
+    render(<Sections sections={[section('cta', { heading: 'Ready?', ctaLabel: 'Go', ctaHref: '/go', tone: 'dark' })]} refs={NO_REFS} />);
+    expect(screen.getByRole('link', { name: 'Go' }).className).toContain('mds-Button__on-media');
+  });
+
+  it('keeps the plain button on a light band', () => {
+    render(<Sections sections={[section('cta', { heading: 'Ready?', ctaLabel: 'Go', ctaHref: '/go', tone: 'plain' })]} refs={NO_REFS} />);
+    expect(screen.getByRole('link', { name: 'Go' }).className).not.toContain('mds-Button__on-media');
+  });
+
   it('skips a button without both label and link', () => {
     render(<Sections sections={[section('cta', { heading: 'Ready?', body: '', ctaLabel: 'Go', ctaHref: '' })]} refs={NO_REFS} />);
     expect(screen.queryByRole('link')).not.toBeInTheDocument();

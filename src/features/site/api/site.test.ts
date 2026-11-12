@@ -311,7 +311,7 @@ describe('draftPreview', () => {
     await run({ op: 'toggleSection', pageId: id, sectionId: gone.id });
     const preview = await draftPreview(repo, await owner(), id);
     expect(preview?.sections.map((s) => s.id)).toEqual([shown.id]);
-    expect(preview?.page.published).toBeNull();
+    expect(preview?.page.publishedAt).toBeNull();
     expect(await draftPreview(repo, await as(SEED_IDS.natashaOwner, 'natasha'), id)).toBeNull();
     expect(await draftPreview(repo, await as(null), id)).toBeNull();
   });

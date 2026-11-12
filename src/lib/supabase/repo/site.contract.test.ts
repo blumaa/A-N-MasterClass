@@ -33,6 +33,20 @@ describe.skipIf(!contractEnabled)('site repo (Supabase contract)', () => {
     expect(await repo.page('00000000-0000-0000-0000-000000000000')).toBeNull();
   });
 
+  it('reads published pages through the published_pages view, without drafts', async () => {
+    const live = await make('Live', 'page', 'live-page');
+    await make('Draft', 'page', 'draft-page');
+    const sections = [newSection('text', 't1')];
+    await repo.updatePage(live.id, { draft: [newSection('text', 'd1')], published: sections, publishedAt: new Date('2026-01-01T00:00:00Z') });
+    const list = await repo.publishedPages(spaceId);
+    expect(list.map((p) => p.slug)).toContain('live-page');
+    expect(list.map((p) => p.slug)).not.toContain('draft-page');
+    const one = await repo.publishedPage(spaceId, 'page', 'live-page');
+    expect(one).toMatchObject({ id: live.id, title: 'Live', published: sections, publishedAt: new Date('2026-01-01T00:00:00Z') });
+    expect(one).not.toHaveProperty('draft');
+    expect(await repo.publishedPage(spaceId, 'page', 'draft-page')).toBeNull();
+  });
+
   it('lists pages ordered by title', async () => {
     await make('Zed');
     await make('Alpha');

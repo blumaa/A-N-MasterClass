@@ -172,6 +172,12 @@ export type Page = {
   updatedAt: Date;
 };
 
+/** Page fields without content: what titles, links and metadata need. */
+export type PageMeta = Omit<Page, 'draft' | 'published' | 'updatedAt'>;
+/** What visitors may read (view published_pages): live pages only, no draft. */
+export type PublishedPage = PageMeta & { published: SiteSection[] };
+
+
 export type PageVersion = { id: string; pageId: string; sections: SiteSection[]; publishedAt: Date };
 
 export type NavItem = { label: string; href: string };

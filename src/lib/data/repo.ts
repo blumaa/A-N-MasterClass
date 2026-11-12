@@ -40,6 +40,7 @@ import type {
   Subscription,
   SubscriptionPayment,
   Page,
+  PublishedPage,
   PageVersion,
   PageKind,
   Part,
@@ -293,6 +294,9 @@ export interface Repo {
   pages(spaceId: string): Promise<Page[]>;
   page(id: string): Promise<Page | null>;
   pageBySlug(spaceId: string, kind: PageKind, slug: string): Promise<Page | null>;
+  /** Visitor reads (view published_pages): published pages only, no draft. Ordered by title. */
+  publishedPages(spaceId: string): Promise<PublishedPage[]>;
+  publishedPage(spaceId: string, kind: PageKind, slug: string): Promise<PublishedPage | null>;
   createPage(input: NewPage): Promise<Page>;
   /** Sets updatedAt. Unique (space, kind, slug) and one home per space are constraints. */
   updatePage(id: string, patch: PagePatch): Promise<Page>;

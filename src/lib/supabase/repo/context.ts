@@ -10,6 +10,15 @@ export type { Db };
 export type RepoCtx = { db: () => Promise<Db>; admin: () => Db };
 export type Tables = Database['public']['Tables'];
 export type Row<T extends keyof Tables> = Tables[T]['Row'];
+export type Views = Database['public']['Views'];
+/** Postgres reports every view column as nullable; mappers check the ones the base table forbids null. */
+export type ViewRow<T extends keyof Views> = Views[T]['Row'];
+
+/** A view column that cannot be null in the base table. Throws instead of passing null on. */
+export function present<T>(value: T | null, column: string): T {
+  if (value === null) throw new Error(`view column ${column} is null`);
+  return value;
+}
 
 type Result = { data: unknown; error: PgError | null };
 type Data<R extends Result> = NonNullable<R['data']>;
