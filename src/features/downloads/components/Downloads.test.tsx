@@ -25,6 +25,14 @@ describe('ClientDownloads', () => {
     expect(screen.getByText('PDF · 2.4 MB')).toBeInTheDocument();
   });
 
+  it('offers Download all only with 2+ files', () => {
+    const { rerender } = render(<ClientDownloads data={data()} />);
+    expect(screen.queryByRole('button', { name: 'Download all' })).toBeNull();
+    const two = [...data().files, { id: 'f2', title: 'Rope guide', type: 'PDF', size: '1 MB' }];
+    rerender(<ClientDownloads data={data({ files: two })} />);
+    expect(screen.getByRole('button', { name: 'Download all' })).toBeInTheDocument();
+  });
+
   it('tells visitors without access', () => {
     render(<ClientDownloads data={data({ hasAccess: false, files: [] })} />);
     expect(screen.getByText(/do not have access/)).toBeInTheDocument();

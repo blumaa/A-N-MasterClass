@@ -4,6 +4,7 @@
 import { Heading, Link, Stack, Text } from '@/components/ui/mds';
 import type { ClientDownloads as Data } from '../api/files';
 import { fileHref } from '../paths';
+import { DownloadAll } from './DownloadAll';
 import styles from './downloads.module.css';
 
 export function ClientDownloads({ data }: { data: Data }) {
@@ -21,16 +22,19 @@ export function ClientDownloads({ data }: { data: Data }) {
         files.length === 0 ? (
           <Text tone="muted">No files yet.</Text>
         ) : (
-          <ul aria-label="Files" className={styles.rows}>
-            {files.map((f) => (
-              <li key={f.id} className={styles.row}>
-                <Link variant="standalone" href={fileHref(product.slug, f.id)}>
-                  {f.title}
-                </Link>
-                <Text tone="muted" variant="note">{`${f.type} · ${f.size}`}</Text>
-              </li>
-            ))}
-          </ul>
+          <>
+            {files.length > 1 ? <DownloadAll hrefs={files.map((f) => fileHref(product.slug, f.id))} /> : null}
+            <ul aria-label="Files" className={styles.rows}>
+              {files.map((f) => (
+                <li key={f.id} className={styles.row}>
+                  <Link variant="standalone" href={fileHref(product.slug, f.id)}>
+                    {f.title}
+                  </Link>
+                  <Text tone="muted" variant="note">{`${f.type} · ${f.size}`}</Text>
+                </li>
+              ))}
+            </ul>
+          </>
         )
       ) : null}
     </Stack>

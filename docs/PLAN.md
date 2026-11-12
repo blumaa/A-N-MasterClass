@@ -206,7 +206,6 @@ Launch 5 as built:
 - Download = list of files; holders read the list. Every file and audio request goes through a server route that returns a 302 to a short signed URL (`signedRedirect`, `cache-control: no-store`).
 - Files in private bucket `resources` (no object policies = service role only). Bucket limit 250 MB; Supabase Free caps uploads at 50 MB, Pro allows up to 500 GB (https://supabase.com/docs/guides/storage/uploads/file-limits).
 - Client: Podcasts + Downloads tiles in the library, podcast page (episodes, feed URL, reset), downloads page. Studio: Podcasts + Downloads nav (products.edit).
-- Not yet: "Download all" zip.
 
 **Launch 5** — podcast + download products.
 **Launch 6 — finish the deferred gaps** (no outside service needed; decided 2026-11-12). External setup (email provider, PayPal app, platform domain, paid plans) waits until this is done. Order:
@@ -219,7 +218,7 @@ Launch 5 as built:
 7. Typing indicators in chat.
 8. Recurring meetups.
 9. Coaching slots in the client's own time zone.
-10. "Download all" zip.
+10. "Download all" (one download per file, no zip).
 11. Quizzes (`parts.kind = quiz`, `quiz_passed` unlock) + certificates (G26).
 12. Coupons, order bumps, upsells (G23).
 13. Subscriptions + payment plans (G5), built against the PayPal fake.
@@ -252,6 +251,11 @@ Launch 6 item 3 as built:
 - Reporter hidden: column grant drops `reporter_id`; `report_reporters(community)` RPC for staff with `community.moderate` only.
 - G0 diff: Kajabi moderators are channel-scoped teammates with hide/restore/lock/approve, Review Feed, View Logs; mobile has user reports without detail. Here (G15) moderators are trusted students, reports target content, no lock/approval queue/logs yet.
 - Not yet: restore from the queue, post lock, approval queue, audit log, report a user, notify moderators of new reports.
+
+Launch 6 item 10 as built:
+- "Download all" button on the member's download page, only with 2+ files. Client component `DownloadAll`: clicks a temporary `<a download>` per file, one every 500 ms (`DOWNLOAD_GAP_MS`), each pointing at the existing signed-redirect route. Browser may ask once to allow multiple downloads. Access is still checked per file by that route; no new route, no DB change.
+- Decision (user, 2026-11-12): NO zip. A zip route would stream every file through Vercel (function duration limit, transfer cost). `<a download>` is the standard script-started download (MDN); hidden iframe is legacy.
+- Not yet: no progress per file; a browser that blocks multiple downloads blocks the later ones until the member allows it.
 
 Launch 6 item 4 as built:
 - Migrations `20261112100000_community_files.sql` + `20261112100100_messages_attachment_not_null.sql`, `supabase/tests/140-community-files.test.sql`, applied to ksb 2026-11-12.
