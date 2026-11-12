@@ -118,7 +118,7 @@ export function BrandingEditor({ action, colors: initial, fonts: initialFonts, p
       </form>
       <div data-preview className={styles.preview} style={preview}>
         <Stack gap="base">
-          <Text variant="meta" tone="muted">
+          <Text variant="eyebrow">
             Preview
           </Text>
           <Heading level={2} variant="title">

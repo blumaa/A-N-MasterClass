@@ -16,7 +16,7 @@ function Details({ e }: { e: ReportEntry }) {
   return (
     <Stack gap="tight">
       <Text>{e.preview ? `${e.preview.author}: ${e.preview.body}` : 'Content removed'}</Text>
-      {e.reason ? <Text variant="meta">Reason: {e.reason}</Text> : null}
+      {e.reason ? <Text variant="note">Reason: {e.reason}</Text> : null}
       <Text variant="meta">
         {`Reported ${formatDateTime(e.createdAt)}`}
         {e.reporter ? ` · Reported by ${e.reporter}` : null}

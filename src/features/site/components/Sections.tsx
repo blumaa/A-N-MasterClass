@@ -1,7 +1,8 @@
 // Server renderers for published page sections (G11). One renderer per SECTION_KINDS entry;
 // fields were validated on save (lib/site/sections), so links here are already safe.
 // Each section is a full-width band (tone) with a centred inner column.
-import { Text } from '@/components/ui/mds';
+import type { ReactNode } from 'react';
+import { Container, Text } from '@/components/ui/mds';
 import { ButtonLink } from '@/components/ui/links';
 import { VimeoEmbed } from '@/components/VimeoEmbed/VimeoEmbed';
 import { choiceOf, type SiteSection } from '@/lib/site/sections';
@@ -119,7 +120,7 @@ function SectionBody({ section, refs, level, first, ink }: BodyProps) {
             {items.map((item, i) => (
               <details key={i} className={styles.question}>
                 <summary>
-                  <Text as="span" variant="label">
+                  <Text as="span" className={styles.ask}>
                     {item.question}
                   </Text>
                 </summary>
@@ -150,16 +151,22 @@ export function Sections({ sections, refs, headingLevel = 1 }: Props) {
     const { ink, ...attrs } = band(section, refs);
     const body = SectionBody({ section, refs, level: i === 0 ? headingLevel : 2, first: i === 0, ink });
     return body ? (
-      <section
-        key={section.id}
-        className={styles.section}
-        data-kind={section.kind}
-        data-tone={attrs.tone}
-        data-layout={attrs.layout}
-        data-side={attrs.side}
-      >
-        <div className={styles.inner}>{body}</div>
-      </section>
+      <Band key={section.id} kind={section.kind} {...attrs}>
+        {body}
+      </Band>
     ) : null;
   });
+}
+
+type BandProps = { kind: string; tone?: string; layout?: string; side?: string; children: ReactNode };
+
+/** One full-width band with the shared content column. Page titles use it too, so all text lines up. */
+export function Band({ kind, tone, layout, side, children }: BandProps) {
+  return (
+    <section className={styles.section} data-kind={kind} data-tone={tone} data-layout={layout} data-side={side}>
+      <Container width="wide" className={styles.inner}>
+        {children}
+      </Container>
+    </section>
+  );
 }

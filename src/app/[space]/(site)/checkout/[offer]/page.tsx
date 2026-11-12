@@ -37,15 +37,20 @@ export default async function CheckoutPage({ params }: Props) {
         <Card>
           <CardBody>
             <Stack gap="tight">
-              <Text variant="label">{priceTermsLabel(offer, locale)}</Text>
+              <Heading level={2} variant="subtitle">
+                {priceTermsLabel(offer, locale)}
+              </Heading>
               {offer.products.length > 0 ? (
-                <ul className={styles.products}>
-                  {offer.products.map((title) => (
-                    <li key={title}>
-                      <Text tone="secondary">{title}</Text>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <Text variant="eyebrow">Includes</Text>
+                  <ul className={styles.products}>
+                    {offer.products.map((title) => (
+                      <li key={title}>
+                        <Text tone="secondary">{title}</Text>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               ) : null}
             </Stack>
           </CardBody>
@@ -73,9 +78,16 @@ export default async function CheckoutPage({ params }: Props) {
           activateAction={activateSubscriptionAction}
         />
       ) : (
-        <Text role="alert" tone="danger">
-          Payments are not set up for this site yet.
-        </Text>
+        <Card>
+          <CardBody>
+            <Stack gap="tight">
+              <Heading level={2} variant="subtitle">
+                Checkout is not open yet
+              </Heading>
+              <Text tone="secondary">Payments are not set up for this site yet. Please check back soon.</Text>
+            </Stack>
+          </CardBody>
+        </Card>
       )}
     </div>
   );

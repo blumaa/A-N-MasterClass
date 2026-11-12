@@ -19,6 +19,17 @@
   border-top: 1px solid var(--mds-border-subtle);
 }
 
+/* Page title band: no rule under it, the first section follows close. */
+.section[data-kind='title'] {
+  padding-block-end: 0;
+}
+
+/* A post reads as one column: plain text bands flow on without rules or big gaps. */
+.post .section[data-tone='plain'] + .section[data-tone='plain'] {
+  border-top: 0;
+  padding-block-start: 0;
+}
+
 .section[data-tone='soft'] {
   background: color-mix(in oklab, var(--mds-accent-soft) 45%, var(--mds-surface-page));
 }
@@ -27,24 +38,18 @@
   background: var(--mds-surface-inverse);
 }
 
+/* Width and side padding come from the MDS Container, same column as the rest of the site. */
 .inner {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   gap: var(--mds-space-6, 1.5rem);
-  max-inline-size: 72rem;
-  margin-inline: auto;
-  padding-inline: var(--mds-space-4, 1rem);
 }
 
 @media (min-width: 48rem) {
   .section {
     padding-block: var(--mds-space-12, 5rem);
-  }
-
-  .inner {
-    padding-inline: var(--mds-space-8, 2rem);
   }
 }
 
@@ -320,12 +325,52 @@
   border-bottom: 1px solid var(--mds-border-subtle);
 }
 
+/* Own +/- sign instead of the browser triangle; the whole row is the target. */
 .question summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mds-space-4, 1rem);
   cursor: pointer;
+  list-style: none;
+  font-size: var(--mds-text-base, 1rem);
+  color: var(--mds-text-primary);
+}
+
+.ask {
+  font-weight: 600;
+}
+
+.question summary::-webkit-details-marker {
+  display: none;
+}
+
+.question summary::after {
+  content: '+';
+  flex: none;
+  font-size: var(--mds-text-xl, 1.25rem);
+  line-height: 1;
+  color: var(--mds-text-secondary);
+  transition: transform 150ms ease;
+}
+
+.question[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.question summary:focus-visible {
+  outline: var(--mds-focus-width) solid var(--mds-focus-ring-color);
+  outline-offset: var(--mds-focus-offset);
 }
 
 .question[open] summary {
   margin-bottom: var(--mds-space-2, 0.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .question summary::after {
+    transition: none;
+  }
 }
 
 .offer {

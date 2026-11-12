@@ -51,7 +51,7 @@ function AccountPopover({ account, signOut }: { account: HeaderAccount; signOut:
         <PopoverBody>
           {/* A click on any link inside navigates; close so the panel does not linger. */}
           <div className={styles.panel} onClick={close}>
-            <Text variant="meta" tone="muted">
+            <Text variant="note" tone="muted">
               {account.displayName}
             </Text>
             <Links items={account.links} className={styles.row} />

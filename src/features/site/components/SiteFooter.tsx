@@ -28,7 +28,7 @@ export function SiteFooter({ spaceName, links, legal }: { spaceName: string; lin
       </div>
       <div className={styles.bottom}>
         <Links label="Legal" items={legal} className={styles.legal} />
-        <Text variant="meta" tone="muted">
+        <Text variant="note" tone="muted">
           © {spaceName}
         </Text>
       </div>

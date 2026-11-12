@@ -4,25 +4,28 @@ import type { PageMeta } from '@/lib/data/types';
 import { formatDate } from '@/lib/format/date';
 import type { SiteSection } from '@/lib/site/sections';
 import type { SectionRefs } from '../api/site';
-import { Sections } from './Sections';
+import { Band, Sections } from './Sections';
+import styles from './Sections.module.css';
 
 type Props = { page: PageMeta; sections: SiteSection[]; refs: SectionRefs };
 
 export function PublicPageView({ page, sections, refs }: Props) {
   const heroLeads = page.kind === 'page' && sections[0]?.kind === 'hero';
   return (
-    <article>
+    <article className={page.kind === 'post' ? styles.post : undefined}>
       {heroLeads ? null : (
-        <Stack gap="tight">
-          <Heading level={1} variant="display">
-            {page.title}
-          </Heading>
-          {page.kind === 'post' && page.publishedAt ? (
-            <Text variant="meta" tone="secondary">
-              <time dateTime={page.publishedAt.toISOString()}>{formatDate(page.publishedAt)}</time>
-            </Text>
-          ) : null}
-        </Stack>
+        <Band kind="title">
+          <Stack gap="tight">
+            <Heading level={1} variant="display">
+              {page.title}
+            </Heading>
+            {page.kind === 'post' && page.publishedAt ? (
+              <Text variant="meta" tone="secondary">
+                <time dateTime={page.publishedAt.toISOString()}>{formatDate(page.publishedAt)}</time>
+              </Text>
+            ) : null}
+          </Stack>
+        </Band>
       )}
       <Sections sections={sections} refs={refs} headingLevel={heroLeads ? 1 : 2} />
     </article>

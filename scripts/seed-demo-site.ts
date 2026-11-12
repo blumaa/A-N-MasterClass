@@ -1,5 +1,6 @@
 // Fills a test space (spaces.is_test) with a demo public site: a published home page that uses
-// every section kind and tone, an About page with the split hero, one offer and the header/footer nav.
+// every section kind and tone, an About page with the split hero, blog posts, placeholder legal pages,
+// one offer and the header/footer nav.
 // Photos are CC0 files from Wikimedia Commons, uploaded to the `site` bucket.
 // Re-runnable: replaces the demo pages, offer, photos and nav. Refuses spaces that are not test spaces.
 //
@@ -157,14 +158,83 @@ async function seedOffer(db: Db, spaceId: string): Promise<void> {
   check(await db.from('offer_products').insert({ offer_id: offer.data!.id, product_id: program.data!.id }), 'offer product');
 }
 
-async function seedPage(db: Db, spaceId: string, slug: string, title: string, isHome: boolean, sections: Section[]): Promise<void> {
-  check(await db.from('pages').delete().eq('space_id', spaceId).eq('kind', 'page').eq('slug', slug), `delete page ${slug}`);
-  const now = new Date().toISOString();
+type PageSeed = {
+  slug: string;
+  title: string;
+  sections: Section[];
+  kind?: 'page' | 'post';
+  isHome?: boolean;
+  legalKind?: 'imprint' | 'privacy' | 'terms';
+  seoDescription?: string;
+  daysAgo?: number;
+};
+
+async function seedPage(db: Db, spaceId: string, page: PageSeed): Promise<void> {
+  const kind = page.kind ?? 'page';
+  check(await db.from('pages').delete().eq('space_id', spaceId).eq('kind', kind).eq('slug', page.slug), `delete ${kind} ${page.slug}`);
+  const at = new Date(Date.now() - (page.daysAgo ?? 0) * 86_400_000).toISOString();
   check(
-    await db.from('pages').insert({ space_id: spaceId, slug, title, is_home: isHome, draft: sections, published: sections, published_at: now }),
-    `page ${slug}`,
+    await db.from('pages').insert({
+      space_id: spaceId,
+      kind,
+      slug: page.slug,
+      title: page.title,
+      is_home: page.isHome ?? false,
+      legal_kind: page.legalKind ?? null,
+      seo_description: page.seoDescription ?? null,
+      draft: page.sections,
+      published: page.sections,
+      published_at: at,
+    }),
+    `${kind} ${page.slug}`,
   );
 }
+
+const text = (heading: string, body: string): Section => section('text', { heading, body, tone: 'plain' });
+
+// Blog posts, so the Blog link in the header leads somewhere real.
+const POSTS: PageSeed[] = [
+  {
+    kind: 'post',
+    slug: 'tune-of-the-week-soldiers-joy',
+    title: "Tune of the week: Soldier's Joy",
+    seoDescription: 'A two-part D tune every jam knows. How to learn it by ear in one week.',
+    daysAgo: 3,
+    sections: [
+      text('Why this tune', "Soldier's Joy is played at almost every old-time jam. It sits well in D and repeats a lot, so it is a good first tune."),
+      text('How to practise', 'Listen to the A part ten times before you pick up the fiddle. Then hum it, then find the first note. Short loops beat long runs.'),
+    ],
+  },
+  {
+    kind: 'post',
+    slug: 'your-first-jam',
+    title: 'Your first jam: what to expect',
+    seoDescription: 'Where to sit, when to join in and why nobody minds a wrong note.',
+    daysAgo: 12,
+    sections: [
+      text('Sit on the outside', 'Pick a seat near the edge of the circle. You can hear the lead fiddle and play quietly until the tune settles in.'),
+      text('Play the notes you know', 'Nobody expects every note. Long bowed drones on the open strings already sound good and keep you in the music.'),
+    ],
+  },
+  {
+    kind: 'post',
+    slug: 'tuning-for-old-time',
+    title: 'Cross-tuning, explained simply',
+    seoDescription: 'AEAE and friends: why old-time fiddlers retune and how to do it safely.',
+    daysAgo: 30,
+    sections: [
+      text('What it is', 'Cross-tuning changes the strings so the open notes ring with the key of the tune. AEAE is the most common one for A tunes.'),
+      text('Do it slowly', 'Raise the G and D strings a step at a time and let them settle. Tune back to standard when you put the fiddle away.'),
+    ],
+  },
+];
+
+// Placeholder legal pages: the real texts come from the instructor's lawyer (G25).
+const LEGAL: PageSeed[] = [
+  { slug: 'legal-notice', title: 'Legal notice', legalKind: 'imprint', sections: [text('Legal notice', 'Demo text. The instructor adds their legal notice here.')] },
+  { slug: 'privacy', title: 'Privacy policy', legalKind: 'privacy', sections: [text('Privacy policy', 'Demo text. The instructor adds their privacy policy here.')] },
+  { slug: 'terms', title: 'Terms', legalKind: 'terms', sections: [text('Terms', 'Demo text. The instructor adds their terms here.')] },
+];
 
 async function main(): Promise<void> {
   const slug = process.argv[2]?.trim() || 'fiddle';
@@ -177,8 +247,9 @@ async function main(): Promise<void> {
 
   const photos = await uploadPhotos(db, spaceId);
   await seedOffer(db, spaceId);
-  await seedPage(db, spaceId, 'home', 'Home', true, homeSections(photos));
-  await seedPage(db, spaceId, 'about', 'About', false, aboutSections(photos));
+  await seedPage(db, spaceId, { slug: 'home', title: 'Home', isHome: true, sections: homeSections(photos) });
+  await seedPage(db, spaceId, { slug: 'about', title: 'About', sections: aboutSections(photos) });
+  for (const page of [...POSTS, ...LEGAL]) await seedPage(db, spaceId, page);
   const nav = {
     space_id: spaceId,
     header: [

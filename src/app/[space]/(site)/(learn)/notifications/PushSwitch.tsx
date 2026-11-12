@@ -57,7 +57,7 @@ export function PushSwitch({ publicKey, profileId }: { publicKey: string; profil
   if (availability === null) return null;
   if (availability !== 'ready') {
     return (
-      <Text variant="meta" tone="muted">
+      <Text variant="note" tone="muted">
         {NOTES[availability]}
       </Text>
     );
@@ -66,7 +66,7 @@ export function PushSwitch({ publicKey, profileId }: { publicKey: string; profil
     <Stack gap="tight">
       <Switch label="Push notifications on this device" checked={on} loading={busy} onChange={(e) => void toggle(e.target.checked)} />
       {error ? (
-        <Text variant="meta" tone="danger" role="alert">
+        <Text variant="note" tone="danger" role="alert">
           {error}
         </Text>
       ) : null}

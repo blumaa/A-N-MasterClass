@@ -58,7 +58,7 @@ export default async function SpaceLayout({
     unreadCount(repo, viewer),
   ]);
   return (
-    <>
+    <div className={styles.shell}>
       <ThemeStyle css={themeCss(theme, "space")} />
       <ViewerZoneScript />
       {pushKey ? (
@@ -101,6 +101,6 @@ export default async function SpaceLayout({
           legal={chrome.legal}
         />
       ) : null}
-    </>
+    </div>
   );
 }

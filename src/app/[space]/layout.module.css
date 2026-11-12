@@ -1,4 +1,12 @@
+/* Shell fills the viewport so the footer sits at the bottom on short pages. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100dvh;
+}
+
 .page {
+  flex: 1;
   overflow-x: clip;
 }
 

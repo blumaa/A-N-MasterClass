@@ -27,6 +27,12 @@ describe('PublicPageView', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Story' })).toBeInTheDocument();
   });
 
+  it('sets the title in a band like the sections, so both share one column', () => {
+    render(<PublicPageView page={page} sections={[text]} refs={NO_REFS} />);
+    const title = screen.getByRole('heading', { level: 1, name: 'About' }).closest('section');
+    expect(title).toHaveAttribute('data-kind', 'title');
+  });
+
   it('heads a post with its title and date', () => {
     render(<PublicPageView page={{ ...page, kind: 'post' }} sections={[hero]} refs={NO_REFS} />);
     expect(screen.getByRole('heading', { level: 1, name: 'About' })).toBeInTheDocument();

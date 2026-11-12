@@ -18,3 +18,10 @@ it('says so when there are no posts', () => {
   render(<BlogList posts={[]} />);
   expect(screen.getByText('No posts yet')).toBeInTheDocument();
 });
+
+it('shows the date and the summary of each post', () => {
+  render(<BlogList posts={[{ ...post, seoDescription: 'How to tie it.' }]} />);
+  const link = screen.getByRole('link', { name: /First tie/ });
+  expect(link).toHaveTextContent('How to tie it.');
+  expect(link).toHaveTextContent('November 1, 2026');
+});
