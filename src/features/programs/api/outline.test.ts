@@ -31,6 +31,20 @@ describe('programOutline (student)', () => {
     expect(o.modules[1]?.access.kind).toBe('open');
   });
 
+  it('keeps a quiz-locked module shut until a passing attempt (G26)', async () => {
+    const quiz = await repo.createPart({ stepId: 'step-intro', kind: 'quiz' });
+    await repo.updatePart(quiz.id, { passPercent: 100 });
+    await repo.saveQuizQuestion({ partId: quiz.id, questionId: null, prompt: 'Q', options: [{ label: 'Yes', correct: true }, { label: 'No', correct: false }] });
+    await repo.updateModule('mod-basics', { unlockAfterStepId: null, unlockQuizPartId: quiz.id });
+    const [q] = await repo.quizQuestions([quiz.id]);
+    const outline = async () => (await programOutline(repo, await as(SEED_IDS.student), 'shibari-101', NOW))!;
+    expect((await outline()).modules[1]?.access).toEqual({ kind: 'quiz_locked', quizPartId: quiz.id });
+    await repo.submitQuiz(quiz.id, SEED_IDS.student, [q!.options[1]!.id]);
+    expect((await outline()).modules[1]?.access.kind).toBe('quiz_locked');
+    await repo.submitQuiz(quiz.id, SEED_IDS.student, [q!.options[0]!.id]);
+    expect((await outline()).modules[1]?.access.kind).toBe('open');
+  });
+
   it('counts published steps and points Continue at the first open unticked step', async () => {
     await repo.setStepComplete(SEED_IDS.student, 'step-intro', true);
     const o = (await programOutline(repo, await as(SEED_IDS.student), 'shibari-101', NOW))!;

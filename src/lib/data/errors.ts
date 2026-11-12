@@ -29,3 +29,10 @@ export const INVALID_PUSH_SUBSCRIPTION = 'invalid push subscription';
 // Recurring meetup texts, shared by the fake repo and constraintMessages.
 export const INVALID_REPEAT = 'invalid repeat';
 export const OCCURRENCE_MISSING = 'no such occurrence';
+
+// Quiz texts (G26), shared by the fake repo and constraintMessages.
+export const QUIZ_QUESTION_OPTIONS = 'a question needs two answers and one correct answer';
+export const QUIZ_PROMPT = 'question required';
+export const QUIZ_OPTION_LABEL = 'answer required';
+export const QUIZ_EMPTY = 'quiz has no questions';
+export const QUIZ_PASS_PERCENT = 'pass mark must be 1 to 100';

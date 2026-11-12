@@ -20,6 +20,7 @@ export {
   ListGroup,
   ListItem,
   ProgressBar,
+  Radio,
   Select,
   SideNav,
   SideNavGroup,

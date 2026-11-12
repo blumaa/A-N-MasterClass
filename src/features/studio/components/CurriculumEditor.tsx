@@ -1,10 +1,15 @@
 // Studio > Program: settings + module tree + add module.
 import { Field, Heading, Input, Stack } from '@/components/ui/mds';
 import { ButtonLink } from '@/components/ui/links';
-import type { Curriculum } from '../api/curriculum';
+import type { Curriculum, CurriculumModule } from '../api/curriculum';
 import { CommandForm } from './CommandForm';
 import { ModuleEditor } from './ModuleEditor';
 import { ProgramSettings } from './ProgramSettings';
+
+const quizzesOf = (modules: CurriculumModule[]) =>
+  modules.flatMap((m) =>
+    m.steps.flatMap((s) => s.parts.filter((p) => p.kind === 'quiz').map((part) => ({ part, label: `${s.title}: ${part.title ?? 'Quiz'}` }))),
+  );
 
 export function CurriculumEditor({ curriculum, previewHref }: { curriculum: Curriculum; previewHref: string }) {
   const { program, modules } = curriculum;
@@ -25,6 +30,7 @@ export function CurriculumEditor({ curriculum, previewHref }: { curriculum: Curr
           programSlug={program.slug}
           mod={mod}
           earlierSteps={modules.slice(0, i).flatMap((m) => m.steps)}
+          earlierQuizzes={quizzesOf(modules.slice(0, i))}
           first={i === 0}
           last={i === modules.length - 1}
         />

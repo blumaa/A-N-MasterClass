@@ -1,7 +1,7 @@
 // Repo over in-memory tables. Enforces the same constraints as the SQL schema
 // (unique slug, one active grant, vimeo id digits, cascades) so fakes fail like Postgres.
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
-import { ALREADY_MEMBER, ConstraintError, HOST_TAKEN, ONE_PRIMARY_DOMAIN, SLUG_RESERVED } from '../errors';
+import { ALREADY_MEMBER, ConstraintError, HOST_TAKEN, ONE_PRIMARY_DOMAIN, QUIZ_PASS_PERCENT, SLUG_RESERVED } from '../errors';
 import { grantIsActive } from '../grants';
 import type { Direction, Reorderable, Repo } from '../repo';
 import type { Grant, Module, Part, Product, Profile, Space, Step } from '../types';
@@ -16,6 +16,7 @@ import { createFakeMediaRepo } from './fakeMediaRepo';
 import { createFakeModerationRepo } from './fakeModerationRepo';
 import { withPoints } from './fakePoints';
 import { createFakePushRepo } from './fakePushRepo';
+import { createFakeQuizRepo, removeQuizParts } from './fakeQuizRepo';
 import { createFakeSiteRepo } from './fakeSiteRepo';
 
 export type FakeRepo = Repo & { db: Db };
@@ -61,6 +62,7 @@ export function createFakeRepo(db: Db): FakeRepo {
   };
 
   function removeStepIds(stepIds: Set<string>): void {
+    removeQuizParts(db, new Set(db.parts.filter((p) => stepIds.has(p.stepId)).map((p) => p.id)));
     db.parts = db.parts.filter((p) => !stepIds.has(p.stepId));
     db.stepProgress = db.stepProgress.filter((sp) => !stepIds.has(sp.stepId));
     const comments = new Set(db.comments.filter((c) => c.targetType === 'step' && stepIds.has(c.targetId)).map((c) => c.id));
@@ -87,6 +89,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakeMediaRepo(db, id),
     ...createFakeModerationRepo(db, id),
     ...createFakePushRepo(db),
+    ...createFakeQuizRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     spaceSlugByHost: async (host) => {
@@ -201,6 +204,7 @@ export function createFakeRepo(db: Db): FakeRepo {
         description: null,
         status: 'draft',
         unlockAfterStepId: null,
+        unlockQuizPartId: null,
         releaseAfterDays: null,
         releaseAt: null,
         position: nextPosition(db.modules.filter((m) => m.programId === input.programId)),
@@ -243,6 +247,7 @@ export function createFakeRepo(db: Db): FakeRepo {
         aspect: null,
         filePath: null,
         fileSize: null,
+        passPercent: null,
         position: nextPosition(db.parts.filter((p) => p.stepId === input.stepId)),
       };
       db.parts.push(row);
@@ -251,11 +256,15 @@ export function createFakeRepo(db: Db): FakeRepo {
     async updatePart(pid, patch) {
       if (patch.vimeoId != null && !VIMEO_ID.test(patch.vimeoId)) throw new ConstraintError('vimeo id must be digits');
       if (patch.fileSize != null && patch.fileSize < 0) throw new ConstraintError('file size >= 0');
+      if (patch.passPercent != null && !(patch.passPercent >= 1 && patch.passPercent <= 100)) {
+        throw new ConstraintError(QUIZ_PASS_PERCENT);
+      }
       const row = { ...must(db.parts.find((p) => p.id === pid), 'part'), ...patch };
       db.parts = db.parts.map((p) => (p.id === pid ? row : p));
       return row;
     },
     async deletePart(pid) {
+      removeQuizParts(db, new Set([pid]));
       db.parts = db.parts.filter((p) => p.id !== pid);
     },
 

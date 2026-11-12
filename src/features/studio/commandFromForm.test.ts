@@ -55,7 +55,7 @@ describe('commandFromForm', () => {
 
   it('refuses unknown ops, kinds, statuses and bad numbers', () => {
     expect(commandFromForm(form({ op: 'dropTable' })).ok).toBe(false);
-    expect(commandFromForm(form({ op: 'createPart', stepId: 's', kind: 'quiz' })).ok).toBe(false);
+    expect(commandFromForm(form({ op: 'createPart', stepId: 's', kind: 'poll' })).ok).toBe(false);
     expect(commandFromForm(form({ op: 'updateStep', stepId: 's', status: 'live' })).ok).toBe(false);
     expect(commandFromForm(form({ op: 'updateModule', moduleId: 'm', releaseAfterDays: 'soon' })).ok).toBe(false);
     expect(commandFromForm(form({ op: 'createModule', programId: '' , title: 'x'})).ok).toBe(false);
@@ -65,6 +65,42 @@ describe('commandFromForm', () => {
     expect(commandFromForm(form({ op: 'move', table: 'steps', id: 's', direction: 'up' }))).toEqual({
       ok: true,
       command: { op: 'move', table: 'steps', id: 's', direction: 'up' },
+    });
+  });
+
+  it('reads a quiz question: rows keep their index, blank rows drop, ticked rows are correct', () => {
+    const f = form({ op: 'saveQuestion', partId: 'p1', questionId: '', prompt: ' Which? ' });
+    for (const label of ['Shears', '', 'Rope', '']) f.append('option', label);
+    f.append('correct', '2');
+    expect(commandFromForm(f)).toEqual({
+      ok: true,
+      command: {
+        op: 'saveQuestion',
+        partId: 'p1',
+        questionId: null,
+        prompt: 'Which?',
+        options: [
+          { label: 'Shears', correct: false },
+          { label: 'Rope', correct: true },
+        ],
+      },
+    });
+    expect(commandFromForm(form({ op: 'deleteQuestion', questionId: 'q1' }))).toEqual({
+      ok: true,
+      command: { op: 'deleteQuestion', questionId: 'q1' },
+    });
+  });
+
+  it('reads a pass mark and a quiz lock; blank clears them', () => {
+    expect(commandFromForm(form({ op: 'updatePart', partId: 'p', passPercent: '80' }))).toMatchObject({
+      command: { patch: { passPercent: 80 } },
+    });
+    expect(commandFromForm(form({ op: 'updatePart', partId: 'p', passPercent: '' }))).toMatchObject({
+      command: { patch: { passPercent: null } },
+    });
+    expect(commandFromForm(form({ op: 'updatePart', partId: 'p', passPercent: 'most' })).ok).toBe(false);
+    expect(commandFromForm(form({ op: 'updateModule', moduleId: 'm', unlockQuizPartId: 'qz' }))).toMatchObject({
+      command: { patch: { unlockQuizPartId: 'qz' } },
     });
   });
 });

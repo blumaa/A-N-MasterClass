@@ -9,10 +9,12 @@ const base: AccessInput = {
   moduleStatus: 'published',
   stepStatus: 'published',
   unlockAfterStepId: null,
+  unlockQuizPartId: null,
   releaseAfterDays: null,
   releaseAt: null,
   grantedAt: new Date(NOW.getTime() - 10 * DAY),
   completedStepIds: new Set(),
+  passedQuizPartIds: new Set(),
   isEditor: false,
   now: NOW,
 };
@@ -30,6 +32,13 @@ describe('stepAccess (mirrors can_read_step)', () => {
 
   it('refuses without grant', () => {
     expect(stepAccess({ ...base, grantedAt: null })).toEqual({ kind: 'no_grant' });
+  });
+
+  it('locks module until the quiz is passed (G26)', () => {
+    const locked = { ...base, unlockQuizPartId: 'q1' };
+    expect(stepAccess(locked)).toEqual({ kind: 'quiz_locked', quizPartId: 'q1' });
+    expect(stepAccess({ ...locked, passedQuizPartIds: new Set(['q1']) })).toEqual({ kind: 'open' });
+    expect(stepAccess({ ...locked, isEditor: true })).toEqual({ kind: 'open' });
   });
 
   it('locks module until unlock step completed (G7)', () => {

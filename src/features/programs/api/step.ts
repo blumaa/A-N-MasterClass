@@ -5,12 +5,15 @@ import type { Part } from '@/lib/data/types';
 import type { StepAccess } from '@/lib/programs/access';
 import { downloadName } from '@/lib/format/bytes';
 import { programOutline, type Outline, type OutlineStep } from './outline';
+import { quizViews, type QuizView } from './quizView';
 
 export type StepView = {
   outline: Outline;
   step: OutlineStep & { moduleId: string; description: string | null };
   access: StepAccess;
   parts: Part[];
+  /** Quiz parts by id: questions (no key) and the viewer's latest attempt. */
+  quizzes: Record<string, QuizView>;
   prevStepId: string | null;
   nextStepId: string | null;
 };
@@ -30,11 +33,13 @@ export async function stepView(
   if (!found) return null;
   const row = await repo.step(stepId);
   const parts = found.access.kind === 'open' ? await repo.parts(stepId) : [];
+  const quizzes = await quizViews(repo, viewer.profile?.id ?? null, parts);
   return {
     outline,
     step: { ...found, description: row?.description ?? null },
     access: found.access,
     parts,
+    quizzes,
     prevStepId: flat[at - 1]?.id ?? null,
     nextStepId: flat[at + 1]?.id ?? null,
   };

@@ -12,6 +12,7 @@ import { createEventsRepo } from './events';
 import { createMediaRepo } from './media';
 import { createModerationRepo } from './moderation';
 import { createPushRepo } from './push';
+import { createQuizRepo } from './quiz';
 import { createSiteRepo } from './site';
 
 export type { RepoCtx };
@@ -29,5 +30,6 @@ export function createSupabaseRepo(ctx: RepoCtx): Repo {
     ...createMediaRepo(ctx),
     ...createModerationRepo(ctx),
     ...createPushRepo(ctx),
+    ...createQuizRepo(ctx),
   };
 }

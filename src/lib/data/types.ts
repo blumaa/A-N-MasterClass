@@ -63,6 +63,8 @@ export type Module = {
   position: number;
   status: PublishStatus;
   unlockAfterStepId: string | null;
+  /** Locked until the member passes this quiz part (G26). */
+  unlockQuizPartId: string | null;
   releaseAfterDays: number | null;
   releaseAt: Date | null;
 };
@@ -76,7 +78,7 @@ export type Step = {
   status: PublishStatus;
 };
 
-export const PART_KINDS = ['video', 'text', 'download', 'image', 'embed'] as const;
+export const PART_KINDS = ['video', 'text', 'download', 'image', 'embed', 'quiz'] as const;
 export type PartKind = (typeof PART_KINDS)[number];
 
 export type Part = {
@@ -92,6 +94,30 @@ export type Part = {
   filePath: string | null;
   /** Bytes as the browser reported at upload (download parts). */
   fileSize: number | null;
+  /** Quiz pass mark in percent, 1..100. Null: any attempt passes. */
+  passPercent: number | null;
+};
+
+// Quizzes (G26). Options never carry the answer key; editors read it with Repo.quizKey.
+export type QuizOption = { id: string; label: string };
+export type QuizQuestion = {
+  id: string;
+  partId: string;
+  prompt: string;
+  position: number;
+  /** More than one correct option: checkboxes, else radio buttons. */
+  multiple: boolean;
+  options: QuizOption[];
+};
+export type QuizAttempt = {
+  id: string;
+  partId: string;
+  profileId: string;
+  /** Percent of questions right, 0..100. */
+  score: number;
+  passed: boolean;
+  correctQuestionIds: string[];
+  createdAt: Date;
 };
 
 export type Grant = {

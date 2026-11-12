@@ -1,7 +1,7 @@
-// One module: settings (lock G7, drip G8), steps list, add step.
+// One module: settings (lock G7, quiz lock G26, drip G8), steps list, add step.
 import { Badge, Card, CardBody, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
 import { AppLink } from '@/components/ui/links';
-import type { Step } from '@/lib/data/types';
+import type { Part, Step } from '@/lib/data/types';
 import type { CurriculumModule } from '../api/curriculum';
 import { studioStepHref } from '../paths';
 import { CommandForm } from './CommandForm';
@@ -13,13 +13,15 @@ type Props = {
   programSlug: string;
   mod: CurriculumModule;
   earlierSteps: Step[];
+  /** Quiz parts of earlier modules, labelled for the lock select. */
+  earlierQuizzes: { part: Part; label: string }[];
   first: boolean;
   last: boolean;
 };
 
 const dateInput = (d: Date | null): string => (d ? d.toISOString().slice(0, 10) : '');
 
-export function ModuleEditor({ programSlug, mod, earlierSteps, first, last }: Props) {
+export function ModuleEditor({ programSlug, mod, earlierSteps, earlierQuizzes, first, last }: Props) {
   return (
     <Card>
       <CardBody>
@@ -45,6 +47,16 @@ export function ModuleEditor({ programSlug, mod, earlierSteps, first, last }: Pr
                   {earlierSteps.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.title}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Lock until quiz is passed">
+                <Select name="unlockQuizPartId" defaultValue={mod.unlockQuizPartId ?? ''}>
+                  <option value="">No quiz lock</option>
+                  {earlierQuizzes.map((q) => (
+                    <option key={q.part.id} value={q.part.id}>
+                      {q.label}
                     </option>
                   ))}
                 </Select>

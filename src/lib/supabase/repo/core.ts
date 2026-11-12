@@ -299,6 +299,7 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
               description: patch.description,
               status: patch.status,
               unlock_after_step_id: patch.unlockAfterStepId,
+              unlock_quiz_part_id: patch.unlockQuizPartId,
               release_after_days: patch.releaseAfterDays,
               release_at: isoOrNull(patch.releaseAt),
             }),
@@ -357,6 +358,7 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
               aspect: patch.aspect,
               file_path: patch.filePath,
               file_size: patch.fileSize,
+              pass_percent: patch.passPercent,
             }),
           )
           .eq('id', id)

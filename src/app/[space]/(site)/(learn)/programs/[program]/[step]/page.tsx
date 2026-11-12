@@ -39,7 +39,7 @@ export default async function StepPage({ params }: Props) {
   const data = await load(params);
   if (!data) notFound();
   const { view, now, thread, signedIn } = data;
-  const { outline, step, access, parts, prevStepId, nextStepId } = view;
+  const { outline, step, access, parts, quizzes, prevStepId, nextStepId } = view;
   const slug = outline.program.slug;
   const blocked = accessLabel(access, now);
   return (
@@ -57,7 +57,7 @@ export default async function StepPage({ params }: Props) {
             <EmptyState title="Locked" description={blocked} />
           ) : (
             <>
-              <StepParts parts={parts} programSlug={slug} />
+              <StepParts parts={parts} programSlug={slug} quizzes={quizzes} />
               {signedIn ? <CompleteButton programSlug={slug} stepId={step.id} done={step.done} /> : null}
               {thread ? (
                 <CommentThread

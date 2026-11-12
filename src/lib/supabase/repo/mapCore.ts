@@ -77,6 +77,7 @@ export const toModule = (r: Row<'modules'>): Module => ({
   position: r.position,
   status: r.status as Module['status'],
   unlockAfterStepId: r.unlock_after_step_id,
+  unlockQuizPartId: r.unlock_quiz_part_id,
   releaseAfterDays: r.release_after_days,
   releaseAt: toDateOrNull(r.release_at),
 });
@@ -102,6 +103,7 @@ export const toPart = (r: Row<'parts'>): Part => ({
   aspect: r.aspect,
   filePath: r.file_path,
   fileSize: r.file_size,
+  passPercent: r.pass_percent,
 });
 
 export const toGrant = (r: Row<'grants'>): Grant => ({

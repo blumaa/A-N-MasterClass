@@ -45,6 +45,8 @@ import type {
   Product,
   Profile,
   PushSubscription,
+  QuizAttempt,
+  QuizQuestion,
   Reaction,
   Report,
   ReportStatus,
@@ -65,12 +67,24 @@ export type NewProduct = Pick<Product, 'spaceId' | 'kind' | 'slug' | 'title'>;
 export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status' | 'themeOverride'>>;
 export type NewModule = Pick<Module, 'programId' | 'title'>;
 export type ModulePatch = Partial<
-  Pick<Module, 'title' | 'description' | 'status' | 'unlockAfterStepId' | 'releaseAfterDays' | 'releaseAt'>
+  Pick<
+    Module,
+    'title' | 'description' | 'status' | 'unlockAfterStepId' | 'unlockQuizPartId' | 'releaseAfterDays' | 'releaseAt'
+  >
 >;
 export type NewStep = Pick<Step, 'moduleId' | 'title'>;
 export type StepPatch = Partial<Pick<Step, 'title' | 'description' | 'status'>>;
 export type NewPart = Pick<Part, 'stepId' | 'kind'>;
-export type PartPatch = Partial<Pick<Part, 'title' | 'text' | 'vimeoId' | 'aspect' | 'filePath' | 'fileSize'>>;
+export type PartPatch = Partial<
+  Pick<Part, 'title' | 'text' | 'vimeoId' | 'aspect' | 'filePath' | 'fileSize' | 'passPercent'>
+>;
+/** questionId null: new question at the end. Options replace the old ones in order. */
+export type QuizQuestionInput = {
+  partId: string;
+  questionId: string | null;
+  prompt: string;
+  options: { label: string; correct: boolean }[];
+};
 export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'> & {
   orderId?: string | null;
   accessGroupId?: string | null;
@@ -212,6 +226,19 @@ export interface Repo {
   // progress
   completedStepIds(profileId: string, stepIds: readonly string[]): Promise<Set<string>>;
   setStepComplete(profileId: string, stepId: string, done: boolean): Promise<void>;
+
+  // quizzes (G26). Questions by part then position, options by position.
+  quizQuestions(partIds: readonly string[]): Promise<QuizQuestion[]>;
+  quizQuestion(id: string): Promise<QuizQuestion | null>;
+  /** Correct option ids. Editors only: RLS returns none to members. */
+  quizKey(partIds: readonly string[]): Promise<Set<string>>;
+  /** Needs two options and one correct (QUIZ_QUESTION_OPTIONS). Returns the question id. */
+  saveQuizQuestion(input: QuizQuestionInput): Promise<string>;
+  deleteQuizQuestion(id: string): Promise<void>;
+  /** Grades on the server and stores the attempt. Supabase: profileId is the signed-in user. */
+  submitQuiz(partId: string, profileId: string, optionIds: readonly string[]): Promise<QuizAttempt>;
+  /** Newest first. */
+  quizAttempts(profileId: string, partIds: readonly string[]): Promise<QuizAttempt[]>;
 
   // site (pages ordered by title; versions newest first)
   pages(spaceId: string): Promise<Page[]>;

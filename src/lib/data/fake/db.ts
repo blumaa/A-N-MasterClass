@@ -46,6 +46,7 @@ import type {
   Product,
   Profile,
   PushSubscription,
+  QuizAttempt,
   Reaction,
   SiteNav,
   Space,
@@ -56,6 +57,7 @@ import type {
   StepProgress,
 } from '../types';
 import type { FakeReport } from './fakeModerationRepo';
+import type { FakeQuizOption, FakeQuizQuestion } from './fakeQuizRepo';
 
 export type Db = {
   spaces: Space[];
@@ -68,6 +70,10 @@ export type Db = {
   modules: Module[];
   steps: Step[];
   parts: Part[];
+  quizQuestions: FakeQuizQuestion[];
+  /** Options carry the answer key here; Supabase keeps it in quiz_keys. */
+  quizOptions: FakeQuizOption[];
+  quizAttempts: QuizAttempt[];
   grants: Grant[];
   stepProgress: StepProgress[];
   pages: Page[];
@@ -130,6 +136,9 @@ export const emptyDb = (): Db => ({
   modules: [],
   steps: [],
   parts: [],
+  quizQuestions: [],
+  quizOptions: [],
+  quizAttempts: [],
   grants: [],
   stepProgress: [],
   pages: [],

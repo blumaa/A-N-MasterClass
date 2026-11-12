@@ -4,7 +4,8 @@ import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { uploadPath } from '@/lib/storage/uploadPath';
-import { curriculum, editCurriculum, studioPrograms } from './curriculum';
+import { QUIZ_QUESTION_OPTIONS } from '@/lib/data/errors';
+import { curriculum, editCurriculum, quizEditor, studioPrograms } from './curriculum';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
@@ -153,5 +154,82 @@ describe('download parts', () => {
   it('removes nothing when the part had no file', async () => {
     await editCurriculum(repo, files, await as(SEED_IDS.alexanderOwner), { op: 'deletePart', partId: 'part-intro-text' });
     expect(files.removed).toEqual([]);
+  });
+});
+
+describe('quizzes (G26)', () => {
+  const quizPart = async () => (await repo.createPart({ stepId: 'step-safety', kind: 'quiz' })).id;
+  const options = [
+    { label: 'Shears', correct: true },
+    { label: 'Glue', correct: false },
+  ];
+
+  it('adds, edits and deletes a question; the editor reads the key', async () => {
+    const owner = await as(SEED_IDS.alexanderOwner);
+    const partId = await quizPart();
+    const added = await editCurriculum(repo, files, owner, { op: 'saveQuestion', partId, questionId: null, prompt: 'Tool?', options });
+    if (!added.ok || !added.id) throw new Error('question');
+    await editCurriculum(repo, files, owner, {
+      op: 'saveQuestion',
+      partId,
+      questionId: added.id,
+      prompt: 'Which tool?',
+      options: [...options, { label: 'Rope', correct: true }],
+    });
+    const editor = await quizEditor(repo, owner, await repo.parts('step-safety'));
+    expect(editor?.[partId]).toEqual([
+      expect.objectContaining({
+        prompt: 'Which tool?',
+        options: [
+          expect.objectContaining({ label: 'Shears', correct: true }),
+          expect.objectContaining({ label: 'Glue', correct: false }),
+          expect.objectContaining({ label: 'Rope', correct: true }),
+        ],
+      }),
+    ]);
+    expect(await editCurriculum(repo, files, owner, { op: 'deleteQuestion', questionId: added.id })).toMatchObject({ ok: true });
+    expect(await repo.quizQuestions([partId])).toEqual([]);
+  });
+
+  it('refuses questions on a non-quiz part or a question of another quiz', async () => {
+    const owner = await as(SEED_IDS.alexanderOwner);
+    const text = await editCurriculum(repo, files, owner, { op: 'saveQuestion', partId: 'part-safety-text', questionId: null, prompt: 'Q', options });
+    expect(text).toEqual({ ok: false, error: 'not_found' });
+    const a = await quizPart();
+    const b = await quizPart();
+    const q = await repo.saveQuizQuestion({ partId: a, questionId: null, prompt: 'Q', options });
+    const moved = await editCurriculum(repo, files, owner, { op: 'saveQuestion', partId: b, questionId: q, prompt: 'Q', options });
+    expect(moved).toEqual({ ok: false, error: 'not_found' });
+  });
+
+  it('turns a bad question into an invalid result', async () => {
+    const owner = await as(SEED_IDS.alexanderOwner);
+    const r = await editCurriculum(repo, files, owner, {
+      op: 'saveQuestion',
+      partId: await quizPart(),
+      questionId: null,
+      prompt: 'Q',
+      options: [{ label: 'Only', correct: true }],
+    });
+    expect(r).toEqual({ ok: false, error: 'invalid', message: QUIZ_QUESTION_OPTIONS });
+  });
+
+  it('locks a module on a quiz of this program only', async () => {
+    const owner = await as(SEED_IDS.alexanderOwner);
+    const partId = await quizPart();
+    const ok = await editCurriculum(repo, files, owner, { op: 'updateModule', moduleId: 'mod-week2', patch: { unlockQuizPartId: partId } });
+    expect(ok).toMatchObject({ ok: true });
+    expect((await repo.module('mod-week2'))?.unlockQuizPartId).toBe(partId);
+    const notQuiz = await editCurriculum(repo, files, owner, {
+      op: 'updateModule',
+      moduleId: 'mod-week2',
+      patch: { unlockQuizPartId: 'part-safety-text' },
+    });
+    expect(notQuiz).toEqual({ ok: false, error: 'invalid', message: 'gate quiz must be a quiz in this program' });
+  });
+
+  it('shows the key to editors only', async () => {
+    const student = await as(SEED_IDS.student);
+    expect(await quizEditor(repo, student, [])).toBeNull();
   });
 });

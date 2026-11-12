@@ -12,6 +12,11 @@ import {
   INVALID_REPEAT,
   OCCURRENCE_MISSING,
   ONE_PRIMARY_DOMAIN,
+  QUIZ_EMPTY,
+  QUIZ_OPTION_LABEL,
+  QUIZ_PASS_PERCENT,
+  QUIZ_PROMPT,
+  QUIZ_QUESTION_OPTIONS,
   REPORT_TARGET_MISSING,
   SESSION_OVERLAP,
   SLUG_RESERVED,
@@ -88,6 +93,14 @@ const BY_NAME: Readonly<Record<string, string>> = {
   push_subscriptions_p256dh: INVALID_PUSH_SUBSCRIPTION,
   push_subscriptions_auth: INVALID_PUSH_SUBSCRIPTION,
   push_subscriptions_user_agent: INVALID_PUSH_SUBSCRIPTION,
+  parts_pass_percent: QUIZ_PASS_PERCENT,
+  quiz_questions_prompt: QUIZ_PROMPT,
+  quiz_options_label: QUIZ_OPTION_LABEL,
+  // Raised by save_quiz_question and submit_quiz.
+  quiz_question_options: QUIZ_QUESTION_OPTIONS,
+  quiz_empty: QUIZ_EMPTY,
+  // Studio checks the quiz first; this fires only on a race with a delete.
+  modules_unlock_quiz_fk: 'quiz not found',
 };
 
 const TITLE_CHECK = /_title(_check)?$/;

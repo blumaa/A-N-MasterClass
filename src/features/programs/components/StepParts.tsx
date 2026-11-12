@@ -1,11 +1,14 @@
 // Content blocks of an open step (G6). Video = Vimeo by id (G9). Download = plain anchor (full
 // navigation) to the route that checks step access and redirects to a short-lived signed URL.
+// Quiz = questions without the key (G26).
 import { Heading, Link, Stack, Text } from '@/components/ui/mds';
 import { VimeoEmbed } from '@/components/VimeoEmbed/VimeoEmbed';
 import type { Part } from '@/lib/data/types';
 import { fileType, formatBytes } from '@/lib/format/bytes';
 import { vimeoPlayerUrl } from '@/lib/video/vimeo';
+import type { QuizView } from '../api/quizView';
 import { partFileHref } from '../paths';
+import { QuizBlock } from './QuizBlock';
 import styles from './StepParts.module.css';
 
 function DownloadBlock({ part, filePath, programSlug }: { part: Part; filePath: string; programSlug: string }) {
@@ -22,7 +25,9 @@ function DownloadBlock({ part, filePath, programSlug }: { part: Part; filePath: 
   );
 }
 
-function PartBlock({ part, programSlug }: { part: Part; programSlug: string }) {
+type Quizzes = Record<string, QuizView>;
+
+function PartBlock({ part, programSlug, quizzes }: { part: Part; programSlug: string; quizzes: Quizzes }) {
   switch (part.kind) {
     case 'video':
       return part.vimeoId ? (
@@ -30,12 +35,20 @@ function PartBlock({ part, programSlug }: { part: Part; programSlug: string }) {
       ) : null;
     case 'download':
       return part.filePath ? <DownloadBlock part={part} filePath={part.filePath} programSlug={programSlug} /> : null;
+    case 'quiz': {
+      const quiz = quizzes[part.id];
+      return quiz ? (
+        <QuizBlock quiz={quiz} passPercent={part.passPercent} programSlug={programSlug} stepId={part.stepId} partId={part.id} />
+      ) : null;
+    }
     default:
       return part.text ? <Text className={styles.text}>{part.text}</Text> : null;
   }
 }
 
-export function StepParts({ parts, programSlug }: { parts: Part[]; programSlug: string }) {
+type Props = { parts: Part[]; programSlug: string; quizzes?: Quizzes };
+
+export function StepParts({ parts, programSlug, quizzes = {} }: Props) {
   return (
     <Stack gap="loose">
       {parts.map((part) => (
@@ -45,7 +58,7 @@ export function StepParts({ parts, programSlug }: { parts: Part[]; programSlug: 
               {part.title}
             </Heading>
           ) : null}
-          <PartBlock part={part} programSlug={programSlug} />
+          <PartBlock part={part} programSlug={programSlug} quizzes={quizzes} />
         </section>
       ))}
     </Stack>

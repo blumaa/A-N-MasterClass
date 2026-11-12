@@ -13,6 +13,8 @@ export function accessLabel(access: StepAccess, now: Date): string | null {
       return 'Enrol to unlock';
     case 'locked':
       return 'Complete the previous lesson to unlock';
+    case 'quiz_locked':
+      return 'Pass the quiz to unlock';
     case 'drip': {
       const days = Math.ceil((access.opensAt.getTime() - now.getTime()) / DAY_MS);
       return days <= 1 ? 'Opens tomorrow' : `Opens in ${days} days`;

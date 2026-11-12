@@ -1,4 +1,4 @@
-// Student view of a program: modules, steps, access state, progress (G6, G7, G8).
+// Student view of a program: modules, steps, access state, progress (G6, G7, G8, G26 quiz lock).
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { Module, Product, Step } from '@/lib/data/types';
@@ -37,7 +37,14 @@ export async function programOutline(
     profileId ? repo.activeGrant(program.id, profileId, now) : null,
   ]);
   const steps = await repo.steps(modules.map((m) => m.id));
-  const done = profileId ? await repo.completedStepIds(profileId, steps.map((s) => s.id)) : new Set<string>();
+  const gateQuizIds = modules.flatMap((m) => (m.unlockQuizPartId ? [m.unlockQuizPartId] : []));
+  const [done, attempts] = profileId
+    ? await Promise.all([
+        repo.completedStepIds(profileId, steps.map((s) => s.id)),
+        repo.quizAttempts(profileId, gateQuizIds),
+      ])
+    : [new Set<string>(), []];
+  const passedQuizPartIds = new Set(attempts.filter((a) => a.passed).map((a) => a.partId));
 
   const accessOf = (m: Module, stepStatus: Step['status']): StepAccess =>
     stepAccess({
@@ -45,10 +52,12 @@ export async function programOutline(
       moduleStatus: m.status,
       stepStatus,
       unlockAfterStepId: m.unlockAfterStepId,
+      unlockQuizPartId: m.unlockQuizPartId,
       releaseAfterDays: m.releaseAfterDays,
       releaseAt: m.releaseAt,
       grantedAt: grant?.grantedAt ?? null,
       completedStepIds: done,
+      passedQuizPartIds,
       isEditor,
       now,
     });

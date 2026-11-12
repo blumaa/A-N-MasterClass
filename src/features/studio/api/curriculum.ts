@@ -2,11 +2,12 @@
 // (G15) and that the target row lives in the viewer's space (tenant wall before RLS).
 // Download parts: the file is uploaded first (FileUpload, kind program); a new path must sit in the
 // program's folder (isProductPath). Objects of deleted or replaced files go after the DB write.
+// Quiz questions (G26) sit on quiz parts; a module can lock until a quiz of the same program is passed.
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
-import type { Direction, ModulePatch, PartPatch, ProductPatch, Repo, StepPatch } from '@/lib/data/repo';
-import type { Module, Part, PartKind, Product, Step } from '@/lib/data/types';
+import type { Direction, ModulePatch, PartPatch, ProductPatch, QuizQuestionInput, Repo, StepPatch } from '@/lib/data/repo';
+import type { Module, Part, PartKind, Product, QuizQuestion, Step } from '@/lib/data/types';
 import type { FileStore } from '@/lib/storage/fileStore';
 import { isProductPath } from '@/lib/storage/uploadPath';
 
@@ -33,6 +34,22 @@ export async function curriculum(repo: Repo, viewer: Viewer, programSlug: string
   };
 }
 
+/** A question with its answer key, for the Studio editor only. */
+export type EditorQuestion = Omit<QuizQuestion, 'options'> & { options: { id: string; label: string; correct: boolean }[] };
+
+/** Questions with keys by quiz part id. null = not an editor. */
+export async function quizEditor(repo: Repo, viewer: Viewer, parts: Part[]): Promise<Record<string, EditorQuestion[]> | null> {
+  if (!viewerCan(viewer, 'products.edit')) return null;
+  const ids = parts.filter((p) => p.kind === 'quiz').map((p) => p.id);
+  if (ids.length === 0) return {};
+  const [questions, key] = await Promise.all([repo.quizQuestions(ids), repo.quizKey(ids)]);
+  const byPart: Record<string, EditorQuestion[]> = Object.fromEntries(ids.map((id) => [id, []]));
+  for (const q of questions) {
+    byPart[q.partId]?.push({ ...q, options: q.options.map((o) => ({ ...o, correct: key.has(o.id) })) });
+  }
+  return byPart;
+}
+
 export type CurriculumCommand =
   | { op: 'createProgram'; title: string; slug: string }
   | { op: 'updateProgram'; programId: string; patch: ProductPatch }
@@ -45,6 +62,8 @@ export type CurriculumCommand =
   | { op: 'createPart'; stepId: string; kind: PartKind }
   | { op: 'updatePart'; partId: string; patch: PartPatch }
   | { op: 'deletePart'; partId: string }
+  | ({ op: 'saveQuestion' } & QuizQuestionInput)
+  | { op: 'deleteQuestion'; questionId: string }
   | { op: 'move'; table: 'modules' | 'steps' | 'parts'; id: string; direction: Direction };
 
 
@@ -61,6 +80,16 @@ async function programOfPart(repo: Repo, partId: string): Promise<Product | null
   const p = await repo.part(partId);
   return p ? programOfStep(repo, p.stepId) : null;
 }
+/** Only a quiz part owns questions; an edited question must already belong to it. */
+async function programOfQuiz(repo: Repo, partId: string, questionId: string | null): Promise<Product | null> {
+  const [part, question] = await Promise.all([repo.part(partId), questionId ? repo.quizQuestion(questionId) : null]);
+  if (part?.kind !== 'quiz' || (questionId && question?.partId !== partId)) return null;
+  return programOfStep(repo, part.stepId);
+}
+async function programOfQuestion(repo: Repo, questionId: string): Promise<Product | null> {
+  const q = await repo.quizQuestion(questionId);
+  return q ? programOfPart(repo, q.partId) : null;
+}
 
 const targetOf: { [K in CurriculumCommand['op']]: (repo: Repo, c: Extract<CurriculumCommand, { op: K }>) => Promise<Product | null> | null } = {
   createProgram: () => null,
@@ -74,6 +103,8 @@ const targetOf: { [K in CurriculumCommand['op']]: (repo: Repo, c: Extract<Curric
   createPart: (repo, c) => programOfStep(repo, c.stepId),
   updatePart: (repo, c) => programOfPart(repo, c.partId),
   deletePart: (repo, c) => programOfPart(repo, c.partId),
+  saveQuestion: (repo, c) => programOfQuiz(repo, c.partId, c.questionId),
+  deleteQuestion: (repo, c) => programOfQuestion(repo, c.questionId),
   move: (repo, c) =>
     c.table === 'modules' ? programOfModule(repo, c.id) : c.table === 'steps' ? programOfStep(repo, c.id) : programOfPart(repo, c.id),
 };
@@ -112,6 +143,10 @@ async function run(repo: Repo, files: FileStore, viewer: Viewer, c: CurriculumCo
         const gate = await programOfStep(repo, c.patch.unlockAfterStepId);
         if (gate?.id !== program.id) throw new ConstraintError('gate step must belong to this program');
       }
+      if (c.patch.unlockQuizPartId && program) {
+        const quiz = await programOfQuiz(repo, c.patch.unlockQuizPartId, null);
+        if (quiz?.id !== program.id) throw new ConstraintError('gate quiz must be a quiz in this program');
+      }
       await repo.updateModule(c.moduleId, c.patch);
       return;
     case 'deleteModule': {
@@ -135,6 +170,10 @@ async function run(repo: Repo, files: FileStore, viewer: Viewer, c: CurriculumCo
       const old = (await repo.part(c.partId))?.filePath;
       return thenRemove(files, old ? [old] : [], () => repo.deletePart(c.partId));
     }
+    case 'saveQuestion':
+      return repo.saveQuizQuestion({ partId: c.partId, questionId: c.questionId, prompt: c.prompt, options: c.options });
+    case 'deleteQuestion':
+      return void (await repo.deleteQuizQuestion(c.questionId));
     case 'move':
       return void (await repo.move(c.table, c.id, c.direction));
   }

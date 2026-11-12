@@ -1172,6 +1172,7 @@ export type Database = {
           status: string
           title: string
           unlock_after_step_id: string | null
+          unlock_quiz_part_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1184,6 +1185,7 @@ export type Database = {
           status?: string
           title: string
           unlock_after_step_id?: string | null
+          unlock_quiz_part_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1196,6 +1198,7 @@ export type Database = {
           status?: string
           title?: string
           unlock_after_step_id?: string | null
+          unlock_quiz_part_id?: string | null
         }
         Relationships: [
           {
@@ -1210,6 +1213,13 @@ export type Database = {
             columns: ["unlock_after_step_id"]
             isOneToOne: false
             referencedRelation: "steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modules_unlock_quiz_fk"
+            columns: ["unlock_quiz_part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
             referencedColumns: ["id"]
           },
         ]
@@ -1566,6 +1576,7 @@ export type Database = {
           file_size: number | null
           id: string
           kind: string
+          pass_percent: number | null
           position: number
           poster_path: string | null
           step_id: string
@@ -1581,6 +1592,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           kind: string
+          pass_percent?: number | null
           position?: number
           poster_path?: string | null
           step_id: string
@@ -1596,6 +1608,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           kind?: string
+          pass_percent?: number | null
           position?: number
           poster_path?: string | null
           step_id?: string
@@ -2014,6 +2027,132 @@ export type Database = {
             columns: ["space_id"]
             isOneToOne: false
             referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          correct_question_ids: string[]
+          created_at: string
+          id: string
+          part_id: string
+          passed: boolean
+          profile_id: string
+          score: number
+        }
+        Insert: {
+          correct_question_ids?: string[]
+          created_at?: string
+          id?: string
+          part_id: string
+          passed: boolean
+          profile_id: string
+          score: number
+        }
+        Update: {
+          correct_question_ids?: string[]
+          created_at?: string
+          id?: string
+          part_id?: string
+          passed?: boolean
+          profile_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_attempts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_keys: {
+        Row: {
+          option_id: string
+        }
+        Insert: {
+          option_id: string
+        }
+        Update: {
+          option_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_keys_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: true
+            referencedRelation: "quiz_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_options: {
+        Row: {
+          id: string
+          label: string
+          position: number
+          question_id: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          position?: number
+          question_id: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          position?: number
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_questions: {
+        Row: {
+          id: string
+          multiple: boolean
+          part_id: string
+          position: number
+          prompt: string
+        }
+        Insert: {
+          id?: string
+          multiple?: boolean
+          part_id: string
+          position?: number
+          prompt: string
+        }
+        Update: {
+          id?: string
+          multiple?: boolean
+          part_id?: string
+          position?: number
+          prompt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
             referencedColumns: ["id"]
           },
         ]
@@ -2800,6 +2939,7 @@ export type Database = {
         Args: { direction: string; target_id: string; target_table: string }
         Returns: undefined
       }
+      part_space: { Args: { target_part: string }; Returns: string }
       payment_secret: {
         Args: { target_env: string; target_space: string }
         Returns: string
@@ -2884,6 +3024,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_quiz_question: {
+        Args: {
+          option_correct: boolean[]
+          option_labels: string[]
+          question_prompt: string
+          target_part: string
+          target_question: string
+        }
+        Returns: string
+      }
       sees_leaderboard: { Args: { target_community: string }; Returns: boolean }
       set_order_status: {
         Args: { new_status: string; target_order: string }
@@ -2923,6 +3073,24 @@ export type Database = {
         Returns: string
       }
       step_space: { Args: { target_step: string }; Returns: string }
+      submit_quiz: {
+        Args: { picked: string[]; target_part: string }
+        Returns: {
+          correct_question_ids: string[]
+          created_at: string
+          id: string
+          part_id: string
+          passed: boolean
+          profile_id: string
+          score: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quiz_attempts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       thread_folder: { Args: { target_thread: string }; Returns: string }
       zoned_to_utc: { Args: { local: string; zone: string }; Returns: string }
     }

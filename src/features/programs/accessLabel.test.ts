@@ -11,6 +11,7 @@ describe('accessLabel', () => {
   });
   it('explains locks and missing grants', () => {
     expect(accessLabel({ kind: 'locked', afterStepId: 's' }, NOW)).toMatch(/previous lesson/);
+    expect(accessLabel({ kind: 'quiz_locked', quizPartId: 'q' }, NOW)).toBe('Pass the quiz to unlock');
     expect(accessLabel({ kind: 'no_grant' }, NOW)).toMatch(/Enrol/);
   });
 });

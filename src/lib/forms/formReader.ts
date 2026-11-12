@@ -19,7 +19,9 @@ export function formReader(form: FormData) {
   /** Every non-blank string value of a repeated field, trimmed. */
   const all = (name: string): string[] =>
     form.getAll(name).flatMap((v) => (typeof v === 'string' && v.trim() ? [v.trim()] : []));
-  return { raw, required, oneOf, all };
+  /** Every string value of a repeated field, trimmed, blanks kept (row index = position). */
+  const rows = (name: string): string[] => form.getAll(name).flatMap((v) => (typeof v === 'string' ? [v.trim()] : []));
+  return { raw, required, oneOf, all, rows };
 }
 
 export type FormReader = ReturnType<typeof formReader>;

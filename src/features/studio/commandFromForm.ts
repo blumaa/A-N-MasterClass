@@ -4,6 +4,7 @@ import type { Direction } from '@/lib/data/repo';
 import { FormError, formReader, optional, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
 import { readWhole, titleAndSlug } from '@/lib/forms/commands';
 import { PART_KINDS, PUBLISH_STATUSES, type PartKind } from '@/lib/data/types';
+import { quizOptionsOf } from '@/lib/programs/quiz';
 import { vimeoIdOf } from '@/lib/video/vimeo';
 import type { CurriculumCommand } from './api/curriculum';
 
@@ -22,6 +23,10 @@ function asDays(v: string): number {
 function asDate(v: string): Date {
   if (!DATE.test(v)) throw new FormError('Use a date like 2026-12-01.');
   return new Date(`${v}T00:00:00Z`);
+}
+function asPercent(v: string): number {
+  if (!/^\d+$/.test(v)) throw new FormError('Pass mark must be a whole number.');
+  return Number(v);
 }
 function asVimeoId(v: string): string {
   const id = vimeoIdOf(v);
@@ -59,6 +64,7 @@ const PARSERS: Record<CurriculumCommand['op'], (r: Reader) => CurriculumCommand>
       ...optional(r, 'description', asText),
       ...statusField(r),
       ...optional(r, 'unlockAfterStepId', asText),
+      ...optional(r, 'unlockQuizPartId', asText),
       ...optional(r, 'releaseAfterDays', asDays),
       ...optional(r, 'releaseAt', asDate),
     },
@@ -81,11 +87,21 @@ const PARSERS: Record<CurriculumCommand['op'], (r: Reader) => CurriculumCommand>
         ...optional(r, 'title', asText),
         ...optional(r, 'text', asText),
         ...fileFields(r),
+        ...optional(r, 'passPercent', asPercent),
         ...(video === undefined ? {} : { vimeoId: video === '' ? null : asVimeoId(video) }),
       },
     };
   },
   deletePart: (r) => ({ op: 'deletePart', partId: r.required('partId') }),
+  // Option rows: label inputs named `option`, ticked `correct` boxes carry the row index.
+  saveQuestion: (r) => ({
+    op: 'saveQuestion',
+    partId: r.required('partId'),
+    questionId: r.raw('questionId') || null,
+    prompt: r.required('prompt'),
+    options: quizOptionsOf(r.rows('option'), r.all('correct')),
+  }),
+  deleteQuestion: (r) => ({ op: 'deleteQuestion', questionId: r.required('questionId') }),
   move: (r) => ({
     op: 'move',
     table: r.oneOf('table', TABLES),

@@ -95,6 +95,7 @@ export function seedDb(now: Date = new Date()): Db {
     position,
     status: 'published' as const,
     unlockAfterStepId: null,
+    unlockQuizPartId: null,
     releaseAfterDays: null,
     releaseAt: null,
     ...extra,
@@ -134,6 +135,7 @@ export function seedDb(now: Date = new Date()): Db {
     aspect: null,
     filePath: null,
     fileSize: null,
+    passPercent: null,
     ...extra,
   });
   db.parts.push(

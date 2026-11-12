@@ -1,10 +1,13 @@
 // One content block on a step (G6): fields by kind, reorder, delete.
 // Download: file goes straight to Storage in the program folder (FileUpload); the form saves path + size.
+// Quiz: pass mark here, questions in QuizEditor (G26).
 import { FileUpload } from '@/components/FileUpload/FileUpload';
 import { Badge, Card, CardBody, Field, Input, Stack, Textarea } from '@/components/ui/mds';
 import type { Part } from '@/lib/data/types';
+import type { EditorQuestion } from '../api/curriculum';
 import { CommandForm } from './CommandForm';
 import { MoveButtons } from './MoveButtons';
+import { QuizEditor } from './QuizEditor';
 import styles from './Curriculum.module.css';
 
 function KindFields({ part, programId }: { part: Part; programId: string }) {
@@ -26,6 +29,12 @@ function KindFields({ part, programId }: { part: Part; programId: string }) {
           current={part.filePath ? { path: part.filePath, bytes: part.fileSize ?? 0 } : undefined}
         />
       );
+    case 'quiz':
+      return (
+        <Field label="Pass mark (%)" hint="Blank = any attempt passes.">
+          <Input name="passPercent" type="number" min={1} max={100} defaultValue={part.passPercent ?? ''} />
+        </Field>
+      );
     default:
       return (
         <Field label="Text">
@@ -35,9 +44,9 @@ function KindFields({ part, programId }: { part: Part; programId: string }) {
   }
 }
 
-type Props = { programId: string; part: Part; first: boolean; last: boolean };
+type Props = { programId: string; part: Part; first: boolean; last: boolean; questions?: EditorQuestion[] };
 
-export function PartEditor({ programId, part, first, last }: Props) {
+export function PartEditor({ programId, part, first, last, questions = [] }: Props) {
   return (
     <Card variant="sunken">
       <CardBody>
@@ -52,6 +61,7 @@ export function PartEditor({ programId, part, first, last }: Props) {
             </Field>
             <KindFields part={part} programId={programId} />
           </CommandForm>
+          {part.kind === 'quiz' ? <QuizEditor partId={part.id} questions={questions} /> : null}
           <CommandForm
             inline
             variant="danger"
