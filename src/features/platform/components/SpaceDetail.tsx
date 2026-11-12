@@ -66,7 +66,7 @@ export function SpaceDetail({ detail, spaceUrl }: { detail: PlatformSpaceDetail;
                 action={platformAction}
                 fields={{ op: 'removeDomain', ...slug, host: d.host }}
                 submit="Remove"
-                variant="danger"
+                variant="ghost"
                 confirm={`Remove ${d.host}?`}
                 inline
               />

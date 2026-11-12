@@ -238,6 +238,11 @@ describe('check:tokens — every --mds-* used is declared', () => {
     });
     expect(run('check-tokens.mjs', root).code).toBe(0);
   });
+
+  it('passes on a slot MDS components publish (not a token)', () => {
+    const root = fixture({ 'a.module.css': `.a {\n  width: var(--mds-icon-slot, var(--mds-icon-md));\n}\n` });
+    expect(run('check-tokens.mjs', root).code).toBe(0);
+  });
 });
 
 describe('check:sql — every SQL suite fails loudly', () => {

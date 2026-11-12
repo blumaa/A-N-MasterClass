@@ -53,7 +53,7 @@ export function QuizEditor({ partId, questions }: { partId: string; questions: E
               <QuestionForm partId={partId} question={q} />
               <CommandForm
                 inline
-                variant="danger"
+                variant="ghost"
                 fields={{ op: 'deleteQuestion', questionId: q.id }}
                 submit="Delete question"
                 confirm="Delete this question?"

@@ -21,7 +21,7 @@ function count(r: FormReader, name: string): number | null {
   return Number(v);
 }
 
-/** Price type (G5). Fields of other types stay in the form unseen; only this type's are kept. */
+/** Price type (G5). Only this type's fields are kept; others are ignored if sent. */
 function terms(r: FormReader): OfferTerms {
   const kind = r.oneOf('kind', OFFER_KINDS);
   if (kind === 'one_time') return { kind, billingInterval: null, trialDays: null, installments: null };

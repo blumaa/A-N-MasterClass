@@ -3,13 +3,13 @@ import type { BrandGraph } from './parseBrandCss';
 
 export const BRAND_GRAPH: BrandGraph = {
   "light": {
-    "--brand-accent": "#1f4fbf",
-    "--brand-accent-soft": "#dde5f6",
+    "--brand-accent": "#9a4a2c",
+    "--brand-accent-soft": "#f3e3d8",
     "--brand-page": "#fdfaf1",
     "--brand-card": "#ffffff",
-    "--brand-hairline": "#e2e2e2",
-    "--brand-mid": "#898989",
-    "--brand-ink": "#333333",
+    "--brand-hairline": "#e7dfd2",
+    "--brand-mid": "#857c6f",
+    "--brand-ink": "#2f2a24",
     "--br-sand-50": "var(--brand-card)",
     "--br-sand-100": "var(--brand-page)",
     "--br-sand-200": "color-mix(in oklab, var(--brand-page), var(--brand-hairline) 38%)",

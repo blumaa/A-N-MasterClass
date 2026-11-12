@@ -1,6 +1,7 @@
 // Generic editor for one page section, driven by SECTION_SPECS (G11). Posts fields as
 // `f.<name>` and item rows as `i.<row>.<name>`; one blank row adds an item, blank rows drop.
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
+import { MoveButtons } from '@/components/MoveButtons/MoveButtons';
 import { Badge, Card, CardBody, Field, Heading, Input, Select, Stack, Text, Textarea } from '@/components/ui/mds';
 import type { ImageUrls } from '@/lib/site/sectionImages';
 import { SECTION_SPECS, isRefType, type FieldSpec, type RefType, type SectionChoices, type SiteSection } from '@/lib/site/sections';
@@ -107,11 +108,10 @@ export function SectionEditor({ pageId, section, choices, images = NO_IMAGES, fi
           </SiteForm>
 
           <div className={styles.actions}>
-            {first ? null : <SiteForm inline variant="ghost" submit="Move up" fields={{ op: 'moveSection', ...ref, direction: 'up' }} />}
-            {last ? null : <SiteForm inline variant="ghost" submit="Move down" fields={{ op: 'moveSection', ...ref, direction: 'down' }} />}
+            <MoveButtons form={SiteForm} fields={{ op: 'moveSection', ...ref }} first={first} last={last} />
             <SiteForm inline variant="ghost" submit={section.hidden ? 'Show' : 'Hide'} fields={{ op: 'toggleSection', ...ref }} />
             <SiteForm inline variant="ghost" submit="Duplicate" fields={{ op: 'duplicateSection', ...ref }} />
-            <SiteForm inline variant="danger" submit="Remove" confirm="Remove this section?" fields={{ op: 'removeSection', ...ref }} />
+            <SiteForm inline variant="ghost" submit="Remove" confirm="Remove this section?" fields={{ op: 'removeSection', ...ref }} />
           </div>
         </Stack>
       </CardBody>

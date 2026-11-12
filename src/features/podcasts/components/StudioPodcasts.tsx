@@ -80,7 +80,7 @@ function Podcast({ podcast: { product: p, settings: s, episodes }, imageSrc }: {
             <PodcastForm fields={{ op: 'updateEpisode', episodeId: e.id }} submit="Save episode">
               <EpisodeFields productId={p.id} e={e} />
             </PodcastForm>
-            <PodcastForm inline variant="danger" submit="Delete episode" confirm={`Delete "${e.title}"?`} fields={{ op: 'deleteEpisode', episodeId: e.id }} />
+            <PodcastForm inline variant="ghost" submit="Delete episode" confirm={`Delete "${e.title}"?`} fields={{ op: 'deleteEpisode', episodeId: e.id }} />
           </li>
         ))}
       </ul>

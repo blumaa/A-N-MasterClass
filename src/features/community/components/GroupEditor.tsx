@@ -24,7 +24,7 @@ function GroupRow({ group }: { group: AccessGroup }) {
       {group.isDefault ? null : (
         <CommunityForm
           inline
-          variant="danger"
+          variant="ghost"
           submit="Delete"
           confirm={`Delete group "${group.title}"?`}
           fields={{ op: 'deleteGroup', ...id }}

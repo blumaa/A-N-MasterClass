@@ -111,7 +111,7 @@ function Hours({ rules, defaultHours, timeZone }: Pick<Data, 'rules' | 'defaultH
         {rules.map((r) => (
           <li key={r.id} className={styles.row}>
             <Text>{`${WEEKDAY_NAMES[r.weekday]} ${clockLabel(r.startMinute)} – ${clockLabel(r.endMinute)}`}</Text>
-            <CoachingForm inline variant="danger" submit="Remove" fields={{ op: 'deleteRule', ruleId: r.id }} />
+            <CoachingForm inline variant="ghost" submit="Remove" fields={{ op: 'deleteRule', ruleId: r.id }} />
           </li>
         ))}
       </ul>
@@ -152,7 +152,7 @@ function Overrides({ overrides }: Pick<Data, 'overrides'>) {
         {overrides.map((o) => (
           <li key={o.id} className={styles.row}>
             <Text>{overrideLabel(o)}</Text>
-            <CoachingForm inline variant="danger" submit="Remove" fields={{ op: 'deleteOverride', overrideId: o.id }} />
+            <CoachingForm inline variant="ghost" submit="Remove" fields={{ op: 'deleteOverride', overrideId: o.id }} />
           </li>
         ))}
       </ul>

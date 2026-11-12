@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CouponEditor } from './CouponEditor';
 import { coupon } from './fixtures';
@@ -18,6 +18,7 @@ describe('CouponEditor', () => {
     expect(screen.getByLabelText('Code')).toHaveValue('SAVE10');
     expect(screen.getByLabelText('Discount type')).toHaveValue('percent');
     expect(screen.getByLabelText('Discount')).toHaveValue('10');
+    expect(screen.queryByLabelText('Currency')).toBeNull();
     expect(screen.getByLabelText('Max uses')).toHaveValue('20');
     expect(screen.getByLabelText('Expires on')).toHaveValue('2026-12-31');
     expect(screen.getByLabelText('Once per customer (by email)')).toBeChecked();
@@ -34,5 +35,11 @@ describe('CouponEditor', () => {
     expect(screen.getByLabelText('Discount')).toHaveValue('5.50');
     expect(screen.getByLabelText('Currency')).toHaveValue('USD');
     expect(screen.getByRole('button', { name: 'Delete coupon' })).toBeInTheDocument();
+  });
+
+  it('shows the currency only once the discount is an amount', () => {
+    render(<CouponEditor detail={{ coupon: coupon(), uses: 0, offers }} now={NOW} />);
+    fireEvent.change(screen.getByLabelText('Discount type'), { target: { value: 'amount' } });
+    expect(screen.getByLabelText('Currency')).toHaveValue('EUR');
   });
 });

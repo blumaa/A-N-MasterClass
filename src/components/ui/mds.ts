@@ -15,6 +15,8 @@ export {
   Field,
   FileDrop,
   Heading,
+  Icon,
+  IconProvider,
   Inline,
   Link,
   Popover,

@@ -20,7 +20,7 @@ describe('brandGraph.generated.ts', () => {
 describe('DEFAULT_BRAND', () => {
   it('holds every brand input as the brand.css default', () => {
     expect(Object.keys(DEFAULT_BRAND).toSorted()).toEqual([...BRAND_INPUTS].toSorted());
-    expect(DEFAULT_BRAND.accent).toBe('#1f4fbf');
+    expect(DEFAULT_BRAND.accent).toBe('#9a4a2c');
   });
 });
 
@@ -28,8 +28,8 @@ describe('resolveBrand', () => {
   const light = resolveBrand(DEFAULT_BRAND, 'light');
 
   it('follows var() chains to the input', () => {
-    expect(toHex(light('--mds-text-primary'))).toBe('#333333');
-    expect(toHex(light('--mds-accent'))).toBe('#1f4fbf');
+    expect(toHex(light('--mds-text-primary'))).toBe('#2f2a24');
+    expect(toHex(light('--mds-accent'))).toBe('#9a4a2c');
   });
 
   it('evaluates color-mix against the given inputs', () => {

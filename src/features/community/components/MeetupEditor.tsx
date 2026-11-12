@@ -57,7 +57,7 @@ export function MeetupEditor({ communityId, groups, channels, meetups }: Props) 
             </EventsForm>
             <EventsForm
               inline
-              variant="danger"
+              variant="ghost"
               submit="Delete"
               confirm={`Delete meetup "${m.title}"?`}
               fields={{ op: 'deleteMeetup', meetupId: m.id }}

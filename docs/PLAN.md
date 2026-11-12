@@ -373,6 +373,16 @@ UI pass 2 (demo content, visitor reads) as built:
 - Browser icon: `/brand-icon.svg` route per space, first letter on ink (logo replaces it once uploaded). Route handler, not `icon.tsx`, because that convention links `/<slug>/icon`, which the host rewrite breaks.
 - `Viewer` is now a union: signed in (profile + displayName) or visitor (both null).
 
+UI pass 3 (walkthroughs: visitor, member, phone, Studio, platform) as built:
+- G25 legal pages, export and account delete done.
+- Toasts on every save; loading states on every route.
+- Edit-form saves are the main button by default (`ActionForm` variant rule); inline and input-less forms stay secondary.
+- UI shows labels, never stored values: `src/lib/labels.ts` (publish status, role, product kind), `PublishStatusBadge`, space status labels on the platform.
+- Fake seed has a platform admin (`user-platform`, platform@example.test) that owns no space.
+- Forgot password: blocked on transactional email.
+- Done: offer form shows only the chosen price type's fields; coupon currency only for amount coupons; shared icon Move up/down buttons (MDS IconProvider, app icon set); row-level Remove is ghost, danger kept for a page's one destructive action; default accent is warm clay `#9a4a2c` with warm neutrals; token gate reads MDS component slots (`--mds-icon-slot`).
+- Still open: MDS Avatar initials keep punctuation ("Robin (student)" gives "R("; fix in MDS `initials()`: first letter or digit per word), MDS badge/meta text is mono with no brand font slot (MDS), text part is a plain textarea (not TipTap).
+
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 
 **Later** — drip release emails (`pg_cron`), embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.

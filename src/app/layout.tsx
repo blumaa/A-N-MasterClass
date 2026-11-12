@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import '@mond-design-system/tokens/styles.css';
 import '@mond-design-system/react/styles.css';
 import '@/tokens/brand.css'; // last: brand wins by cascade order (MDS README)
+import { Icons } from '@/components/Icons/Icons';
 import { Toasts } from '@/components/Toasts/Toasts';
 import { fontVariables } from '@/lib/fonts/nextFonts';
 
@@ -15,7 +16,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={fontVariables}>
       <body>
-        <Toasts>{children}</Toasts>
+        <Icons>
+          <Toasts>{children}</Toasts>
+        </Icons>
       </body>
     </html>
   );

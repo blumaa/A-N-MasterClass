@@ -57,7 +57,7 @@ function Session({ m, s }: { m: Meetup; s: StudioSession }) {
           </EventsForm>
           <EventsForm
             inline
-            variant="danger"
+            variant="ghost"
             submit="Cancel event"
             confirm="Cancel this event? RSVPs to the cancelled events are removed."
             fields={{ op: 'cancelOccurrence', ...ids }}

@@ -66,4 +66,10 @@ describe('ActionForm', () => {
     expect(screen.getByRole('button', { name: 'Add' }).className).not.toMatch(/primary/);
     expect(screen.getByRole('button', { name: 'Hide' }).className).not.toMatch(/primary/);
   });
+
+  it('shows an icon-only button named by the submit text', () => {
+    render(<ActionForm action={vi.fn(async () => null)} fields={{}} submit="Move up" icon="arrow-up" inline />);
+    const button = screen.getByRole('button', { name: 'Move up' });
+    expect(button).not.toHaveTextContent('Move up');
+  });
 });

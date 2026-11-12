@@ -3,6 +3,7 @@
 import { Badge, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
 import { CHANNEL_KINDS, CHANNEL_PRIVACIES, type AccessGroup, type Channel } from '@/lib/data/types';
 import type { DirectoryEntry } from '../api/feed';
+import { MoveButtons } from '@/components/MoveButtons/MoveButtons';
 import { CommunityForm } from './CommunityForm';
 import { ChoiceSelect, YesNoSelect } from '@/components/fields/fields';
 import { KIND_LABELS, PRIVACY_LABELS } from './labels';
@@ -89,11 +90,10 @@ function ChannelRow({ channel, group, first, last, members, picked, moderators }
         {moderators ? <Picker kind="moderators" channel={channel} candidates={readers} picked={moderators} /> : null}
       </Stack>
       <div className={styles.rowActions}>
-        {first ? null : <CommunityForm inline variant="ghost" submit="Move up" fields={{ op: 'moveChannel', ...id, direction: 'up' }} />}
-        {last ? null : <CommunityForm inline variant="ghost" submit="Move down" fields={{ op: 'moveChannel', ...id, direction: 'down' }} />}
+        <MoveButtons form={CommunityForm} fields={{ op: 'moveChannel', ...id }} first={first} last={last} />
         <CommunityForm
           inline
-          variant="danger"
+          variant="ghost"
           submit="Delete"
           confirm={`Delete channel "${channel.title}" and everything in it?`}
           fields={{ op: 'deleteChannel', ...id }}

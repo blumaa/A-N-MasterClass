@@ -3,7 +3,7 @@
 // Deterministic: no optimistic UI, the page refreshes from the server after the action.
 // Errors show inline beside the inputs; success shows as a toast (returned message, else `done`).
 import { useActionState, type FormEvent, type ReactNode } from 'react';
-import { Button, Text, useToast } from '@/components/ui/mds';
+import { Button, Icon, Text, useToast } from '@/components/ui/mds';
 import styles from './ActionForm.module.css';
 
 /** A message is an error unless ok (then a success note). */
@@ -16,14 +16,17 @@ export type ActionFormProps = {
   submit: string;
   children?: ReactNode;
   confirm?: string;
-  /** Default: primary for a stacked form with inputs (an edit form's save), else secondary. */
+  /** Default: primary for a stacked form with inputs (an edit form's save), else secondary.
+   *  danger = the one destructive action of a page; removing a row in a list uses ghost. */
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   inline?: boolean;
+  /** Icon name (see Icons): shows an icon-only button; `submit` becomes its accessible name. */
+  icon?: string;
   /** Toast shown when the action succeeds without a message. Omit for self-evident actions. */
   done?: string;
 };
 
-export function ActionForm({ action, fields, submit, children, confirm, variant, inline = false, done }: ActionFormProps) {
+export function ActionForm({ action, fields, submit, children, confirm, variant, inline = false, icon, done }: ActionFormProps) {
   const { toast } = useToast();
   const [state, formAction, pending] = useActionState(async (prev: ActionState, form: FormData) => {
     const next = await action(prev, form);
@@ -41,9 +44,15 @@ export function ActionForm({ action, fields, submit, children, confirm, variant,
       ))}
       {children}
       <div>
-        <Button type="submit" variant={variant ?? (children && !inline ? 'primary' : 'secondary')} size="sm" loading={pending}>
-          {submit}
-        </Button>
+        {icon ? (
+          <Button type="submit" variant={variant ?? 'ghost'} size="sm" loading={pending} iconOnly aria-label={submit}>
+            <Icon name={icon} />
+          </Button>
+        ) : (
+          <Button type="submit" variant={variant ?? (children && !inline ? 'primary' : 'secondary')} size="sm" loading={pending}>
+            {submit}
+          </Button>
+        )}
       </div>
       {state && !state.ok ? (
         <Text role="alert" tone="danger" variant="note">

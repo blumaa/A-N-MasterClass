@@ -46,7 +46,7 @@ export function ChallengeEditor({ communityId, groups, challenges }: Props) {
             </EventsForm>
             <EventsForm
               inline
-              variant="danger"
+              variant="ghost"
               submit="Delete"
               confirm={`Delete challenge "${c.title}" and its entries?`}
               fields={{ op: 'deleteChallenge', challengeId: c.id }}

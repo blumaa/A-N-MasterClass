@@ -6,7 +6,7 @@ import { Badge, Card, CardBody, Field, Input, Stack, Textarea } from '@/componen
 import type { Part } from '@/lib/data/types';
 import type { EditorQuestion } from '../api/curriculum';
 import { CommandForm } from './CommandForm';
-import { MoveButtons } from './MoveButtons';
+import { MoveButtons } from '@/components/MoveButtons/MoveButtons';
 import { QuizEditor } from './QuizEditor';
 import { PART_KIND_LABELS } from '../partKinds';
 import styles from './Curriculum.module.css';
@@ -54,7 +54,7 @@ export function PartEditor({ programId, part, first, last, questions = [] }: Pro
         <Stack gap="tight">
           <div className={styles.head}>
             <Badge tone="neutral">{PART_KIND_LABELS[part.kind]}</Badge>
-            <MoveButtons table="parts" id={part.id} first={first} last={last} />
+            <MoveButtons form={CommandForm} fields={{ op: 'move', table: 'parts', id: part.id }} first={first} last={last} />
           </div>
           <CommandForm fields={{ op: 'updatePart', partId: part.id }} submit="Save block">
             <Field label="Title" hint="Optional.">
@@ -65,7 +65,7 @@ export function PartEditor({ programId, part, first, last, questions = [] }: Pro
           {part.kind === 'quiz' ? <QuizEditor partId={part.id} questions={questions} /> : null}
           <CommandForm
             inline
-            variant="danger"
+            variant="ghost"
             fields={{ op: 'deletePart', partId: part.id }}
             submit="Delete block"
             confirm="Delete this block?"

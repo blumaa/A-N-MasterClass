@@ -1,0 +1,6 @@
+/* Unsized glyphs take the slot the control publishes, else the md step (MDS Icon contract). */
+.glyph {
+  width: var(--mds-icon-slot, var(--mds-icon-md, 1.25rem));
+  height: var(--mds-icon-slot, var(--mds-icon-md, 1.25rem));
+  flex: none;
+}

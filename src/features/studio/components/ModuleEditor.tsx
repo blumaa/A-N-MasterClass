@@ -6,7 +6,7 @@ import type { Part, Step } from '@/lib/data/types';
 import type { CurriculumModule } from '../api/curriculum';
 import { studioStepHref } from '../paths';
 import { CommandForm } from './CommandForm';
-import { MoveButtons } from './MoveButtons';
+import { MoveButtons } from '@/components/MoveButtons/MoveButtons';
 import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 import styles from './Curriculum.module.css';
 
@@ -32,7 +32,7 @@ export function ModuleEditor({ programSlug, mod, earlierSteps, earlierQuizzes, f
               {mod.title}
             </Heading>
             <PublishStatusBadge status={mod.status} />
-            <MoveButtons table="modules" id={mod.id} first={first} last={last} />
+            <MoveButtons form={CommandForm} fields={{ op: 'move', table: 'modules', id: mod.id }} first={first} last={last} />
           </div>
 
           <details>
@@ -77,7 +77,7 @@ export function ModuleEditor({ programSlug, mod, earlierSteps, earlierQuizzes, f
               <li key={step.id} className={styles.row}>
                 <AppLink href={studioStepHref(programSlug, step.id)}>{step.title}</AppLink>
                 <PublishStatusBadge status={step.status} />
-                <MoveButtons table="steps" id={step.id} first={i === 0} last={i === mod.steps.length - 1} />
+                <MoveButtons form={CommandForm} fields={{ op: 'move', table: 'steps', id: step.id }} first={i === 0} last={i === mod.steps.length - 1} />
               </li>
             ))}
           </ol>
@@ -90,7 +90,7 @@ export function ModuleEditor({ programSlug, mod, earlierSteps, earlierQuizzes, f
             </CommandForm>
             <CommandForm
               inline
-              variant="danger"
+              variant="ghost"
               fields={{ op: 'deleteModule', moduleId: mod.id }}
               submit="Delete module"
               confirm={`Delete "${mod.title}" with all its lessons and student progress?`}

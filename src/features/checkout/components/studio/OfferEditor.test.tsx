@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { OfferEditor } from './OfferEditor';
 import { offer } from './fixtures';
@@ -70,11 +70,20 @@ describe('OfferEditor', () => {
     expect(within(screen.getByLabelText('Upsell')).getByRole('option', { name: 'Monthly' })).toBeInTheDocument();
   });
 
-  it('one-time offer: price type one-time, empty recurring fields', () => {
+  it('one-time offer: price type one-time, no recurring fields', () => {
     render(<OfferEditor detail={detail()} />);
     expect(screen.getByLabelText('Price type')).toHaveValue('one_time');
-    expect(screen.getByLabelText('Trial days')).toHaveValue('');
+    expect(screen.queryByLabelText('Billing interval')).toBeNull();
+    expect(screen.queryByLabelText('Trial days')).toBeNull();
+    expect(screen.queryByLabelText('Number of payments')).toBeNull();
+  });
+
+  it('switching the price type shows only that type\'s fields', () => {
+    render(<OfferEditor detail={detail()} />);
+    fireEvent.change(screen.getByLabelText('Price type'), { target: { value: 'payment_plan' } });
+    expect(screen.getByLabelText('Billing interval')).toHaveValue('month');
     expect(screen.getByLabelText('Number of payments')).toHaveValue('');
+    expect(screen.queryByLabelText('Trial days')).toBeNull();
   });
 
   it('subscription: prefills interval and trial, no order bump (G5)', () => {
@@ -83,6 +92,7 @@ describe('OfferEditor', () => {
     expect(screen.getByLabelText('Price type')).toHaveValue('subscription');
     expect(screen.getByLabelText('Billing interval')).toHaveValue('year');
     expect(screen.getByLabelText('Trial days')).toHaveValue('14');
+    expect(screen.queryByLabelText('Number of payments')).toBeNull();
     expect(screen.queryByLabelText('Order bump')).toBeNull();
     expect(screen.getByLabelText('Upsell')).toBeInTheDocument();
   });
@@ -91,5 +101,6 @@ describe('OfferEditor', () => {
     render(<OfferEditor detail={detail({ kind: 'payment_plan', billingInterval: 'month', installments: 3 })} />);
     expect(screen.getByLabelText('Price type')).toHaveValue('payment_plan');
     expect(screen.getByLabelText('Number of payments')).toHaveValue('3');
+    expect(screen.queryByLabelText('Trial days')).toBeNull();
   });
 });
