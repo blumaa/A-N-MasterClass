@@ -1,4 +1,5 @@
-// One meetup: time in its own zone, RSVP, join link while joinable, replay afterwards.
+// One meetup: time in the member's zone (its own zone as secondary), RSVP, join link while
+// joinable, replay afterwards.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { meetupItem } from '@/features/community/api/meetups';
@@ -8,6 +9,7 @@ import { MeetupDetail } from '@/features/community/components/Meetups';
 import { meetupAction } from '@/features/community/eventsActions';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { currentViewerZone } from '@/lib/time/currentViewerZone';
 
 type Props = PageProps<'/[space]/community/[community]/meetups/[meetup]'>;
 
@@ -28,12 +30,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MeetupRoute({ params }: Props) {
-  const data = await load(params);
+  const [data, viewerZone] = await Promise.all([load(params), currentViewerZone()]);
   if (!data) notFound();
   const { viewer, shell, item } = data;
   return (
     <CommunityFrame community={shell.community} channels={shell.channels} activeId="meetups" extras={shell.nav}>
-      <MeetupDetail community={shell.community.slug} meetup={item} action={meetupAction} signedIn={viewer.profile !== null} />
+      <MeetupDetail
+        community={shell.community.slug}
+        meetup={item}
+        action={meetupAction}
+        signedIn={viewer.profile !== null}
+        viewerZone={viewerZone}
+      />
     </CommunityFrame>
   );
 }

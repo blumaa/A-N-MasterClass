@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clockLabel, slotDays, WEEKDAY_NAMES, zonedText } from './display';
+import { clockLabel, slotDays, WEEKDAY_NAMES } from './display';
 
 describe('clockLabel', () => {
   it('renders minutes after midnight as HH:MM', () => {
@@ -50,23 +50,6 @@ describe('slotDays in the client zone', () => {
       ['Tue, Oct 27', ['03:00']],
       ['Tue, Nov 3', ['03:00']],
     ]);
-  });
-});
-
-describe('zonedText', () => {
-  const start = new Date('2026-11-11T21:30:00Z');
-  const end = new Date('2026-11-11T22:30:00Z');
-
-  it("shows the client's zone first and the coach's when it reads differently", () => {
-    expect(zonedText([start, end], 'Asia/Tokyo', 'Europe/Berlin')).toEqual({
-      local: 'Nov 12, 2026, 6:30 AM GMT+9 – Nov 12, 2026, 7:30 AM GMT+9',
-      coach: 'Nov 11, 2026, 10:30 PM GMT+1 – Nov 11, 2026, 11:30 PM GMT+1',
-    });
-  });
-
-  it('drops the coach line when both zones read the same', () => {
-    expect(zonedText([start], 'Europe/Berlin', 'Europe/Berlin')).toEqual({ local: 'Nov 11, 2026, 10:30 PM GMT+1', coach: null });
-    expect(zonedText([start], 'Europe/Paris', 'Europe/Berlin').coach).toBeNull();
   });
 });
 

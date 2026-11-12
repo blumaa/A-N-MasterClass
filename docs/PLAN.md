@@ -183,7 +183,7 @@ Launch 3 as built:
 - Points: comment on a post 3, reaction given 1 / received 1 (once per member per post, never on own post), DM 1, challenge entry 100. Values editable 0..1000 per community, 0 = off for that action; fixed when earned. Ledger written by triggers only, rows removed with their source, so totals never go negative.
 - Leaderboard: 7 days / 30 days / all time; the week resets Monday 08:00 UTC, the month on the 1st 08:00 UTC. Shown to members, staff only, or off; members also need a group with the leaderboard on.
 - Challenges: window in UTC, one entry per member inside the window, withdraw while open. Entries visible to the author and staff only; staff export CSV. Upcoming challenges hidden unless "show before start".
-- Meetups: times shown in the event's zone. Join link hidden from clients (column privilege), read via `meetup_join_url()`: staff always, members from 15 minutes before the start until the end. RSVP until the end. `.ics` links to the meetup page, not the join link. Replay = Vimeo id, shown after the end.
+- Meetups: times shown in the event's zone (member's zone since Launch 6 item 9 follow-up). Join link hidden from clients (column privilege), read via `meetup_join_url()`: staff always, members from 15 minutes before the start until the end. RSVP until the end. `.ics` links to the meetup page, not the join link. Replay = Vimeo id, shown after the end.
 - Studio: points settings on the community page; challenges + meetups on `studio/communities/[id]/events`. Group toggles: challenges, meetups, leaderboard.
 - Not yet: meetup reminder emails (email provider pending).
 
@@ -316,7 +316,7 @@ Launch 6 item 9 as built:
 - Shown in the client's zone: open slots (grouped by the client's day), session list, session page, reschedule slots. Coach's zone stays as secondary text (field hint, "Coach: ...", "Coach's time: ...") when it reads differently. `.ics` stays UTC, so calendar apps show device time.
 - Booking still posts the UTC instant; server checks unchanged. Studio stays in the coach zone.
 - Limit: the very first request on a host has no cookie yet and shows the coach zone (labelled). A changed device zone applies from the next full page load.
-- Not yet: meetups in the member's zone (still the meetup's own zone, labelled).
+- Follow-up, meetups (G0: Kajabi shows meetups in the member's device zone, link above): member meetup list, detail and every recurring occurrence use the same `tz` cookie. The meetup's own zone stays as secondary text ("Meetup's time: ...") when it reads differently; the repeat line names the meetup zone then (weekdays are in that zone). Shared helper `zonedText` (`src/lib/time`) for coaching and meetups; `currentViewerZone()` returns null without a valid cookie, the caller falls back to the event zone. Studio and `.ics` unchanged. No meetup reminders are rendered yet (email pending).
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

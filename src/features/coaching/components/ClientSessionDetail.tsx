@@ -2,8 +2,8 @@
 // while still before the coach's cutoff. Times in the client's zone, the coach's as secondary.
 import { AppLink, ButtonLink } from '@/components/ui/links';
 import { Badge, Heading, Inline, Stack, Text } from '@/components/ui/mds';
+import { zonedText } from '@/lib/time/zonedText';
 import type { ClientSession } from '../api/booking';
-import { zonedText } from '../display';
 import { coachingHref, sessionIcsHref } from '../paths';
 import { BookingForm } from './forms';
 import { SlotSelect } from './SlotSelect';
@@ -55,7 +55,7 @@ export function ClientSessionDetail(props: Props) {
           {s.title}
         </Heading>
         <Text>{time.local}</Text>
-        {time.coach ? <Text tone="muted">{`Coach's time: ${time.coach}`}</Text> : null}
+        {time.own ? <Text tone="muted">{`Coach's time: ${time.own}`}</Text> : null}
         {scheduled ? null : <Badge tone="neutral">Cancelled</Badge>}
         {s.agenda ? <Text>{`Agenda: ${s.agenda}`}</Text> : null}
       </Stack>

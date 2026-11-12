@@ -25,19 +25,17 @@ export default async function CoachingSessionPage({ params }: PageProps<'/[space
   ]);
   if (!session || !product || product.id !== session.productId) notFound();
   const [reschedule, viewerZone] = await Promise.all([
-    session.changeable
-      ? rescheduleSlots(repo, viewer, calendarPortFor(repo, googleClient()), id, now)
-      : { slots: [], calendarDown: false },
-    currentViewerZone(settings.timeZone),
+    session.changeable ? rescheduleSlots(repo, viewer, calendarPortFor(repo, googleClient()), id, now) : { slots: [], calendarDown: false },
+    currentViewerZone(),
   ]);
   return (
-      <ClientSessionDetail
-        product={product}
-        session={session}
-        viewerZone={viewerZone}
-        coachZone={settings.timeZone}
-        cutoffHours={settings.cancelCutoffHours}
-        reschedule={reschedule}
-      />
+    <ClientSessionDetail
+      product={product}
+      session={session}
+      viewerZone={viewerZone ?? settings.timeZone}
+      coachZone={settings.timeZone}
+      cutoffHours={settings.cancelCutoffHours}
+      reschedule={reschedule}
+    />
   );
 }

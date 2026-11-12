@@ -1,11 +1,13 @@
 // Member side of meetups (G14): upcoming + past lists and one meetup occurrence with RSVP, the join link
 // (shown by the API only while joinable), the replay after it ends and an "Add to calendar" file.
+// Times in the member's zone (Kajabi converts meetups to the device zone), the meetup's own zone as
+// secondary text when it reads differently. `viewerZone` null = the meetup's zone only.
 import { ActionForm, type FormAction } from '@/components/ActionForm/ActionForm';
 import { ButtonLink, LinkRow } from '@/components/ui/links';
 import { Badge, EmptyState, Heading, Inline, ListGroup, Stack, Text } from '@/components/ui/mds';
 import { VimeoEmbed } from '@/components/VimeoEmbed/VimeoEmbed';
 import { describeRepeat } from '@/lib/calendar/describeRepeat';
-import { formatInZone } from '@/lib/format/date';
+import { zonedText } from '@/lib/time/zonedText';
 import { vimeoPlayerUrl } from '@/lib/video/vimeo';
 import { JOIN_OPENS_MINUTES, type MeetupItem, type MeetupList as Lists, type MeetupState } from '../api/meetups';
 import { meetupHref, meetupIcsHref } from '../paths';
@@ -16,10 +18,18 @@ const STATE: Record<MeetupState, { label: string; tone: 'accent' | 'success' | '
   past: { label: 'Past', tone: 'neutral' },
 };
 
-const when = (m: MeetupItem): string => `${formatInZone(m.startsAt, m.timeZone)} – ${formatInZone(m.endsAt, m.timeZone)}`;
+type Zone = { viewerZone: string | null };
+
+const when = (m: MeetupItem, viewerZone: string | null) => zonedText([m.startsAt, m.endsAt], viewerZone, m.timeZone);
+const ownLabel = (own: string): string => `Meetup's time: ${own}`;
 const goingLabel = (n: number): string => (n === 1 ? '1 going' : `${n} going`);
 
-function Rows({ community, label, items }: { community: string; label: string; items: MeetupItem[] }) {
+function rowText(m: MeetupItem, viewerZone: string | null): string {
+  const t = when(m, viewerZone);
+  return [t.local, t.own && ownLabel(t.own), goingLabel(m.rsvpCount), m.going && 'You are going'].filter(Boolean).join(' · ');
+}
+
+function Rows({ community, label, items, viewerZone }: { community: string; label: string; items: MeetupItem[] } & Zone) {
   return (
     <ListGroup aria-label={label}>
       {items.map((m) => (
@@ -27,7 +37,7 @@ function Rows({ community, label, items }: { community: string; label: string; i
           key={m.key}
           href={meetupHref(community, m.key)}
           title={m.title}
-          description={`${when(m)} · ${goingLabel(m.rsvpCount)}${m.going ? ' · You are going' : ''}`}
+          description={rowText(m, viewerZone)}
           trailing={<Badge tone={STATE[m.state].tone}>{STATE[m.state].label}</Badge>}
         />
       ))}
@@ -35,30 +45,36 @@ function Rows({ community, label, items }: { community: string; label: string; i
   );
 }
 
-export function MeetupList({ community, meetups }: { community: string; meetups: Lists }) {
+export function MeetupList({ community, meetups, viewerZone }: { community: string; meetups: Lists } & Zone) {
   return (
     <Stack gap="loose">
       {meetups.upcoming.length === 0 ? (
         <EmptyState title="No upcoming meetups" />
       ) : (
-        <Rows community={community} label="Upcoming meetups" items={meetups.upcoming} />
+        <Rows community={community} label="Upcoming meetups" items={meetups.upcoming} viewerZone={viewerZone} />
       )}
       {meetups.past.length > 0 ? (
         <Stack gap="base">
           <Heading level={2} variant="subtitle">
             Past meetups
           </Heading>
-          <Rows community={community} label="Past meetups" items={meetups.past} />
+          <Rows community={community} label="Past meetups" items={meetups.past} viewerZone={viewerZone} />
         </Stack>
       ) : null}
     </Stack>
   );
 }
 
-type DetailProps = { community: string; meetup: MeetupItem; action: FormAction; signedIn: boolean };
+type DetailProps = {
+  community: string;
+  meetup: MeetupItem;
+  action: FormAction;
+  signedIn: boolean;
+} & Zone;
 
-export function MeetupDetail({ community, meetup: m, action, signedIn }: DetailProps) {
+export function MeetupDetail({ community, meetup: m, action, signedIn, viewerZone }: DetailProps) {
   const repeats = describeRepeat(m);
+  const time = when(m, viewerZone);
   return (
     <Stack gap="loose">
       <Stack gap="tight">
@@ -68,10 +84,9 @@ export function MeetupDetail({ community, meetup: m, action, signedIn }: DetailP
           </Heading>
           <Badge tone={STATE[m.state].tone}>{STATE[m.state].label}</Badge>
         </Inline>
-        <Text tone="muted">
-          {when(m)} · {goingLabel(m.rsvpCount)}
-        </Text>
-        {repeats ? <Text tone="muted">Repeats: {repeats}</Text> : null}
+        <Text tone="muted">{`${time.local} · ${goingLabel(m.rsvpCount)}`}</Text>
+        {time.own ? <Text tone="muted">{ownLabel(time.own)}</Text> : null}
+        {repeats ? <Text tone="muted">{`Repeats: ${repeats}${time.own ? ` (${m.timeZone})` : ''}`}</Text> : null}
         {m.description ? <Text>{m.description}</Text> : null}
       </Stack>
       {m.state === 'past' ? null : (

@@ -3,8 +3,8 @@
 // the coach's zone as secondary.
 import { LinkRow } from '@/components/ui/links';
 import { Badge, EmptyState, Field, Heading, ListGroup, Stack, Text, Textarea } from '@/components/ui/mds';
+import { zonedText } from '@/lib/time/zonedText';
 import type { ClientCoaching as Data, ClientSession } from '../api/booking';
-import { zonedText } from '../display';
 import { sessionHref } from '../paths';
 import { BookingForm } from './forms';
 import { SlotSelect } from './SlotSelect';
@@ -13,7 +13,7 @@ type Zones = { viewerZone: string; coachZone: string };
 
 function when(d: Date, { viewerZone, coachZone }: Zones): string {
   const t = zonedText([d], viewerZone, coachZone);
-  return t.coach ? `${t.local} · Coach: ${t.coach}` : t.local;
+  return t.own ? `${t.local} · Coach: ${t.own}` : t.local;
 }
 
 function Sessions({ label, sessions, product, zones }: { label: string; sessions: ClientSession[]; product: string; zones: Zones }) {

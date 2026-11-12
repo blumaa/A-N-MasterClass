@@ -4,7 +4,7 @@ import type { AccessGroup, Challenge } from '@/lib/data/types';
 import type { MeetupItem } from '../api/meetups';
 import { ChallengeEditor } from './ChallengeEditor';
 import { LeaderboardTable } from './Leaderboard';
-import { MeetupDetail } from './Meetups';
+import { MeetupDetail, MeetupList } from './Meetups';
 
 vi.mock('../eventsActions', () => ({ editEventsAction: vi.fn() }));
 
@@ -34,7 +34,7 @@ const noop = vi.fn(async () => null);
 
 describe('MeetupDetail', () => {
   it('shows the time in the event zone and hides the join link until it opens', () => {
-    render(<MeetupDetail community="circle" meetup={meetup()} action={noop} signedIn />);
+    render(<MeetupDetail community="circle" meetup={meetup()} viewerZone={null} action={noop} signedIn />);
     expect(screen.getByText(/Nov 10, 2026, 7:00 PM GMT\+1/)).toBeInTheDocument();
     expect(screen.getByText(/join link appears 15 minutes before/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'RSVP' })).toBeInTheDocument();
@@ -43,16 +43,53 @@ describe('MeetupDetail', () => {
 
   it('links one occurrence of a repeating meetup and RSVPs to it', () => {
     const repeat = { freq: 'weekly' as const, every: 1, days: [], count: null, until: null };
-    const { container } = render(<MeetupDetail community="circle" meetup={meetup({ repeat, key: 'm1_3', occurrence: 3 })} action={noop} signedIn />);
+    const { container } = render(
+      <MeetupDetail community="circle" meetup={meetup({ repeat, key: 'm1_3', occurrence: 3 })} viewerZone="Europe/Berlin" action={noop} signedIn />,
+    );
     expect(screen.getByText('Repeats: Weekly on Tue')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Add to calendar' })).toHaveAttribute('href', '/community/circle/meetups/m1_3/event.ics');
     expect(container.querySelector('input[name="occurrence"]')).toHaveValue('3');
   });
 
   it('shows the join link when joinable and no RSVP for guests', () => {
-    render(<MeetupDetail community="circle" meetup={meetup({ state: 'live', joinUrl: 'https://zoom.us/j/1' })} action={noop} signedIn={false} />);
+    render(
+      <MeetupDetail community="circle" meetup={meetup({ state: 'live', joinUrl: 'https://zoom.us/j/1' })} viewerZone={null} action={noop} signedIn={false} />,
+    );
     expect(screen.getByRole('link', { name: 'Join meetup' })).toHaveAttribute('href', 'https://zoom.us/j/1');
     expect(screen.queryByRole('button', { name: 'RSVP' })).toBeNull();
+  });
+
+  it("shows the member's zone first and the meetup's own time as secondary", () => {
+    const repeat = { freq: 'weekly' as const, every: 1, days: [], count: null, until: null };
+    render(<MeetupDetail community="circle" meetup={meetup({ repeat })} viewerZone="Asia/Tokyo" action={noop} signedIn />);
+    expect(screen.getByText('Nov 11, 2026, 3:00 AM GMT+9 – Nov 11, 2026, 4:00 AM GMT+9 · 2 going')).toBeInTheDocument();
+    expect(screen.getByText("Meetup's time: Nov 10, 2026, 7:00 PM GMT+1 – Nov 10, 2026, 8:00 PM GMT+1")).toBeInTheDocument();
+    expect(screen.getByText('Repeats: Weekly on Tue (Europe/Berlin)')).toBeInTheDocument();
+  });
+
+  it('drops the secondary line when the zones read the same', () => {
+    render(<MeetupDetail community="circle" meetup={meetup()} viewerZone="Europe/Paris" action={noop} signedIn />);
+    expect(screen.queryByText(/Meetup's time/)).toBeNull();
+  });
+});
+
+describe('MeetupList', () => {
+  it("lists occurrences in the member's zone with the meetup's own time", () => {
+    const list = {
+      upcoming: [
+        meetup(),
+        meetup({ key: 'm1_1', occurrence: 1, startsAt: new Date('2026-11-17T18:00:00Z'), endsAt: new Date('2026-11-17T19:00:00Z') }),
+      ],
+      past: [],
+    };
+    render(<MeetupList community="circle" meetups={list} viewerZone="Asia/Tokyo" />);
+    expect(screen.getByText(/^Nov 11, 2026, 3:00 AM GMT\+9 – .* · Meetup's time: Nov 10, 2026, 7:00 PM GMT\+1/)).toBeInTheDocument();
+    expect(screen.getByText(/^Nov 18, 2026, 3:00 AM GMT\+9/)).toBeInTheDocument();
+  });
+
+  it("uses the meetup's zone when the member's zone is unknown", () => {
+    render(<MeetupList community="circle" meetups={{ upcoming: [meetup()], past: [] }} viewerZone={null} />);
+    expect(screen.getByText(/^Nov 10, 2026, 7:00 PM GMT\+1 – Nov 10, 2026, 8:00 PM GMT\+1 · 2 going$/)).toBeInTheDocument();
   });
 });
 

@@ -3,13 +3,13 @@ import { pickViewerZone, VIEWER_ZONE_COOKIE, VIEWER_ZONE_SCRIPT } from './viewer
 
 describe('pickViewerZone', () => {
   it('uses a known IANA zone from the cookie', () => {
-    expect(pickViewerZone('Asia/Tokyo', 'Europe/Berlin')).toBe('Asia/Tokyo');
+    expect(pickViewerZone('Asia/Tokyo')).toBe('Asia/Tokyo');
   });
 
-  it('falls back when the cookie is missing or not a zone', () => {
-    expect(pickViewerZone(undefined, 'Europe/Berlin')).toBe('Europe/Berlin');
-    expect(pickViewerZone('', 'Europe/Berlin')).toBe('Europe/Berlin');
-    expect(pickViewerZone('Mars/Olympus', 'Europe/Berlin')).toBe('Europe/Berlin');
+  it('is null when the cookie is missing or not a zone', () => {
+    expect(pickViewerZone(undefined)).toBeNull();
+    expect(pickViewerZone('')).toBeNull();
+    expect(pickViewerZone('Mars/Olympus')).toBeNull();
   });
 });
 

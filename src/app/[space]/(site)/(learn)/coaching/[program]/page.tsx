@@ -27,8 +27,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CoachingPage({ params }: Props) {
   const data = await load(params);
   if (!data) notFound();
-  const viewerZone = await currentViewerZone(data.settings.timeZone);
-  return (
-      <ClientCoaching data={data} viewerZone={viewerZone} />
-  );
+  const viewerZone = (await currentViewerZone()) ?? data.settings.timeZone;
+  return <ClientCoaching data={data} viewerZone={viewerZone} />;
 }
