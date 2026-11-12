@@ -10,7 +10,7 @@ const current = (path: string | null, imageSrc: Props['imageSrc']) => (path ? { 
 
 export function BrandMarksForm({ action, marks, imageSrc }: Props) {
   return (
-    <ActionForm action={action} fields={{}} submit="Save logo and icon" variant="primary">
+    <ActionForm action={action} fields={{}} submit="Save logo and icon">
       <ImageUpload name="logoPath" label="Logo (shown in the header instead of the name)" current={current(marks.logoPath, imageSrc)} />
       <ImageUpload name="faviconPath" label="Browser icon (square, at least 512 × 512)" current={current(marks.faviconPath, imageSrc)} />
     </ActionForm>

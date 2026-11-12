@@ -83,7 +83,7 @@ export function SectionEditor({ pageId, section, choices, images = NO_IMAGES, fi
             {section.hidden ? <Badge tone="warning">Hidden</Badge> : null}
           </div>
 
-          <SiteForm fields={{ op: 'updateSection', ...ref }} submit="Save section" variant="primary">
+          <SiteForm fields={{ op: 'updateSection', ...ref }} submit="Save section">
             {spec.fields.map((f) => (
               <SpecField key={f.name} spec={f} name={`f.${f.name}`} value={section.fields[f.name] ?? ''} choices={choices} images={images} />
             ))}

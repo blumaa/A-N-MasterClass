@@ -55,7 +55,7 @@ function Booking({ data, viewerZone }: { data: Data; viewerZone: string }) {
       ) : slots.length === 0 ? (
         <EmptyState title="No open times" description="The coach has no free times in the booking window. Check back later." />
       ) : (
-        <BookingForm fields={{ op: 'book', productId: product.id }} submit="Book" variant="primary">
+        <BookingForm fields={{ op: 'book', productId: product.id }} submit="Book">
           <SlotSelect slots={slots} timeZone={viewerZone} coachZone={settings.timeZone} />
           <Field label="What would you like to work on? (optional)">
             <Textarea name="agenda" rows={3} />

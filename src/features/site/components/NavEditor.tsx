@@ -26,7 +26,7 @@ function Rows({ prefix, title, items }: { prefix: 'header' | 'footer'; title: st
 
 export function NavEditor({ header, footer }: { header: readonly NavItem[]; footer: readonly NavItem[] }) {
   return (
-    <SiteForm fields={{ op: 'saveNav' }} submit="Save navigation" variant="primary">
+    <SiteForm fields={{ op: 'saveNav' }} submit="Save navigation">
       <Text tone="secondary">Fill the empty row to add a link. Clear a row to remove it. Legal pages are added to the footer automatically.</Text>
       <Rows prefix="header" title="Header" items={header} />
       <Rows prefix="footer" title="Footer" items={footer} />

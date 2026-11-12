@@ -23,7 +23,7 @@ export function ProgramList({ programs }: { programs: Product[] }) {
           ))}
         </ListGroup>
       )}
-      <CommandForm fields={{ op: 'createProgram' }} submit="Create program" variant="primary">
+      <CommandForm fields={{ op: 'createProgram' }} submit="Create program">
         <Field label="Title">
           <Input name="title" required />
         </Field>

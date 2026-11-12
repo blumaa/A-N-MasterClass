@@ -16,13 +16,14 @@ export type ActionFormProps = {
   submit: string;
   children?: ReactNode;
   confirm?: string;
+  /** Default: primary for a stacked form with inputs (an edit form's save), else secondary. */
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   inline?: boolean;
   /** Toast shown when the action succeeds without a message. Omit for self-evident actions. */
   done?: string;
 };
 
-export function ActionForm({ action, fields, submit, children, confirm, variant = 'secondary', inline = false, done }: ActionFormProps) {
+export function ActionForm({ action, fields, submit, children, confirm, variant, inline = false, done }: ActionFormProps) {
   const { toast } = useToast();
   const [state, formAction, pending] = useActionState(async (prev: ActionState, form: FormData) => {
     const next = await action(prev, form);
@@ -40,7 +41,7 @@ export function ActionForm({ action, fields, submit, children, confirm, variant 
       ))}
       {children}
       <div>
-        <Button type="submit" variant={variant} size="sm" loading={pending}>
+        <Button type="submit" variant={variant ?? (children && !inline ? 'primary' : 'secondary')} size="sm" loading={pending}>
           {submit}
         </Button>
       </div>

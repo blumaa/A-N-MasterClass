@@ -42,4 +42,28 @@ describe('ActionForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(action).not.toHaveBeenCalled();
   });
+
+  it('makes the submit of a stacked form with inputs the main button', () => {
+    const action = vi.fn(async () => null);
+    render(
+      <ActionForm action={action} fields={{}} submit="Save">
+        <input name="title" aria-label="Title" />
+      </ActionForm>,
+    );
+    expect(screen.getByRole('button', { name: 'Save' }).className).toMatch(/primary/);
+  });
+
+  it('keeps inline and input-less forms secondary', () => {
+    const action = vi.fn(async () => null);
+    render(
+      <>
+        <ActionForm action={action} fields={{}} submit="Add" inline>
+          <input name="title" aria-label="Title" />
+        </ActionForm>
+        <ActionForm action={action} fields={{}} submit="Hide" />
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Add' }).className).not.toMatch(/primary/);
+    expect(screen.getByRole('button', { name: 'Hide' }).className).not.toMatch(/primary/);
+  });
 });

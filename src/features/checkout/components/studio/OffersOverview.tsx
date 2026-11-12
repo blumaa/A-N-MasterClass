@@ -32,7 +32,7 @@ export function OffersOverview({ offers, locale }: { offers: StudioOfferRow[]; l
         <Heading level={2} variant="subtitle">
           New offer
         </Heading>
-        <OfferForm fields={{ op: 'create' }} submit="Create offer" variant="primary">
+        <OfferForm fields={{ op: 'create' }} submit="Create offer">
           <Field label="Title">
             <Input name="title" required />
           </Field>

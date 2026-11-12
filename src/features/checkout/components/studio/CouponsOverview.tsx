@@ -34,7 +34,7 @@ export function CouponsOverview({ coupons, locale, now }: { coupons: StudioCoupo
         <Heading level={2} variant="subtitle">
           New coupon
         </Heading>
-        <CouponForm fields={{ op: 'create' }} submit="Create coupon" variant="primary">
+        <CouponForm fields={{ op: 'create' }} submit="Create coupon">
           <CodeAndDiscount />
         </CouponForm>
       </Stack>

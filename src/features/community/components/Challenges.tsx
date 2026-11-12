@@ -55,7 +55,7 @@ function EntryBox({ challenge, action, signedIn }: { challenge: ChallengeItem; a
   if (challenge.state !== 'open') return <Text tone="muted">{challenge.state === 'upcoming' ? 'Entries open at the start time.' : 'This challenge has ended.'}</Text>;
   if (!signedIn) return <Text tone="muted">Sign in to enter.</Text>;
   return (
-    <ActionForm action={action} fields={{ op: 'enter', ...id }} submit="Submit entry" variant="primary">
+    <ActionForm action={action} fields={{ op: 'enter', ...id }} submit="Submit entry">
       <Field label="Your entry">
         <Textarea name="body" required rows={4} />
       </Field>

@@ -11,7 +11,7 @@ type Props = { action: FormAction; profile: SpaceProfile; imageSrc: (path: strin
 export function ProfileForm({ action, profile, imageSrc }: Props) {
   const current = profile.avatarPath ? { path: profile.avatarPath, src: imageSrc(profile.avatarPath) } : undefined;
   return (
-    <ActionForm action={action} fields={{}} submit="Save profile" variant="primary">
+    <ActionForm action={action} fields={{}} submit="Save profile">
       <ImageUpload name="avatarPath" label="Photo" target="avatar" current={current} />
       <Field label="Display name">
         <Input name="displayName" defaultValue={profile.displayName} maxLength={NAME_MAX} required />
