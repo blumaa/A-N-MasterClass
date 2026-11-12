@@ -5,6 +5,6 @@ import { editCouponAction, editOfferAction, savePaymentsAction } from '../../stu
 
 type Props = Omit<ActionFormProps, 'action'>;
 
-export const OfferForm = (props: Props) => <ActionForm action={editOfferAction} {...props} />;
-export const CouponForm = (props: Props) => <ActionForm action={editCouponAction} {...props} />;
-export const PaymentsForm = (props: Props) => <ActionForm action={savePaymentsAction} {...props} />;
+export const OfferForm = (props: Props) => <ActionForm action={editOfferAction} done="Saved" {...props} />;
+export const CouponForm = (props: Props) => <ActionForm action={editCouponAction} done="Saved" {...props} />;
+export const PaymentsForm = (props: Props) => <ActionForm action={savePaymentsAction} done="Saved" {...props} />;

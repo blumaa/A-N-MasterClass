@@ -4,5 +4,5 @@ import { ActionForm, type ActionFormProps } from '@/components/ActionForm/Action
 import { editCommunityAction } from '../actions';
 
 export function CommunityForm(props: Omit<ActionFormProps, 'action'>) {
-  return <ActionForm action={editCommunityAction} {...props} />;
+  return <ActionForm action={editCommunityAction} done="Saved" {...props} />;
 }

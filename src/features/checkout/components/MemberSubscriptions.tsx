@@ -4,7 +4,7 @@
 // https://help.kajabi.com/en/articles/17175348-cancel-a-customer-s-subscription
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { Button, Card, CardBody, Heading, Inline, Stack, Text } from '@/components/ui/mds';
+import { Button, Card, CardBody, Heading, Inline, Stack, Text, useToast } from '@/components/ui/mds';
 import { priceTermsLabel } from '@/lib/commerce/recurring';
 import type { SubscriptionRow } from '../api/subscriptionRows';
 import type { CancelOutcome } from '../api/subscriptions';
@@ -54,15 +54,21 @@ export function MemberSubscriptions({ rows, locale, cancelAction }: Props) {
 
 function CancelButton({ row, locale, cancelAction }: { row: SubscriptionRow } & Omit<Props, 'rows'>) {
   const router = useRouter();
+  const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function cancel() {
+    setFailed(false);
     startTransition(async () => {
       const outcome = await cancelAction(row.id);
-      if (outcome === 'cancelled') router.refresh();
-      else setFailed(true);
+      if (outcome !== 'cancelled') {
+        setFailed(true);
+        return;
+      }
+      toast({ title: 'Subscription cancelled', tone: 'success' });
+      router.refresh();
     });
   }
 
@@ -81,7 +87,7 @@ function CancelButton({ row, locale, cancelAction }: { row: SubscriptionRow } & 
         You keep access until {day(row.currentPeriodEnd, locale)}. No further payments are taken.
       </Text>
       <Inline gap="tight">
-        <Button type="button" variant="danger" size="sm" disabled={pending} onClick={cancel}>
+        <Button type="button" variant="danger" size="sm" loading={pending} onClick={cancel}>
           Yes, cancel
         </Button>
         <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => setConfirming(false)}>

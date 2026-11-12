@@ -2,7 +2,8 @@
 // only by the form post, never by opening the page (mail scanners open links).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Button, Heading, Stack, Text } from '@/components/ui/mds';
+import { SubmitButton } from '@/components/SubmitButton/SubmitButton';
+import { Heading, Stack, Text } from '@/components/ui/mds';
 import { claimAccountAction } from '@/features/checkout/actions';
 import { currentViewer } from '@/lib/auth/currentViewer';
 
@@ -23,7 +24,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<'/[s
       ) : (
         <form action={claimAccountAction}>
           <input type="hidden" name="token" value={token} />
-          <Button type="submit">Continue to my account</Button>
+          <SubmitButton>Continue to my account</SubmitButton>
         </form>
       )}
     </Stack>

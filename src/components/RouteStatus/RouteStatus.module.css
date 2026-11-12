@@ -1,0 +1,6 @@
+.center {
+  display: grid;
+  place-items: center;
+  min-block-size: 50vh;
+  padding: var(--mds-space-6);
+}

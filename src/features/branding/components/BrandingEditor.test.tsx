@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_BRAND } from '@/tokens/resolveBrand';
 import { BrandingEditor } from './BrandingEditor';
@@ -30,5 +30,21 @@ describe('BrandingEditor', () => {
     const { container } = render(<BrandingEditor action={action} colors={DEFAULT_BRAND} productId="prod-1" />);
     expect(screen.queryByLabelText('Heading font')).toBeNull();
     expect(container.querySelector('input[name="productId"]')).toHaveValue('prod-1');
+  });
+
+  it('toasts a save and shows a failure inline', async () => {
+    const save = vi.fn(async () => ({ message: 'Saved.', saved: true }));
+    render(<BrandingEditor action={save} colors={DEFAULT_BRAND} fonts={{ heading: null, body: null }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save branding' }));
+    const region = screen.getByRole('region', { name: 'Status messages' });
+    expect(await within(region).findByText('Saved.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows a failed save as an alert', async () => {
+    const fail = vi.fn(async () => ({ message: 'No permission.', saved: false }));
+    render(<BrandingEditor action={fail} colors={DEFAULT_BRAND} fonts={{ heading: null, body: null }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save branding' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No permission.');
   });
 });

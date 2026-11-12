@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { SiteSection } from '@/lib/site/sections';
@@ -54,7 +55,7 @@ describe('Sections', () => {
   });
 
   it('drops a curriculum section whose program is not published', () => {
-    const { container } = render(<Sections sections={[section('curriculum', { heading: 'X', programSlug: 'gone' })]} refs={NO_REFS} />);
+    const { container } = render(<Sections sections={[section('curriculum', { heading: 'X', programSlug: 'gone' })]} refs={NO_REFS} />, { wrapper: Fragment });
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -69,7 +70,7 @@ describe('Sections', () => {
   });
 
   it('drops an offer section whose offer is not published', () => {
-    const { container } = render(<Sections sections={[section('offer', { heading: 'X', offerSlug: 'gone' })]} refs={NO_REFS} />);
+    const { container } = render(<Sections sections={[section('offer', { heading: 'X', offerSlug: 'gone' })]} refs={NO_REFS} />, { wrapper: Fragment });
     expect(container).toBeEmptyDOMElement();
   });
 

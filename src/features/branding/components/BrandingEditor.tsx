@@ -2,7 +2,7 @@
 // Brand colours (+ fonts for a space) with a live preview and the contrast proof.
 // The same check runs again in the DAL on save; here it only gives instant feedback.
 import { useActionState, useState, type CSSProperties } from 'react';
-import { Button, Card, CardBody, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
+import { Button, Card, CardBody, Field, Heading, Input, Select, Stack, Text, useToast } from '@/components/ui/mds';
 import { FONT_IDS, fontLabel, fontStack, type FontId } from '@/lib/fonts/catalog';
 import { BRAND_INPUTS, type BrandInput } from '@/tokens/brandInputs';
 import type { BrandColors } from '@/tokens/resolveBrand';
@@ -48,7 +48,12 @@ function FontSelect({ label, name, value, onChange }: { label: string; name: str
 }
 
 export function BrandingEditor({ action, colors: initial, fonts: initialFonts, productId }: Props) {
-  const [state, formAction, pending] = useActionState(action, null);
+  const { toast } = useToast();
+  const [state, formAction, pending] = useActionState(async (prev: BrandingState, form: FormData) => {
+    const next = await action(prev, form);
+    if (next?.saved) toast({ title: next.message, tone: 'success' });
+    return next;
+  }, null);
   const [colors, setColors] = useState(initial);
   const [fonts, setFonts] = useState(initialFonts);
   const failures = contrastFailures(colors);
@@ -105,8 +110,8 @@ export function BrandingEditor({ action, colors: initial, fonts: initialFonts, p
             {productId ? 'Use space colours' : 'Reset to defaults'}
           </Button>
         </div>
-        {state ? (
-          <Text role="status" tone={state.saved ? 'secondary' : 'danger'} variant="note">
+        {state && !state.saved ? (
+          <Text role="alert" tone="danger" variant="note">
             {state.message}
           </Text>
         ) : null}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import '@mond-design-system/tokens/styles.css';
 import '@mond-design-system/react/styles.css';
 import '@/tokens/brand.css'; // last: brand wins by cascade order (MDS README)
+import { Toasts } from '@/components/Toasts/Toasts';
 import { fontVariables } from '@/lib/fonts/nextFonts';
 
 // Placeholder platform name (G17). Space routes override via generateMetadata.
@@ -13,7 +14,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={fontVariables}>
-      <body>{children}</body>
+      <body>
+        <Toasts>{children}</Toasts>
+      </body>
     </html>
   );
 }

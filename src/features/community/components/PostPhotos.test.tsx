@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PostPhotos } from './PostPhotos';
@@ -24,7 +25,7 @@ describe('PostPhotos', () => {
   });
 
   it('renders nothing without photos', () => {
-    const { container } = render(<PostPhotos postId="p" photos={[]} action={vi.fn()} remove />);
+    const { container } = render(<PostPhotos postId="p" photos={[]} action={vi.fn()} remove />, { wrapper: Fragment });
     expect(container).toBeEmptyDOMElement();
   });
 });

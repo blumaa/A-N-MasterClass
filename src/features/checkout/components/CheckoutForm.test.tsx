@@ -123,6 +123,26 @@ describe('CheckoutForm', () => {
     expect(screen.getByTestId('total')).toHaveTextContent('€49.00');
   });
 
+  it('shows the pay and apply buttons busy while their requests run', async () => {
+    let started: (v: Awaited<ReturnType<CheckoutFormProps['startAction']>>) => void = () => {};
+    let applied: (v: Awaited<ReturnType<CheckoutFormProps['applyCouponAction']>>) => void = () => {};
+    setup({
+      couponField: true,
+      startAction: vi.fn<CheckoutFormProps['startAction']>(() => new Promise((resolve) => (started = resolve))),
+      applyCouponAction: vi.fn<CheckoutFormProps['applyCouponAction']>(() => new Promise((resolve) => (applied = resolve))),
+    });
+    type('Coupon code', 'ten');
+    press('Apply');
+    expect(await screen.findByRole('button', { name: /Apply/, busy: true })).toBeInTheDocument();
+    applied({ ok: true, code: 'TEN', discountCents: 490 });
+    await screen.findByText(/TEN applied/);
+    fill();
+    press('Pay (test)');
+    expect(await screen.findByRole('button', { name: /Pay \(test\)/, busy: true })).toBeInTheDocument();
+    started({ ok: false, message: 'stop' });
+    await screen.findByRole('alert');
+  });
+
   it('shows a refused coupon', async () => {
     setup({ couponField: true, applyCouponAction: vi.fn().mockResolvedValue({ ok: false, message: 'This coupon code is not valid.' }) });
     type('Coupon code', 'nope');

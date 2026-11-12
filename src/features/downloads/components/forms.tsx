@@ -4,5 +4,5 @@ import { ActionForm, type ActionFormProps } from '@/components/ActionForm/Action
 import { editDownloadsAction } from '../actions';
 
 export function DownloadForm(props: Omit<ActionFormProps, 'action'>) {
-  return <ActionForm action={editDownloadsAction} {...props} />;
+  return <ActionForm action={editDownloadsAction} done="Saved" {...props} />;
 }

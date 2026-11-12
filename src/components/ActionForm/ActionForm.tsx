@@ -1,8 +1,9 @@
 'use client';
 // Form bound to one Server Action. Hidden fields carry ids; children are the inputs.
 // Deterministic: no optimistic UI, the page refreshes from the server after the action.
+// Errors show inline beside the inputs; success shows as a toast (returned message, else `done`).
 import { useActionState, type FormEvent, type ReactNode } from 'react';
-import { Button, Text } from '@/components/ui/mds';
+import { Button, Text, useToast } from '@/components/ui/mds';
 import styles from './ActionForm.module.css';
 
 /** A message is an error unless ok (then a success note). */
@@ -17,10 +18,18 @@ export type ActionFormProps = {
   confirm?: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   inline?: boolean;
+  /** Toast shown when the action succeeds without a message. Omit for self-evident actions. */
+  done?: string;
 };
 
-export function ActionForm({ action, fields, submit, children, confirm, variant = 'secondary', inline = false }: ActionFormProps) {
-  const [state, formAction, pending] = useActionState(action, null);
+export function ActionForm({ action, fields, submit, children, confirm, variant = 'secondary', inline = false, done }: ActionFormProps) {
+  const { toast } = useToast();
+  const [state, formAction, pending] = useActionState(async (prev: ActionState, form: FormData) => {
+    const next = await action(prev, form);
+    const success = next === null ? done : next.ok ? next.message : undefined;
+    if (success) toast({ title: success, tone: 'success' });
+    return next;
+  }, null);
   const onSubmit = (event: FormEvent) => {
     if (confirm && !window.confirm(confirm)) event.preventDefault();
   };
@@ -35,8 +44,8 @@ export function ActionForm({ action, fields, submit, children, confirm, variant 
           {submit}
         </Button>
       </div>
-      {state ? (
-        <Text role={state.ok ? 'status' : 'alert'} tone={state.ok ? 'success' : 'danger'} variant="note">
+      {state && !state.ok ? (
+        <Text role="alert" tone="danger" variant="note">
           {state.message}
         </Text>
       ) : null}

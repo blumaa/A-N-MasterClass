@@ -6,7 +6,7 @@ import { bookingAction, editCoachingAction } from '../actions';
 type Props = Omit<ActionFormProps, 'action'>;
 
 export function CoachingForm(props: Props) {
-  return <ActionForm action={editCoachingAction} {...props} />;
+  return <ActionForm action={editCoachingAction} done="Saved" {...props} />;
 }
 
 export function BookingForm(props: Props) {

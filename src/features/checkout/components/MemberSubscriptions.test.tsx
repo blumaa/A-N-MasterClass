@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SubscriptionRow } from '../api/subscriptionRows';
 import { MemberSubscriptions } from './MemberSubscriptions';
@@ -62,6 +62,22 @@ describe('MemberSubscriptions', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Yes, cancel' })));
     expect(cancelAction).toHaveBeenCalledWith('sub-1');
     expect(refresh).toHaveBeenCalled();
+    const region = screen.getByRole('region', { name: 'Status messages' });
+    expect(within(region).getByText('Subscription cancelled')).toBeInTheDocument();
+  });
+
+  it('clears an earlier error when the cancel is tried again', async () => {
+    const cancelAction = vi.fn().mockResolvedValueOnce('not_cancellable');
+    let finish: (v: string) => void = () => {};
+    cancelAction.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    render(<MemberSubscriptions rows={[row({})]} locale="en" cancelAction={cancelAction} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel subscription' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Yes, cancel' })));
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Yes, cancel' })));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('button', { name: /Yes, cancel/, busy: true })).toBeInTheDocument();
+    await act(async () => finish('cancelled'));
   });
 
   it('shows an error when the cancel is refused', async () => {

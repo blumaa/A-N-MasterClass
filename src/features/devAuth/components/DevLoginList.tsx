@@ -1,5 +1,6 @@
 // Dev-only profile switcher. Each row posts one profile id.
-import { Badge, Button, Card, CardBody, Stack, Text } from '@/components/ui/mds';
+import { SubmitButton } from '@/components/SubmitButton/SubmitButton';
+import { Badge, Card, CardBody, Stack, Text } from '@/components/ui/mds';
 import { devSignInAction } from '../actions';
 import type { DevProfile } from '../api/devProfiles';
 import styles from './DevLoginList.module.css';
@@ -20,9 +21,9 @@ export function DevLoginList({ profiles }: { profiles: DevProfile[] }) {
                   </Text>
                 </Stack>
                 <Badge tone={p.role ? 'accent' : 'neutral'}>{p.role ?? 'student'}</Badge>
-                <Button type="submit" variant="secondary">
+                <SubmitButton variant="secondary">
                   Sign in
-                </Button>
+                </SubmitButton>
               </form>
             </CardBody>
           </Card>

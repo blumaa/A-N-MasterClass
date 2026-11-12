@@ -1,21 +1,38 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ActionForm } from './ActionForm';
 
+const region = () => screen.getByRole('region', { name: 'Status messages' });
+
 describe('ActionForm', () => {
-  it('posts hidden fields and shows the returned message', async () => {
+  it('posts hidden fields and shows an error inline', async () => {
     const action = vi.fn(async (_prev: unknown, form: FormData) => ({ message: `got ${form.get('id')}` }));
     render(<ActionForm action={action} fields={{ id: 'p1' }} submit="Save" />);
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('got p1');
   });
 
-  it('shows a success message as status, not alert', async () => {
+  it('shows a returned success message as a toast', async () => {
     const action = vi.fn(async () => ({ message: 'Thanks', ok: true as const }));
     render(<ActionForm action={action} fields={{}} submit="Send" />);
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Thanks');
+    expect(await within(region()).findByText('Thanks')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('toasts the done message when the action succeeds silently', async () => {
+    const action = vi.fn(async () => null);
+    render(<ActionForm action={action} fields={{}} submit="Save" done="Saved" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await within(region()).findByText('Saved')).toBeInTheDocument();
+  });
+
+  it('stays quiet on silent success without a done message', async () => {
+    const action = vi.fn(async () => null);
+    render(<ActionForm action={action} fields={{}} submit="Like" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Like' }));
+    await vi.waitFor(() => expect(action).toHaveBeenCalled());
+    expect(within(region()).queryByText(/./)).toBeNull();
   });
 
   it('does not submit when confirm is declined', async () => {

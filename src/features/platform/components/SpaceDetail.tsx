@@ -46,7 +46,7 @@ export function SpaceDetail({ detail, spaceUrl }: { detail: PlatformSpaceDetail;
         <Text variant="note" tone="secondary">
           Draft: only staff and platform admins see the site. Live: open to everyone.
         </Text>
-        <ActionForm action={platformAction} fields={{ op: 'setStatus', ...slug }} submit="Save status" inline>
+        <ActionForm action={platformAction} done="Saved" fields={{ op: 'setStatus', ...slug }} submit="Save status" inline>
           <Field label="Status">
             <Select name="status" defaultValue={space.status}>
               {SPACE_STATUSES.map((s) => (
@@ -79,7 +79,7 @@ export function SpaceDetail({ detail, spaceUrl }: { detail: PlatformSpaceDetail;
             </li>
           ))}
         </ul>
-        <ActionForm action={platformAction} fields={{ op: 'addDomain', ...slug }} submit="Add domain" inline>
+        <ActionForm action={platformAction} done="Saved" fields={{ op: 'addDomain', ...slug }} submit="Add domain" inline>
           <Field label="Domain">
             <Input name="host" placeholder="courses.example.com" required />
           </Field>

@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,7 +21,7 @@ describe('PushHeal', () => {
     browser.currentAvailability.mockReturnValue('ready');
     const failure = new Error('offline');
     browser.heal.mockRejectedValue(failure);
-    const { container } = render(<PushHeal publicKey="pub" profileId="p1" />);
+    const { container } = render(<PushHeal publicKey="pub" profileId="p1" />, { wrapper: Fragment });
     await act(async () => {});
     expect(container).toBeEmptyDOMElement();
     expect(browser.heal).toHaveBeenCalledWith({ name: 'server' }, 'pub', 'p1');
@@ -37,7 +38,7 @@ describe('PushHeal', () => {
 
   it('does nothing where push cannot work', async () => {
     browser.currentAvailability.mockReturnValue('install');
-    render(<PushHeal publicKey="pub" profileId="p1" />);
+    render(<PushHeal publicKey="pub" profileId="p1" />, { wrapper: Fragment });
     await act(async () => {});
     expect(browser.heal).not.toHaveBeenCalled();
     expect(browser.dropPush).not.toHaveBeenCalled();

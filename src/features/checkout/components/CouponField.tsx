@@ -42,7 +42,7 @@ export function CouponField({ offerSlug, applied, onChange, applyAction }: Props
     <Field label="Coupon code">
       <Inline gap="tight">
         <Input name="coupon" value={code} onChange={(e) => setCode(e.target.value)} />
-        <Button type="button" variant="secondary" disabled={!code.trim() || pending} onClick={apply}>
+        <Button type="button" variant="secondary" disabled={!code.trim()} loading={pending} onClick={apply}>
           Apply
         </Button>
       </Inline>

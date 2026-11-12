@@ -4,5 +4,5 @@ import { ActionForm, type ActionFormProps } from '@/components/ActionForm/Action
 import { editCurriculumAction } from '../actions';
 
 export function CommandForm(props: Omit<ActionFormProps, 'action'>) {
-  return <ActionForm action={editCurriculumAction} {...props} />;
+  return <ActionForm action={editCurriculumAction} done="Saved" {...props} />;
 }

@@ -98,7 +98,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
   function payment() {
     if (free || !clientId) {
       return (
-        <Button type="button" disabled={!ready || pending} onClick={payDirect}>
+        <Button type="button" disabled={!ready} loading={pending} onClick={payDirect}>
           {free ? 'Get access' : 'Pay (test)'}
         </Button>
       );
