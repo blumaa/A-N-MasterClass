@@ -7,7 +7,6 @@ import { communityShell } from '@/features/community/api/shell';
 import { chatAction } from '@/features/community/chatActions';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
 import { DmThread } from '@/features/community/components/DmThread';
-import { LiveRefresh } from '@/components/LiveRefresh/LiveRefresh';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
 import { liveTopic, typingTopic } from '@/lib/realtime/topics';
@@ -28,8 +27,7 @@ export default async function DmThreadRoute({ params }: PageProps<'/[space]/comm
   // Opening the thread marked it read: count unread again so the nav badge is current.
   const nav = await communityNav(repo, viewer, shell.community, shell.access, now);
   return (
-    <CommunityFrame community={shell.community} channels={shell.channels} activeId="messages" extras={nav}>
-      <LiveRefresh topics={[liveTopic.dm(page.threadId)]} />
+    <CommunityFrame community={shell.community} channels={shell.channels} activeId="messages" extras={nav} live={[liveTopic.dm(page.threadId)]}>
       <DmThread
         communityId={shell.community.id}
         page={page}

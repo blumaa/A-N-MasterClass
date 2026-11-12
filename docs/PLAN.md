@@ -174,7 +174,7 @@ Launch 2 as built:
 - Grant uniqueness widened to one active grant per (product, profile, group): a member may hold several groups of one community. `fulfil_order` now carries `offer_products.access_group_id`; drip counts from the earliest grant.
 - Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
 - DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
-- Live updates: polling at first; Supabase Realtime since Launch 6 item 5 (see there). Typing indicators: Launch 6 item 7.
+- Live updates: polling at first; Supabase Realtime since Launch 6 item 5 (see there), structure and membership since Group 2 live updates. Typing indicators: Launch 6 item 7.
 
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 
@@ -286,7 +286,7 @@ Launch 6 item 5 as built:
 - For item 7: `privateChannel(host, topic, bind)` takes any listeners (broadcast, presence). Typing needs an insert policy on `realtime.messages`.
 - Caveats: Realtime caches the join check per connection, so lost access keeps hints flowing until the token refreshes or the page reloads (hints are empty). `realtime.messages` is partitioned by day and the Realtime service makes the partitions while clients are connected; with no partition the send only warns (nobody is listening then). The SQL suite skips the round trip then.
 - Free plan limits: 200 concurrent connections, 100 messages/s, 100 channel joins/s, 2M messages/month. Pro: 500 connections, 5M messages, then $2.50 per million.
-- Not yet: community nav badges (unread DMs) refresh only on pages that listen; block/unblock and channel or membership changes are not live.
+- Closed in Group 2 live updates: nav badges, blocks, channel and membership changes are live on every community page.
 
 Launch 6 item 6 as built:
 - Migration `20261112120000_push_subscriptions.sql` + `supabase/tests/160-push-subscriptions.test.sql` (14 asserts), applied to ksb 2026-11-12.
@@ -411,6 +411,16 @@ Group 2 cleanup as built:
 - Caveat: an upload left more than 24 h in an unsaved form is swept; the save then points at a missing object.
 - Outside setup (not done): set `CRON_SECRET` (`openssl rand -hex 32`) in production; schedule `GET /api/cron/storage` with the Bearer header, for example daily via Vercel Cron (free on Hobby, once a day) or Supabase `pg_cron` + `pg_net`. Without it, orphans are not swept and failed drains wait.
 - Fake mode: in-memory queue, no Storage, nothing swept.
+
+Group 2 live updates as built:
+- Migration `20261116000000_live_membership.sql` + `supabase/tests/300-live-membership.test.sql` (24 asserts), applied to ksb 2026-11-12. Same mechanism as Launch 6 item 5: empty `stale` hint, invalidate only.
+- New topic `community:<id>` (SSOT `liveTopic.community`). Join = `can_read_community` (staff also on a draft).
+- Hints on `community:`: `channels`, `access_groups`, `community_settings`, `post_approval_members`, `space_member_communities`, `channel_members` and `channel_moderators` (via channel), `grants` (community products only), `space_members` (every community of the space).
+- `blocks` hint `inbox:` of blocker and blocked: DM pages and the nav refresh, so reply rights follow.
+- `CommunityNav.live` = community topic plus own inbox while DMs are on; empty when signed out. `CommunityFrame` renders one `LiveRefresh` with `extras.live` plus the page topics (`live` prop: channel, post, dm). One listener set per page, so one hint burst = one refresh. The unread DM badge is live on every community page.
+- Not hinted: `dm_reads` (opening a thread marks it read; would loop refreshes), grant expiry by time (no write), product publish or unpublish, the Space header notification badge.
+- Caveat: the join check is cached per connection, so a member who loses access still gets the hint; the refresh then shows the locked page.
+- G0: Kajabi live-update behaviour for these cases not checked on help.kajabi.com.
 
 Waiting on outside setup: Storage cleanup cron (`CRON_SECRET` + schedule, Group 2), transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

@@ -8,7 +8,6 @@ import { CommentThread } from '@/features/community/components/CommentThread';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
 import { PostCard } from '@/features/community/components/PostCard';
 import { communityHref } from '@/features/community/paths';
-import { LiveRefresh } from '@/components/LiveRefresh/LiveRefresh';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
 import { liveTopic } from '@/lib/realtime/topics';
@@ -37,9 +36,8 @@ export default async function PostRoute({ params }: Props) {
   const signedIn = viewer.profile !== null;
   const nav = await communityNav(getRepo(), viewer, community, access, new Date());
   return (
-    <CommunityFrame community={community} channels={channels} activeId={channel.id} extras={nav}>
+    <CommunityFrame community={community} channels={channels} activeId={channel.id} extras={nav} live={signedIn ? [liveTopic.post(post.id)] : []}>
       <Stack gap="loose">
-        <LiveRefresh topics={signedIn ? [liveTopic.post(post.id)] : []} />
         <PostCard
           post={post}
           action={communityAction}

@@ -5,6 +5,7 @@ import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { DEFAULT_COMMUNITY_SETTINGS, type Product } from '@/lib/data/types';
 import { communityAccess } from './access';
 import { chatCommand } from './chat';
+import { liveTopic } from '@/lib/realtime/topics';
 import { communityNav } from './nav';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -34,15 +35,22 @@ describe('communityNav', () => {
       meetups: true,
       leaderboard: true,
       reports: true,
+      live: [liveTopic.community(SEED_IDS.community), liveTopic.inbox(SEED_IDS.alexanderOwner)],
     });
     await repo.saveCommunitySettings({ communityId: SEED_IDS.community, ...DEFAULT_COMMUNITY_SETTINGS, dmsEnabled: false, leaderboard: 'off' });
-    expect(await nav(SEED_IDS.alexanderOwner)).toMatchObject({ dms: null, leaderboard: false });
+    expect(await nav(SEED_IDS.alexanderOwner)).toMatchObject({ dms: null, leaderboard: false, live: [liveTopic.community(SEED_IDS.community)] });
   });
 
   it('shows Reports to moderators of any channel only', async () => {
     expect(await nav(SEED_IDS.student)).toMatchObject({ reports: false });
     await repo.setChannelModerator(SEED_IDS.lounge, SEED_IDS.student, true);
     expect(await nav(SEED_IDS.student)).toMatchObject({ reports: true });
+  });
+
+  it('listens to nothing for signed-out viewers', async () => {
+    const viewer = (await resolveViewer(repo, 'alexander', null))!;
+    const access = await communityAccess(repo, viewer, community, NOW);
+    expect((await communityNav(repo, viewer, community, access, NOW)).live).toEqual([]);
   });
 
   it('follows the member group toggles', async () => {

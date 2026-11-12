@@ -1,17 +1,20 @@
 // Realtime topic names. SSOT on the TS side; SQL side = public.can_join_live, can_send_live + live_* triggers
-// (supabase/migrations/20261112110000_live_topics.sql, 20261112130000_typing_topics.sql). Change both together.
+// (supabase/migrations/20261112110000_live_topics.sql, 20261112130000_typing_topics.sql,
+// 20261116000000_live_membership.sql). Change both together.
 
 /** Only event the database sends: "what you show here is stale". Payload carries nothing. */
 export const LIVE_EVENT = 'stale';
 
 export const liveTopic = {
+  /** One community: channels, groups, settings, membership (grants, invites, moderators, staff reach). */
+  community: (communityId: string) => `community:${communityId}`,
   /** Chat lines or feed posts of one channel (and comments/reactions on its posts). */
   channel: (channelId: string) => `channel:${channelId}`,
   /** One post: the post, its comments, reactions. */
   post: (postId: string) => `post:${postId}`,
   /** One DM thread. */
   dm: (threadId: string) => `dm:${threadId}`,
-  /** Any DM thread of this profile (inbox list). */
+  /** Any DM thread of this profile (inbox list, unread badge), and blocks either way. */
   inbox: (profileId: string) => `inbox:${profileId}`,
 };
 

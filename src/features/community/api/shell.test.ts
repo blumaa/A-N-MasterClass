@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import { liveTopic } from '@/lib/realtime/topics';
 import { communityShell } from './shell';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -26,7 +27,15 @@ describe('communityShell', () => {
     const shell = await communityShell(repo, await viewer(SEED_IDS.student), 'community', NOW);
     expect(shell?.community.id).toBe(SEED_IDS.community);
     expect(shell?.channels.map((c) => c.title)).not.toContain('Secret');
-    expect(shell?.nav).toEqual({ directory: true, dms: { unread: 0 }, challenges: true, meetups: true, leaderboard: true, reports: false });
+    expect(shell?.nav).toEqual({
+      directory: true,
+      dms: { unread: 0 },
+      challenges: true,
+      meetups: true,
+      leaderboard: true,
+      reports: false,
+      live: [liveTopic.community(SEED_IDS.community), liveTopic.inbox(SEED_IDS.student)],
+    });
   });
 
   it('is null for visitors without access and unknown slugs', async () => {

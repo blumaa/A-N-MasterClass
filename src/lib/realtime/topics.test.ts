@@ -3,9 +3,10 @@ import { LIVE_EVENT, liveTopic, TYPING_EVENTS, typingTopic } from './topics';
 
 const ID = '0d1f6b8e-3c1a-4c2e-9b7a-1f2e3d4c5b6a';
 
-// Same strings as public.live_* in supabase/migrations/20261112110000_live_topics.sql.
+// Same strings as public.live_* in supabase/migrations/20261112110000_live_topics.sql + 20261116000000_live_membership.sql.
 describe('liveTopic', () => {
   it('names one topic per thing a page shows', () => {
+    expect(liveTopic.community(ID)).toBe(`community:${ID}`);
     expect(liveTopic.channel(ID)).toBe(`channel:${ID}`);
     expect(liveTopic.post(ID)).toBe(`post:${ID}`);
     expect(liveTopic.dm(ID)).toBe(`dm:${ID}`);

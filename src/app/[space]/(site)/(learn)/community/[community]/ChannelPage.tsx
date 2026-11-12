@@ -1,6 +1,5 @@
 // Shared body of the community home (first channel) and a channel route.
 import { notFound } from 'next/navigation';
-import { LiveRefresh } from '@/components/LiveRefresh/LiveRefresh';
 import { EmptyState } from '@/components/ui/mds';
 import { communityNav } from '@/features/community/api/nav';
 import { communityPage } from '@/features/community/api/feed';
@@ -31,8 +30,13 @@ export async function ChannelPage({ space, community, channelId }: { space: stri
   const signedIn = viewer.profile !== null;
   const nav = await communityNav(getRepo(), viewer, page.community, page.access, new Date());
   return (
-    <CommunityFrame community={page.community} channels={page.channels} activeId={page.channel.id} extras={nav}>
-      <LiveRefresh topics={signedIn ? [liveTopic.channel(page.channel.id)] : []} />
+    <CommunityFrame
+      community={page.community}
+      channels={page.channels}
+      activeId={page.channel.id}
+      extras={nav}
+      live={signedIn ? [liveTopic.channel(page.channel.id)] : []}
+    >
       {page.channel.kind === 'chat' ? (
         <ChannelChat
           page={page}
