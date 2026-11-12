@@ -4,11 +4,15 @@
 import {
   ALREADY_MEMBER,
   ALREADY_REPORTED,
+  ATTACHMENT_INCOMPLETE,
+  FILE_IN_USE,
+  FILE_OUTSIDE_FOLDER,
   HOST_TAKEN,
   ONE_PRIMARY_DOMAIN,
   REPORT_TARGET_MISSING,
   SESSION_OVERLAP,
   SLUG_RESERVED,
+  TOO_MANY_PHOTOS,
 } from '@/lib/data/errors';
 import { bodyRangeMessage, COMMENT_MAX, ENTRY_MAX, MESSAGE_MAX, POST_MAX, REPORT_REASON_RANGE } from '@/lib/data/limits';
 
@@ -63,6 +67,13 @@ const BY_NAME: Readonly<Record<string, string>> = {
   reports_reason: REPORT_REASON_RANGE,
   // Raised by the reports_target trigger: no post, post comment or channel line with that id.
   reports_target_missing: REPORT_TARGET_MISSING,
+  // Community files: the path triggers raise these names (post_photos_check, messages_attachment_check).
+  post_photos_path: FILE_OUTSIDE_FOLDER,
+  messages_attachment_path: FILE_OUTSIDE_FOLDER,
+  post_photos_path_key: FILE_IN_USE,
+  messages_attachment_path_key: FILE_IN_USE,
+  post_photos_max: TOO_MANY_PHOTOS,
+  messages_attachment: ATTACHMENT_INCOMPLETE,
 };
 
 const TITLE_CHECK = /_title(_check)?$/;

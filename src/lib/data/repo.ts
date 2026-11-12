@@ -40,6 +40,7 @@ import type {
   PaymentCredentials,
   PaymentEnv,
   Post,
+  PostPhoto,
   Product,
   Profile,
   Reaction,
@@ -104,7 +105,9 @@ export type MeetupPatch = Partial<
 /** Kind and group are fixed once created: posts or messages and private members depend on them. */
 export type NewChannel = Pick<Channel, 'communityId' | 'accessGroupId' | 'title' | 'kind' | 'privacy' | 'readOnly'>;
 export type ChannelPatch = Partial<Pick<Channel, 'title' | 'privacy' | 'readOnly'>>;
-export type NewMessage = Pick<Message, 'channelId' | 'threadId' | 'authorId' | 'body' | 'createdAt'>;
+export type NewMessage = Pick<Message, 'channelId' | 'threadId' | 'authorId' | 'body' | 'createdAt'> & {
+  attachment?: Message['attachment'];
+};
 export type MessageWhere = { channelId: string } | { threadId: string };
 export type NewReport = Pick<Report, 'targetType' | 'targetId' | 'reason' | 'createdAt'> & { reporterId: string };
 export type ReportResolution = { status: Exclude<ReportStatus, 'open'>; resolvedBy: string; resolvedAt: Date };
@@ -329,8 +332,16 @@ export interface Repo {
   /** Body 1..10000 chars (constraint). */
   createPost(input: NewPost): Promise<Post>;
   updatePost(id: string, patch: PostPatch): Promise<Post>;
-  /** Cascades to its comments, reactions and notifications. */
+  /** Cascades to its comments, reactions, notifications and photo rows (not the stored files). */
   deletePost(id: string): Promise<void>;
+
+  /** Photos of the given posts, by position. */
+  postPhotos(postIds: readonly string[]): Promise<PostPhoto[]>;
+  /** Appends after the last photo. Paths in the post's channel folder, max 10 per post (constraint). */
+  addPostPhotos(postId: string, paths: readonly string[]): Promise<PostPhoto[]>;
+  deletePostPhoto(id: string): Promise<void>;
+  /** Stored file paths of a channel's photos and attachments. Empty unless the viewer edits the community. */
+  channelFiles(channelId: string): Promise<string[]>;
 
   /** Oldest first, for every target id given. */
   comments(targetType: CommentTarget, targetIds: readonly string[]): Promise<Comment[]>;

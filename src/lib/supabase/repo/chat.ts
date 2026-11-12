@@ -47,6 +47,10 @@ export function createChatRepo({ db }: RepoCtx): ChatRepo {
             thread_id: input.threadId,
             author_id: input.authorId,
             body: input.body,
+            attachment_path: input.attachment?.path ?? null,
+            attachment_name: input.attachment?.name ?? null,
+            attachment_type: input.attachment?.type ?? null,
+            attachment_size: input.attachment?.size ?? null,
             created_at: input.createdAt.toISOString(),
           })
           .select('*')

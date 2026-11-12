@@ -6,6 +6,7 @@ import { ConstraintError } from '../errors';
 import type { Repo } from '../repo';
 import { ALL_GROUP_FEATURES, DEFAULT_COMMUNITY_SETTINGS, type AccessGroup, type Block, type DmThread, type Message } from '../types';
 import type { Db } from './db';
+import { checkAttachment } from './fakeCommunityFiles';
 
 type ChatRepo = Pick<
   Repo,
@@ -110,10 +111,12 @@ export function createFakeChatRepo(db: Db, id: (prefix: string) => string): Chat
         throw new ConstraintError('messages only in chat channels');
       }
       if (input.threadId !== null) must(db.dmThreads.find((t) => t.id === input.threadId), 'thread');
-      if (input.body.trim().length === 0 || input.body.length > MESSAGE_MAX) {
+      const attachment = input.attachment ?? null;
+      if ((input.body.trim().length === 0 && !attachment) || input.body.length > MESSAGE_MAX) {
         throw new ConstraintError(bodyRangeMessage(MESSAGE_MAX));
       }
-      const row: Message = { ...input, id: id('msg') };
+      if (attachment) checkAttachment(db, input.channelId, input.threadId, attachment);
+      const row: Message = { ...input, attachment: attachment && { ...attachment }, id: id('msg') };
       db.messages.push(row);
       return row;
     },

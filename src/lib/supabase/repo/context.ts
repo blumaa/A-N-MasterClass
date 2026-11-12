@@ -40,7 +40,7 @@ export const isoOrNull = (v: Date | null | undefined): string | null | undefined
 /** Next position among siblings: max + 1, 0 when none (same as the fake repo). */
 export async function nextPosition(
   db: Db,
-  table: 'products' | 'modules' | 'steps' | 'parts' | 'channels',
+  table: 'products' | 'modules' | 'steps' | 'parts' | 'channels' | 'post_photos',
   column: string,
   value: string,
 ): Promise<number> {

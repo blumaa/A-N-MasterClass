@@ -8,6 +8,10 @@ export const toMessage = (r: Row<'messages'>): Message => ({
   threadId: r.thread_id,
   authorId: r.author_id,
   body: r.body,
+  attachment:
+    r.attachment_path === null
+      ? null
+      : { path: r.attachment_path, name: r.attachment_name ?? '', type: r.attachment_type ?? '', size: r.attachment_size ?? 0 },
   createdAt: toDate(r.created_at),
 });
 

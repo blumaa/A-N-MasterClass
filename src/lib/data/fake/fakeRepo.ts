@@ -10,6 +10,7 @@ import { createFakeCoachingRepo } from './fakeCoachingRepo';
 import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
 import { createFakeCommunityRepo } from './fakeCommunityRepo';
+import { createFakeCommunityFiles } from './fakeCommunityFiles';
 import { createFakeEventsRepo } from './fakeEventsRepo';
 import { createFakeMediaRepo } from './fakeMediaRepo';
 import { createFakeModerationRepo } from './fakeModerationRepo';
@@ -79,6 +80,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...chat,
     ...createFakeCommerceRepo(db, id),
     ...createFakeCommunityRepo(db, id),
+    ...createFakeCommunityFiles(db, id),
     ...createFakeEventsRepo(db, id),
     ...createFakeCoachingRepo(db, id),
     ...createFakeMediaRepo(db, id),

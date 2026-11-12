@@ -31,7 +31,7 @@ const thread = async () => {
 };
 
 describe('isUnread', () => {
-  const msg = { id: 'm', channelId: null, threadId: 't', authorId: 'b', body: 'x', createdAt: LATER };
+  const msg = { id: 'm', channelId: null, threadId: 't', authorId: 'b', body: 'x', attachment: null, createdAt: LATER };
   it('needs a newer message from the other side', () => {
     expect(isUnread(null, 'a', undefined)).toBe(false);
     expect(isUnread(msg, 'a', undefined)).toBe(true);

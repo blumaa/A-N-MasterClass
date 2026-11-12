@@ -27,6 +27,7 @@ import {
 } from '@/lib/data/types';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { SECTION_KINDS } from '@/lib/site/sections';
+import { ATTACHMENT_TYPES, COMMUNITY_MAX_BYTES, POST_PHOTOS_MAX } from '@/lib/storage/communityFiles';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { BRAND_INPUTS } from '@/tokens/brandInputs';
 
@@ -200,5 +201,15 @@ describe('SQL mirrors: podcasts', () => {
   it('episode size limit and bucket limit equal EPISODE_MAX_BYTES', () => {
     expect(sql).toContain(`check (audio_bytes between 1 and ${EPISODE_MAX_BYTES})`);
     expect(sql).toContain(`('resources', 'resources', false, ${EPISODE_MAX_BYTES})`);
+  });
+
+  it('community bucket limit and types equal COMMUNITY_MAX_BYTES and ATTACHMENT_TYPES', () => {
+    expect(sql).toContain(`('community', 'community', false, ${COMMUNITY_MAX_BYTES}, array[`);
+    const types = sql.match(/\('community', 'community', false, \d+, array\[([\s\S]+?)\]\)/)?.[1];
+    expect(types?.split(',').map((t) => t.trim().replace(/'/g, ''))).toEqual([...ATTACHMENT_TYPES]);
+  });
+
+  it('post photos trigger cap equals POST_PHOTOS_MAX', () => {
+    expect(sql).toContain(`where p.post_id = new.post_id) >= ${POST_PHOTOS_MAX} then`);
   });
 });

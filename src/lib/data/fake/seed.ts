@@ -191,6 +191,7 @@ export function seedDb(now: Date = new Date()): Db {
     channel(ids.lounge, 'Lounge', 2, { kind: 'chat' }),
   );
   db.messages.push({
+    attachment: null,
     id: 'msg-hello',
     channelId: ids.lounge,
     threadId: null,

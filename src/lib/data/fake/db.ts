@@ -41,6 +41,7 @@ import type {
   PaymentCredentials,
   PaymentEnv,
   Post,
+  PostPhoto,
   Product,
   Profile,
   Reaction,
@@ -90,6 +91,7 @@ export type Db = {
   communitySettings: CommunitySettings[];
   communityStaff: CommunityStaff[];
   posts: Post[];
+  postPhotos: PostPhoto[];
   comments: Comment[];
   reactions: Reaction[];
   notifications: Notification[];
@@ -148,6 +150,7 @@ export const emptyDb = (): Db => ({
   communitySettings: [],
   communityStaff: [],
   posts: [],
+  postPhotos: [],
   comments: [],
   reactions: [],
   notifications: [],

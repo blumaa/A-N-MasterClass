@@ -64,6 +64,7 @@ export function createFakeCommunityRepo(db: Db, id: (prefix: string) => string):
     removeComments(new Set(db.comments.filter((c) => c.targetType === 'post' && ids.has(c.targetId)).map((c) => c.id)));
     db.reactions = db.reactions.filter((r) => !(r.targetType === 'post' && ids.has(r.targetId)));
     db.notifications = db.notifications.filter((n) => !(n.postId && ids.has(n.postId)));
+    db.postPhotos = db.postPhotos.filter((p) => !ids.has(p.postId));
     db.posts = db.posts.filter((p) => !ids.has(p.id));
   }
 

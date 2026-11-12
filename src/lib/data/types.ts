@@ -276,13 +276,17 @@ export type Channel = {
 /** Invited members of a private channel. */
 export type ChannelMember = { channelId: string; profileId: string };
 
-/** A chat line, in a chat channel or a DM thread (exactly one of the two). */
+/** A file on a chat line, in the `community` bucket. Path is inside the channel or thread folder. */
+export type Attachment = { path: string; name: string; type: string; size: number };
+
+/** A chat line, in a chat channel or a DM thread (exactly one of the two). Text, a file, or both. */
 export type Message = {
   id: string;
   channelId: string | null;
   threadId: string | null;
   authorId: string;
   body: string;
+  attachment: Attachment | null;
   createdAt: Date;
 };
 
@@ -419,6 +423,9 @@ export type Post = {
   /** Hidden by a moderator: only moderators still see it. */
   hiddenAt: Date | null;
 };
+
+/** A photo on a feed post, in the `community` bucket (post's channel folder). Max 10 per post. */
+export type PostPhoto = { id: string; postId: string; path: string; position: number };
 
 /** Comments hang off a feed post or a program step (lesson comments). */
 export const COMMENT_TARGETS = ['post', 'step'] as const;
