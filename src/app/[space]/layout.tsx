@@ -4,13 +4,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppLink } from "@/components/ui/links";
-import { Button, Container, Text } from "@/components/ui/mds";
+import { Container, Text } from "@/components/ui/mds";
 import { spaceTheme } from "@/features/branding/api/branding";
 import { ThemeStyle } from "@/features/branding/components/ThemeStyle";
 import { themeCss } from "@/features/branding/theme";
 import { notificationsHref } from "@/features/community/paths";
 import { unreadCount } from "@/features/community/api/notifications";
-import { signOutAction } from "@/features/auth/actions";
 import { libraryHref } from "@/features/programs/paths";
 import { siteChrome } from "@/features/site/api/site";
 import { SiteFooter } from "@/features/site/components/SiteFooter";
@@ -23,6 +22,7 @@ import { pushPublicKey } from "@/lib/push/getPushSender";
 import { signInHref } from "@/lib/routes";
 import styles from "./layout.module.css";
 import { PushHeal } from "./PushHeal";
+import { SignOutForm } from "./SignOutForm";
 
 export async function generateMetadata({
   params,
@@ -48,7 +48,7 @@ export default async function SpaceLayout({
   const sessions = sessionsEnabled();
   const repo = getRepo();
   const visible = canSeeSpace(viewer);
-  const pushKey = viewer.profile ? pushPublicKey() : null;
+  const pushKey = pushPublicKey();
   const [theme, chrome, unread] = await Promise.all([
     spaceTheme(repo, viewer.space.id),
     visible ? siteChrome(repo, viewer.space.id) : null,
@@ -57,8 +57,8 @@ export default async function SpaceLayout({
   return (
     <>
       <ThemeStyle css={themeCss(theme, "space")} />
-      {viewer.profile && pushKey ? (
-        <PushHeal key={viewer.profile.id} publicKey={pushKey} />
+      {pushKey ? (
+        <PushHeal publicKey={pushKey} profileId={viewer.profile?.id ?? null} />
       ) : null}
       <header className={styles.header}>
         {chrome ? (
@@ -85,13 +85,7 @@ export default async function SpaceLayout({
                 <Text as="span" variant="meta" tone="muted">
                   {viewer.displayName}
                 </Text>
-                {sessions ? (
-                  <form action={signOutAction}>
-                    <Button type="submit" variant="ghost" size="sm">
-                      Sign out
-                    </Button>
-                  </form>
-                ) : null}
+                {sessions ? <SignOutForm /> : null}
               </>
             ) : sessions ? (
               <AppLink href={signInHref}>Sign in</AppLink>

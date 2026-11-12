@@ -21,7 +21,7 @@ const serverAvailability = () => null;
 
 const reason = (error: unknown) => (error instanceof Error && error.message ? error.message : 'Push could not be changed. Try again.');
 
-export function PushSwitch({ publicKey }: { publicKey: string }) {
+export function PushSwitch({ publicKey, profileId }: { publicKey: string; profileId: string }) {
   // Browser APIs: null on the server and during hydration, so both renders match.
   const availability = useSyncExternalStore(noSubscribe, currentAvailability, serverAvailability);
   const [on, setOn] = useState(false);
@@ -42,7 +42,7 @@ export function PushSwitch({ publicKey }: { publicKey: string }) {
     setBusy(true);
     setError(null);
     try {
-      if (next) await subscribe(pushServer, publicKey);
+      if (next) await subscribe(pushServer, publicKey, profileId);
       else await unsubscribe(pushServer);
       setOn(next);
     } catch (e) {

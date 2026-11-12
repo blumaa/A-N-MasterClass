@@ -43,10 +43,10 @@ describe('urlBase64ToUint8Array', () => {
 });
 
 describe('healPlan', () => {
-  const base = { granted: true, hasSubscription: true, currentKey: true, saved: true, wasOn: true };
+  const base = { granted: true, hasSubscription: true, currentKey: true, saved: true, mine: true };
   it('leaves a healthy or never-enabled device alone', () => {
     expect(healPlan(base)).toBe('ok');
-    expect(healPlan({ ...base, hasSubscription: false, wasOn: false })).toBe('ok');
+    expect(healPlan({ ...base, hasSubscription: false, mine: false })).toBe('ok');
     expect(healPlan({ ...base, granted: false })).toBe('ok');
   });
 
@@ -54,5 +54,14 @@ describe('healPlan', () => {
     expect(healPlan({ ...base, saved: false })).toBe('resubscribe');
     expect(healPlan({ ...base, currentKey: false })).toBe('resubscribe');
     expect(healPlan({ ...base, hasSubscription: false })).toBe('resubscribe');
+  });
+
+  it('drops a subscription this account never turned on (shared device), never re-subscribes it', () => {
+    expect(healPlan({ ...base, saved: false, mine: false })).toBe('drop');
+    expect(healPlan({ ...base, currentKey: false, mine: false })).toBe('drop');
+  });
+
+  it('keeps a subscription the server holds for this account even without the local hint', () => {
+    expect(healPlan({ ...base, mine: false })).toBe('ok');
   });
 });

@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 async function renderSwitch() {
-  render(<PushSwitch publicKey="pub" />);
+  render(<PushSwitch publicKey="pub" profileId="p1" />);
   await act(async () => {});
 }
 
@@ -32,7 +32,7 @@ describe('PushSwitch', () => {
     const toggle = screen.getByRole('switch', { name: 'Push notifications on this device' });
     expect(toggle).not.toBeChecked();
     await act(async () => fireEvent.click(toggle));
-    expect(browser.subscribe).toHaveBeenCalledWith({ name: 'server' }, 'pub');
+    expect(browser.subscribe).toHaveBeenCalledWith({ name: 'server' }, 'pub', 'p1');
     expect(toggle).toBeChecked();
   });
 

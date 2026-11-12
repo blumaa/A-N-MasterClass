@@ -12,7 +12,8 @@ export type PushServer = {
 
 /** Served per space host by app/[space]/push-sw.js/route.ts. */
 const WORKER_URL = '/push-sw.js';
-const ON_KEY = 'push-on:v1';
+/** Profile id of the account that turned push on in this browser. */
+const ON_KEY = 'push-on:v2';
 
 export function currentAvailability(): PushAvailability {
   const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
@@ -27,25 +28,32 @@ export function currentAvailability(): PushAvailability {
 }
 
 // Storage throws in some private modes; the flag is a hint, so a failed write only loses the hint.
-function remember(on: boolean): void {
+function remember(profileId: string | null): void {
   try {
-    if (on) localStorage.setItem(ON_KEY, '1');
+    if (profileId) localStorage.setItem(ON_KEY, profileId);
     else localStorage.removeItem(ON_KEY);
   } catch {
     // No storage: heal cannot tell that push was on here, the switch still works.
   }
 }
-function wasOn(): boolean {
+function turnedOnBy(): string | null {
   try {
-    return localStorage.getItem(ON_KEY) !== null;
+    return localStorage.getItem(ON_KEY);
   } catch {
-    return false;
+    return null;
   }
 }
 
 async function registration(): Promise<ServiceWorkerRegistration> {
   await navigator.serviceWorker.register(WORKER_URL);
   return navigator.serviceWorker.ready;
+}
+
+/** This browser's subscription on this host, without registering a worker (none = never subscribed here). */
+async function existingSubscription(): Promise<PushSubscription | null> {
+  if (!('serviceWorker' in navigator)) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
 }
 
 function hasKey(sub: PushSubscription, publicKey: string): boolean {
@@ -60,7 +68,7 @@ const fresh = (reg: ServiceWorkerRegistration, publicKey: string) =>
   reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
 
 /** Ask permission, subscribe, save. Throws an Error that says why, for the switch to show. */
-export async function subscribe(server: PushServer, publicKey: string): Promise<void> {
+export async function subscribe(server: PushServer, publicKey: string, profileId: string): Promise<void> {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') throw new Error('Notifications are blocked for this site in your browser settings.');
   const reg = await registration();
@@ -81,11 +89,11 @@ export async function subscribe(server: PushServer, publicKey: string): Promise<
   }
   const saved = await server.save(sub.toJSON());
   if (!saved.ok) throw new Error(saved.message);
-  remember(true);
+  remember(profileId);
 }
 
 export async function unsubscribe(server: PushServer): Promise<void> {
-  remember(false);
+  remember(null);
   const sub = await (await registration()).pushManager.getSubscription();
   if (!sub) return;
   await server.forget(sub.endpoint);
@@ -98,8 +106,26 @@ export async function isSubscribed(server: PushServer, publicKey: string): Promi
   return sub !== null && hasKey(sub, publicKey) && server.isSaved(sub.endpoint);
 }
 
-/** Quiet recovery of a standing yes: re-subscribe when the browser or the server dropped it. */
-export async function heal(server: PushServer, publicKey: string): Promise<void> {
+/** Sign-out: delete the row and the browser subscription while the session still owns them. */
+export async function leavePush(server: PushServer): Promise<void> {
+  remember(null);
+  const sub = await existingSubscription();
+  if (!sub) return;
+  await server.forget(sub.endpoint);
+  await sub.unsubscribe();
+}
+
+/**
+ * Signed-out visitor: a subscription left here (sign-out without JS, expired session) still gets
+ * the last account's pushes. Unsubscribe it; the row goes when the push service answers 410.
+ * The hint stays, so heal brings push back only if that same account signs in again.
+ */
+export async function dropPush(): Promise<void> {
+  await (await existingSubscription())?.unsubscribe();
+}
+
+/** Quiet recovery of this account's standing yes. Never re-subscribes another account's device. */
+export async function heal(server: PushServer, publicKey: string, profileId: string): Promise<void> {
   if (Notification.permission !== 'granted') return;
   const sub = await (await registration()).pushManager.getSubscription();
   const currentKey = sub !== null && hasKey(sub, publicKey);
@@ -108,7 +134,8 @@ export async function heal(server: PushServer, publicKey: string): Promise<void>
     hasSubscription: sub !== null,
     currentKey,
     saved: currentKey && sub !== null && (await server.isSaved(sub.endpoint)),
-    wasOn: wasOn(),
+    mine: turnedOnBy() === profileId,
   });
-  if (plan === 'resubscribe') await subscribe(server, publicKey);
+  if (plan === 'resubscribe') await subscribe(server, publicKey, profileId);
+  else if (plan === 'drop') await sub?.unsubscribe();
 }

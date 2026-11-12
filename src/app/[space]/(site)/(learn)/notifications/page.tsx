@@ -29,7 +29,7 @@ export default async function NotificationsPage({ params }: PageProps<'/[space]/
         </Heading>
         {items.some((n) => n.unread) ? <ActionForm action={markAllReadAction} fields={{}} submit="Mark all read" inline /> : null}
       </Inline>
-      {pushKey ? <PushSwitch publicKey={pushKey} /> : null}
+      {pushKey ? <PushSwitch publicKey={pushKey} profileId={viewer.profile.id} /> : null}
       <NotificationList items={linked} />
     </Stack>
   );

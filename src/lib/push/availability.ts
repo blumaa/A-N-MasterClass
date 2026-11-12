@@ -44,12 +44,18 @@ export type HealState = {
   currentKey: boolean;
   /** The server still holds the row (it deletes endpoints the push service calls gone). */
   saved: boolean;
-  /** Push was turned on in this browser (granted permission alone is not intent). */
-  wasOn: boolean;
+  /** This account turned push on in this browser (granted permission alone is not intent). */
+  mine: boolean;
 };
 
-export function healPlan(s: HealState): 'ok' | 'resubscribe' {
+/**
+ * drop: the browser holds a subscription the server does not keep for this account, and this
+ * account never turned it on here. On a shared device it is the last user's: unsubscribe, never
+ * save it for the new user (they turn push on themselves).
+ */
+export function healPlan(s: HealState): 'ok' | 'resubscribe' | 'drop' {
   if (!s.granted) return 'ok';
-  if (!s.hasSubscription) return s.wasOn ? 'resubscribe' : 'ok';
-  return s.currentKey && s.saved ? 'ok' : 'resubscribe';
+  if (!s.hasSubscription) return s.mine ? 'resubscribe' : 'ok';
+  if (s.currentKey && s.saved) return 'ok';
+  return s.mine ? 'resubscribe' : 'drop';
 }
