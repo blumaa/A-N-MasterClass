@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import { editOffers, studioOffer, studioOffers } from './offers';
+import { editOffers, studioOffer, studioOffers, type OfferTerms } from './offers';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
@@ -13,6 +13,14 @@ beforeEach(() => {
 
 const as = async (profileId: string, space = 'alexander'): Promise<Viewer> => (await resolveViewer(repo, space, profileId))!;
 const owner = () => as(SEED_IDS.alexanderOwner);
+const ONE_TIME = { kind: 'one_time', billingInterval: null, trialDays: null, installments: null } as const;
+const MONTHLY = { kind: 'subscription', billingInterval: 'month', trialDays: 7, installments: null } as const;
+
+async function setTerms(id: string, terms: OfferTerms, priceCents = 1500) {
+  const { title, slug } = (await repo.offer(id))!;
+  const fields = { title, slug, description: '', priceCents, currency: 'EUR' as const };
+  return editOffers(repo, await owner(), { op: 'update', offerId: id, ...fields, terms });
+}
 
 async function created(slug = 'full'): Promise<string> {
   const r = await editOffers(repo, await owner(), { op: 'create', title: 'Full access', slug, priceCents: 4900, currency: 'EUR' });
@@ -74,6 +82,7 @@ describe('editOffers', () => {
       description: '  Lifetime access. ',
       priceCents: 9900,
       currency: 'USD',
+      terms: ONE_TIME,
     });
     expect(r).toEqual({ ok: true });
     expect(await repo.offer(id)).toMatchObject({ title: 'Full program', slug: 'program', description: 'Lifetime access.', priceCents: 9900, currency: 'USD' });
@@ -174,5 +183,37 @@ describe('editOffers', () => {
     expect(await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: null, upsellOfferId: foreign.id })).toMatchObject({
       message: 'Pick offers of this site only.',
     });
+  });
+
+  it('sets the price type and drops a bump once the offer is recurring (G5)', async () => {
+    const id = await created();
+    const bump = await created('bump');
+    await editOffers(repo, await owner(), { op: 'setLinks', offerId: id, bumpOfferId: bump, upsellOfferId: null });
+    expect(await setTerms(id, MONTHLY)).toEqual({ ok: true });
+    expect(await repo.offer(id)).toMatchObject({ ...MONTHLY, priceCents: 1500, bumpOfferId: null });
+    const plan = { kind: 'payment_plan', billingInterval: 'month', trialDays: null, installments: 3 } as const;
+    expect(await setTerms(id, plan)).toEqual({ ok: true });
+    expect(await setTerms(id, ONE_TIME)).toEqual({ ok: true });
+    expect(await repo.offer(id)).toMatchObject(ONE_TIME);
+  });
+
+  it('refuses free recurring offers, bad trials and installments out of Kajabi limits (G5)', async () => {
+    const id = await created();
+    expect(await setTerms(id, MONTHLY, 0)).toMatchObject({ message: 'Subscriptions and payment plans need a price above 0.' });
+    expect(await setTerms(id, { ...MONTHLY, trialDays: 400 })).toMatchObject({ message: 'Free trial: 1 to 365 days.' });
+    const plan = { kind: 'payment_plan', billingInterval: 'year', trialDays: null, installments: 6 } as const;
+    expect(await setTerms(id, plan)).toMatchObject({ message: 'Annual payment plans take 2 to 5 payments.' });
+    expect(await repo.offer(id)).toMatchObject(ONE_TIME);
+  });
+
+  it('allows order bumps between one-time offers only (G5)', async () => {
+    const id = await created();
+    const sub = await created('sub');
+    expect(await setTerms(sub, MONTHLY)).toEqual({ ok: true });
+    const v = await owner();
+    const message = 'Order bumps work with one-time offers only.';
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: sub, upsellOfferId: null })).toMatchObject({ message });
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: sub, bumpOfferId: id, upsellOfferId: null })).toMatchObject({ message });
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: sub, bumpOfferId: null, upsellOfferId: id })).toEqual({ ok: true });
   });
 });

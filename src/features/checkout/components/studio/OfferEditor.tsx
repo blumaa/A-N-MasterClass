@@ -3,7 +3,7 @@ import { AppLink } from '@/components/ui/links';
 import { Checkbox, Field, Heading, Input, Select, Stack, Text, Textarea } from '@/components/ui/mds';
 import type { StudioOfferDetail } from '../../api/offers';
 import { checkoutPath } from '../../paths';
-import { PriceFields } from './OfferFields';
+import { PriceFields, PriceTypeFields } from './OfferFields';
 import { OfferLinks } from './OfferLinks';
 import { OfferStatus } from './OfferStatus';
 import { OfferForm } from './StudioForms';
@@ -37,6 +37,7 @@ export function OfferEditor({ detail }: { detail: StudioOfferDetail }) {
             <Input name="slug" required defaultValue={offer.slug} />
           </Field>
           <PriceFields priceCents={offer.priceCents} currency={offer.currency} />
+          <PriceTypeFields {...offer} />
           <Field label="Description" hint="Shown on the checkout page.">
             <Textarea name="description" rows={3} defaultValue={offer.description ?? ''} />
           </Field>

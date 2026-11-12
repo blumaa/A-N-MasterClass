@@ -3,6 +3,13 @@
 // enforced by the repo constraint and reported as invalid.
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { Currency } from '@/lib/commerce/money';
+import {
+  INSTALLMENT_LIMITS,
+  recurringTermsError,
+  TRIAL_DAYS_MAX,
+  type RecurringTerms,
+  type TermsError,
+} from '@/lib/commerce/recurring';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError, OFFER_LINK_SELF, OFFER_LINK_SPACE } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
@@ -15,14 +22,16 @@ export type StudioOfferDetail = {
   /** groups: the extra access groups of a community; the default group is accessGroupId null. */
   products: { id: string; title: string; kind: ProductKind; groups: { id: string; title: string }[] }[];
   /** Other offers of the space, to pick a bump or upsell from (G23). */
-  others: Pick<Offer, 'id' | 'title' | 'currency' | 'status'>[];
+  others: Pick<Offer, 'id' | 'title' | 'currency' | 'status' | 'kind'>[];
 };
 
 type Fields = { title: string; slug: string; priceCents: number; currency: Currency };
+/** Price type (G5): one-time, subscription or payment plan. */
+export type OfferTerms = Omit<RecurringTerms, 'priceCents' | 'currency'>;
 
 export type OfferCommand =
   | ({ op: 'create' } & Fields)
-  | ({ op: 'update'; offerId: string; description: string } & Fields)
+  | ({ op: 'update'; offerId: string; description: string; terms: OfferTerms } & Fields)
   | { op: 'setProducts'; offerId: string; items: OfferItem[] }
   | { op: 'setLinks'; offerId: string; bumpOfferId: string | null; upsellOfferId: string | null }
   | { op: 'publish' | 'unpublish' | 'delete'; offerId: string };
@@ -63,7 +72,9 @@ export async function studioOffer(repo: Repo, viewer: Viewer, offerId: string): 
       kind: p.kind,
       groups: groups[i]!.filter((g) => !g.isDefault).map((g) => ({ id: g.id, title: g.title })),
     })),
-    others: offers.filter((o) => o.id !== offer.id).map(({ id, title, currency, status }) => ({ id, title, currency, status })),
+    others: offers
+      .filter((o) => o.id !== offer.id)
+      .map(({ id, title, currency, status, kind }) => ({ id, title, currency, status, kind })),
   };
 }
 
@@ -90,12 +101,16 @@ async function apply(repo: Repo, offer: Offer, cmd: Exclude<OfferCommand, { op: 
     case 'update': {
       const title = cmd.title.trim();
       if (!title) return invalid('Title is required.');
+      const terms: RecurringTerms = { ...cmd.terms, priceCents: cmd.priceCents, currency: cmd.currency };
+      const termsError = recurringTermsError(terms);
+      if (termsError) return invalid(termsMessage(termsError, terms));
       await repo.updateOffer(offer.id, {
         title,
         slug: cmd.slug,
         description: cmd.description.trim() || null,
-        priceCents: cmd.priceCents,
-        currency: cmd.currency,
+        ...terms,
+        // Bumps are one-time only (pricing ignores them otherwise); drop a stale one.
+        ...(terms.kind === 'one_time' ? {} : { bumpOfferId: null }),
       });
       return OK;
     }
@@ -108,6 +123,9 @@ async function apply(repo: Repo, offer: Offer, cmd: Exclude<OfferCommand, { op: 
     case 'setLinks': {
       // Bump is one PayPal order with the offer, so one currency. The repo checks space and self.
       const bump = cmd.bumpOfferId === null ? null : await repo.offer(cmd.bumpOfferId);
+      if (bump && (offer.kind !== 'one_time' || bump.kind !== 'one_time')) {
+        return invalid('Order bumps work with one-time offers only.');
+      }
       if (bump && bump.id !== offer.id && bump.spaceId === offer.spaceId && bump.currency !== offer.currency) {
         return invalid('The bump offer must use the same currency as this offer.');
       }
@@ -124,6 +142,24 @@ async function apply(repo: Repo, offer: Offer, cmd: Exclude<OfferCommand, { op: 
     case 'delete':
       await repo.deleteOffer(offer.id);
       return OK;
+  }
+}
+
+const INTERVAL_NAMES = { week: 'Weekly', month: 'Monthly', year: 'Annual' } as const;
+
+function termsMessage(error: TermsError, t: RecurringTerms): string {
+  switch (error) {
+    case 'price':
+      return 'Subscriptions and payment plans need a price above 0.';
+    case 'trial':
+      return `Free trial: 1 to ${TRIAL_DAYS_MAX} days.`;
+    case 'installments': {
+      const interval = t.billingInterval ?? 'month';
+      const { min, max } = INSTALLMENT_LIMITS[interval];
+      return `${INTERVAL_NAMES[interval]} payment plans take ${min} to ${max} payments.`;
+    }
+    case 'terms':
+      return 'Pick a billing interval. Payment plans have no free trial.';
   }
 }
 

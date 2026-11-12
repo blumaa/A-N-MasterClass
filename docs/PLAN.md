@@ -342,9 +342,23 @@ Launch 6 item 12 as built:
 - Upsell: shown on the thanks page when published and the buyer does not already hold all its products; button starts a normal second checkout.
 - Not yet: one-click upsell (needs PayPal vaulting; second checkout instead), coupon on bump or upsell price, max-uses race (two open checkouts can both pay past the limit by one), coupon reports, automatic discounts, bump/upsell in another currency.
 
+Launch 6 item 13 as built:
+- G0: Kajabi subscriptions (interval, optional free trial, member or creator cancel, access until period end), payment plans (fixed number of payments, limits per interval), failed payments (retries, then cancel). https://help.kajabi.com/en/articles/12695517-how-to-create-a-subscription-offer, https://help.kajabi.com/articles/sales/offers/create-a-payment-plan-offer, https://help.kajabi.com/en/articles/17174608-set-up-and-manage-subscriptions-with-kajabi-payments, https://help.kajabi.com/en/articles/17175348-cancel-a-customer-s-subscription, https://help.kajabi.com/en/articles/17174611-manage-failed-payments-with-kajabi-payments, https://help.kajabi.com/en/articles/17174766-coupons-for-subscriptions-and-payment-plans, https://help.kajabi.com/en/articles/17174659-add-order-bumps-to-an-offer (checked 2026-11-12). PayPal: https://developer.paypal.com/docs/api/subscriptions/v1/, https://developer.paypal.com/docs/api/catalog-products/v1/, https://developer.paypal.com/docs/subscriptions/integrate/, https://developer.paypal.com/api/rest/webhooks/event-names/.
+- Migrations `20261112180000_subscriptions.sql` + `supabase/tests/220-subscriptions.test.sql` (26 asserts), `20261112190000_grant_expiry_renewal.sql`, `20261112200000_purchase_replaces_subscription_grant.sql`, applied to ksb 2026-11-12.
+- Offer price type: `offers.kind` one_time / subscription / payment_plan, `billing_interval` week/month/year, `trial_days` 1-365 (subscriptions only), `installments` (payment plans only: weekly 2-104, monthly 2-24, annual 2-5). Recurring offers never free. Check `offers_recurring_terms` mirrors `recurringTermsError`. Studio: price type fields in offer Settings; create stays one-time.
+- Payment plan = PayPal plan with `total_cycles` = installments. Price = per payment, set on the server.
+- Terms copied onto `subscriptions` at checkout: editing the offer never changes what a buyer pays. PayPal plans cached in `provider_plans` per offer, env and terms key.
+- Checkout: PayPal Subscriptions SDK button (`vault=true&intent=subscription`). After approval the server re-reads the status and activates; the webhook is the backup. Webhooks idempotent: status always re-read from PayPal, each sale recorded once (`subscription_payments` unique provider + sale id, `record_subscription_payment` locks the row).
+- Grants follow the subscription (`grants.subscription_id`): active and past_due keep access; cancel (member, creator in PayPal) keeps access until period end (`expires_at`); SUSPENDED (retries failed) cancels in PayPal and revokes now; payment failed = past_due; EXPIRED plan or last installment paid = completed, access kept. A one-time purchase of the same product replaces a subscription grant.
+- Member: Account > Subscriptions lists own subscriptions and plans with status and next date; "Cancel subscription" with a confirm step. Subscriptions only; a payment plan cannot be cancelled by the member. Always on (Kajabi has a toggle, off by default).
+- Studio Customers: Subscriptions table (offer, price, status, test badge, payments n of N, paid until).
+- Coupons and order bumps: one-time offers only (simplest). Coupon refused on recurring offers; bump hidden and refused on recurring offers; recurring offers cannot be a bump. Upsell can be any offer.
+- `subscription_payments` keeps paid amount + livemode for revenue (G10). No revenue view yet.
+- Not yet: real PayPal sandbox run (adapter tested with fake provider and mocked fetch only), Studio cancel/refund buttons (do it in PayPal), member self-cancel toggle, coupons on recurring offers, price change for existing subscribers, reactivation, dunning emails, one grant per product shared by two subscriptions of the same product.
+
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 
-**Later** — drip release emails (`pg_cron`), subscriptions/payment plans, embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.
+**Later** — drip release emails (`pg_cron`), embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.
 
 ## Costs (warn, verify on official pricing pages before signup)
 

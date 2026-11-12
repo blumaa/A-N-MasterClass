@@ -24,12 +24,41 @@ describe('offerCommandFromForm', () => {
 
   it('parses update with description and explicit slug', () => {
     const parsed = offerCommandFromForm(
-      form({ op: 'update', offerId: 'o1', title: 'T', slug: 'my-offer', price: '120', currency: 'USD', description: ' d ' }),
+      form({ op: 'update', offerId: 'o1', title: 'T', slug: 'my-offer', price: '120', currency: 'USD', description: ' d ', kind: 'one_time' }),
     );
     expect(parsed).toEqual({
       ok: true,
-      command: { op: 'update', offerId: 'o1', title: 'T', slug: 'my-offer', priceCents: 12000, currency: 'USD', description: 'd' },
+      command: {
+        op: 'update',
+        offerId: 'o1',
+        title: 'T',
+        slug: 'my-offer',
+        priceCents: 12000,
+        currency: 'USD',
+        description: 'd',
+        terms: { kind: 'one_time', billingInterval: null, trialDays: null, installments: null },
+      },
     });
+  });
+
+  it('parses the price type and keeps only the fields that type uses (G5)', () => {
+    const base = { op: 'update', offerId: 'o1', title: 'T', slug: 's', price: '15', currency: 'EUR' };
+    const terms = (extra: Record<string, string>) => {
+      const parsed = offerCommandFromForm(form({ ...base, interval: 'month', trialDays: '7', installments: '3', ...extra }));
+      return parsed.ok && parsed.command.op === 'update' ? parsed.command.terms : parsed;
+    };
+    expect(terms({ kind: 'one_time' })).toEqual({ kind: 'one_time', billingInterval: null, trialDays: null, installments: null });
+    expect(terms({ kind: 'subscription' })).toEqual({ kind: 'subscription', billingInterval: 'month', trialDays: 7, installments: null });
+    expect(terms({ kind: 'subscription', trialDays: '' })).toMatchObject({ trialDays: null });
+    expect(terms({ kind: 'payment_plan', interval: 'week' })).toEqual({
+      kind: 'payment_plan',
+      billingInterval: 'week',
+      trialDays: null,
+      installments: 3,
+    });
+    expect(terms({ kind: 'payment_plan', installments: '2.5' })).toEqual({ ok: false, message: 'Enter whole numbers for trial days and payments.' });
+    expect(terms({ kind: 'payment_plan', installments: '' })).toMatchObject({ ok: false });
+    expect(terms({ kind: 'monthly' })).toMatchObject({ ok: false });
   });
 
   it('collects ticked products with the access group picked per community', () => {

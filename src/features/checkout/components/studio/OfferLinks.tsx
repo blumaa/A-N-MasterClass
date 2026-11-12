@@ -1,10 +1,13 @@
 // Studio offer: order bump and upsell picks (G23). A bump shares the PayPal order, so only
-// offers of the same currency are listed. Only published offers show to buyers.
+// one-time offers of the same currency are listed, and recurring offers take no bump (G5).
+// Only published offers show to buyers.
 import { Field, Heading, Select, Stack } from '@/components/ui/mds';
 import type { StudioOfferDetail } from '../../api/offers';
 import { OfferForm } from './StudioForms';
 
 type Other = StudioOfferDetail['others'][number];
+
+const bumpable = (currency: string) => (o: Other) => o.currency === currency && o.kind === 'one_time';
 
 const label = (o: Other) => (o.status === 'published' ? o.title : `${o.title} (draft)`);
 
@@ -29,9 +32,11 @@ export function OfferLinks({ detail }: { detail: StudioOfferDetail }) {
         Order bump and upsell
       </Heading>
       <OfferForm fields={{ op: 'setLinks', offerId: offer.id }} submit="Save bump and upsell">
-        <Field label="Order bump" hint="Buyers can tick it at checkout. Paid in the same payment.">
-          <OfferSelect name="bumpOfferId" value={offer.bumpOfferId} offers={others.filter((o) => o.currency === offer.currency)} />
-        </Field>
+        {offer.kind === 'one_time' ? (
+          <Field label="Order bump" hint="Buyers can tick it at checkout. Paid in the same payment.">
+            <OfferSelect name="bumpOfferId" value={offer.bumpOfferId} offers={others.filter(bumpable(offer.currency))} />
+          </Field>
+        ) : null}
         <Field label="Upsell" hint="Offered on the thank-you page after a purchase.">
           <OfferSelect name="upsellOfferId" value={offer.upsellOfferId} offers={others} />
         </Field>

@@ -1,9 +1,9 @@
 // Studio commerce forms -> typed DAL inputs. Price text becomes cents here (DAL takes cents).
 import { CURRENCIES, parsePrice } from '@/lib/commerce/money';
-import { PAYMENT_ENVS } from '@/lib/data/types';
+import { BILLING_INTERVALS, OFFER_KINDS, PAYMENT_ENVS } from '@/lib/data/types';
 import { FormError, formReader, parseForm, type FormReader } from '@/lib/forms/formReader';
 import { titleAndSlug } from '@/lib/forms/commands';
-import type { OfferCommand } from './api/offers';
+import type { OfferCommand, OfferTerms } from './api/offers';
 import type { PaymentsInput } from './api/payments';
 
 const OPS: readonly OfferCommand['op'][] = ['create', 'update', 'setProducts', 'setLinks', 'publish', 'unpublish', 'delete'];
@@ -12,6 +12,24 @@ function price(r: FormReader): number {
   const cents = parsePrice(r.required('price'));
   if (cents === null) throw new FormError('Enter a price like 49 or 49.95.');
   return cents;
+}
+
+function count(r: FormReader, name: string): number | null {
+  const v = r.raw(name);
+  if (!v) return null;
+  if (!/^\d+$/.test(v)) throw new FormError('Enter whole numbers for trial days and payments.');
+  return Number(v);
+}
+
+/** Price type (G5). Fields of other types stay in the form unseen; only this type's are kept. */
+function terms(r: FormReader): OfferTerms {
+  const kind = r.oneOf('kind', OFFER_KINDS);
+  if (kind === 'one_time') return { kind, billingInterval: null, trialDays: null, installments: null };
+  const billingInterval = r.oneOf('interval', BILLING_INTERVALS);
+  if (kind === 'subscription') return { kind, billingInterval, trialDays: count(r, 'trialDays'), installments: null };
+  const installments = count(r, 'installments');
+  if (installments === null) throw new FormError('Enter the number of payments.');
+  return { kind, billingInterval, trialDays: null, installments };
 }
 
 function parseOffer(form: FormData): OfferCommand {
@@ -31,6 +49,7 @@ function parseOffer(form: FormData): OfferCommand {
         priceCents: price(r),
         currency: r.oneOf('currency', CURRENCIES),
         description: r.raw('description') ?? '',
+        terms: terms(r),
       };
     case 'setProducts':
       return {
