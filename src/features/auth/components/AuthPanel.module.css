@@ -1,0 +1,7 @@
+/* Narrow centred column with room above and below, so the card sits mid-page. */
+.frame {
+  inline-size: 100%;
+  max-inline-size: 28rem;
+  margin-inline: auto;
+  padding-block: var(--mds-space-10, 3rem);
+}

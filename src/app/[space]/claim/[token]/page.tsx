@@ -3,7 +3,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { SubmitButton } from '@/components/SubmitButton/SubmitButton';
-import { Heading, Stack, Text } from '@/components/ui/mds';
+import { Text } from '@/components/ui/mds';
+import { AuthPanel } from '@/features/auth/components/AuthPanel';
 import { claimAccountAction } from '@/features/checkout/actions';
 import { currentViewer } from '@/lib/auth/currentViewer';
 
@@ -13,10 +14,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<'/[s
   const [{ space, token }, query] = await Promise.all([params, searchParams]);
   if (!(await currentViewer(space))) notFound();
   return (
-    <Stack gap="base">
-      <Heading level={1} variant="title">
-        Open your account
-      </Heading>
+    <AuthPanel title="Open your account">
       {query.error ? (
         <Text role="alert" tone="danger">
           This link has expired or was already used.
@@ -27,6 +25,6 @@ export default async function ClaimPage({ params, searchParams }: PageProps<'/[s
           <SubmitButton>Continue to my account</SubmitButton>
         </form>
       )}
-    </Stack>
+    </AuthPanel>
   );
 }

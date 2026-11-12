@@ -1,7 +1,7 @@
 // Set or change the password (G4: new buyers land here after checkout or a claim link).
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { Heading, Stack, Text } from '@/components/ui/mds';
+import { AuthPanel } from '@/features/auth/components/AuthPanel';
 import { SetPasswordForm } from '@/features/auth/components/SetPasswordForm';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { signInHref } from '@/lib/routes';
@@ -13,12 +13,8 @@ export default async function SetPasswordPage({ params }: PageProps<'/[space]/ac
   if (!viewer) notFound();
   if (!viewer.profile) redirect(signInHref);
   return (
-    <Stack gap="loose">
-      <Heading level={1} variant="title">
-        Set your password
-      </Heading>
-      <Text tone="secondary">You will use it with {viewer.profile.email} to sign in next time.</Text>
+    <AuthPanel title="Set your password" intro={`You will use it with ${viewer.profile.email} to sign in next time.`}>
       <SetPasswordForm />
-    </Stack>
+    </AuthPanel>
   );
 }
