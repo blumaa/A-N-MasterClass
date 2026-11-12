@@ -55,6 +55,8 @@ export type Product = {
   themeOverride: BrandColors | null;
   /** Programs only: members who finish every published step get a certificate (G26). */
   certificates: boolean;
+  /** Cover image: object path in the public `site` bucket, space folder. null = placeholder. */
+  coverPath: string | null;
 };
 
 export type Module = {

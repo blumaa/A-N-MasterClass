@@ -7,6 +7,7 @@ import { StudioDownloads } from './StudioDownloads';
 
 vi.mock('../actions', () => ({ editDownloadsAction: vi.fn() }));
 vi.mock('@/components/FileUpload/actions', () => ({ requestUploadAction: vi.fn() }));
+vi.mock('@/components/ImageUpload/actions', () => ({ requestImageUploadAction: vi.fn() }));
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 const product = { id: 'p1', slug: 'pattern-pack', title: 'Pattern Pack', subtitle: null, status: 'published' } as Product;
@@ -43,7 +44,7 @@ describe('ClientDownloads', () => {
 describe('StudioDownloads', () => {
   it('lists products with their files', () => {
     const files = [{ id: 'f1', productId: 'p1', title: 'Hip harness', filePath: 'pattern-pack/hip.pdf', sizeBytes: 2_400_000, createdAt: NOW }];
-    render(<StudioDownloads downloads={[{ product, files }]} />);
+    render(<StudioDownloads imageSrc={String} downloads={[{ product, files }]} />);
     expect(screen.getByDisplayValue('Pattern Pack')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Hip harness')).toBeInTheDocument();
     expect(screen.getByText('pattern-pack/hip.pdf · PDF · 2.4 MB')).toBeInTheDocument();
@@ -51,14 +52,14 @@ describe('StudioDownloads', () => {
   });
 
   it('adds files through the upload field, not a typed path', () => {
-    const { container } = render(<StudioDownloads downloads={[{ product, files: [] }]} />);
+    const { container } = render(<StudioDownloads imageSrc={String} downloads={[{ product, files: [] }]} />);
     expect(container.querySelector('input[type=file]')).not.toHaveAttribute('name');
     expect(container.querySelector('input[type=hidden][name=filePath]')).toHaveValue('');
     expect(screen.queryByRole('textbox', { name: 'File path' })).toBeNull();
   });
 
   it('shows an empty state without downloads', () => {
-    render(<StudioDownloads downloads={[]} />);
+    render(<StudioDownloads imageSrc={String} downloads={[]} />);
     expect(screen.getByText('No downloads yet')).toBeInTheDocument();
   });
 });

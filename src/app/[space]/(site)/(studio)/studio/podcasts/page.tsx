@@ -6,6 +6,7 @@ import { studioPodcasts } from '@/features/podcasts/api/studio';
 import { StudioPodcasts } from '@/features/podcasts/components/StudioPodcasts';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 
 export const metadata: Metadata = { title: 'Podcasts' };
 
@@ -18,7 +19,7 @@ export default async function StudioPodcastsPage({ params }: PageProps<'/[space]
       <Heading level={1} variant="title">
         Podcasts
       </Heading>
-      <StudioPodcasts podcasts={data.podcasts} />
+      <StudioPodcasts podcasts={data.podcasts} imageSrc={siteImageSrc} />
     </Stack>
   );
 }

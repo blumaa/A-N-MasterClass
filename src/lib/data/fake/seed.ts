@@ -63,6 +63,7 @@ export function seedDb(now: Date = new Date()): Db {
       position: 0,
       themeOverride: null,
       certificates: false,
+      coverPath: null,
     },
     {
       id: ids.community,
@@ -75,6 +76,7 @@ export function seedDb(now: Date = new Date()): Db {
       position: 1,
       themeOverride: null,
       certificates: false,
+      coverPath: null,
     },
     {
       id: 'prod-floor-work',
@@ -87,6 +89,7 @@ export function seedDb(now: Date = new Date()): Db {
       position: 0,
       themeOverride: null,
       certificates: false,
+      coverPath: null,
     },
   );
 
@@ -251,6 +254,7 @@ function seedCoaching(db: Db, now: Date): void {
     position: 2,
     themeOverride: null,
     certificates: false,
+    coverPath: null,
   });
   db.coachingPrograms.push({
     productId: ids.coaching,
@@ -299,6 +303,7 @@ function seedMedia(db: Db, now: Date): void {
     position,
     themeOverride: null,
     certificates: false,
+    coverPath: null,
   });
   db.products.push(
     product(ids.podcast, 'podcast', 'rope-talk', 'Rope Talk', 'Members-only podcast', 3),

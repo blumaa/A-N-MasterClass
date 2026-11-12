@@ -1,20 +1,13 @@
-// Program title, subtitle, publish state, completion certificate (G26).
+// Program title, subtitle, publish state, cover, completion certificate (G26).
 import { YesNoSelect } from '@/components/fields/fields';
-import { Field, Input } from '@/components/ui/mds';
 import type { Product } from '@/lib/data/types';
 import { CommandForm } from './CommandForm';
-import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
+import { ProductFields, type ImageSrc } from '@/components/ProductFields/ProductFields';
 
-export function ProgramSettings({ program }: { program: Product }) {
+export function ProgramSettings({ program, imageSrc }: { program: Product; imageSrc: ImageSrc }) {
   return (
     <CommandForm fields={{ op: 'updateProgram', programId: program.id }} submit="Save program">
-      <Field label="Title">
-        <Input name="title" defaultValue={program.title} required />
-      </Field>
-      <Field label="Subtitle">
-        <Input name="subtitle" defaultValue={program.subtitle ?? ''} />
-      </Field>
-      <StatusSelect value={program.status} />
+      <ProductFields product={program} imageSrc={imageSrc} />
       <YesNoSelect
         name="certificates"
         label="Certificate"

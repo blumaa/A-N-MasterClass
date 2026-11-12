@@ -22,6 +22,17 @@ describe('commandFromForm', () => {
     });
   });
 
+  it('reads the program cover, blank as removed', () => {
+    expect(commandFromForm(form({ op: 'updateProgram', programId: 'p', coverPath: 's/site/c.jpg' }))).toEqual({
+      ok: true,
+      command: { op: 'updateProgram', programId: 'p', patch: { coverPath: 's/site/c.jpg' } },
+    });
+    expect(commandFromForm(form({ op: 'updateProgram', programId: 'p', coverPath: '' }))).toEqual({
+      ok: true,
+      command: { op: 'updateProgram', programId: 'p', patch: { coverPath: null } },
+    });
+  });
+
   it('patches only fields the form sent, blanks become null', () => {
     const r = commandFromForm(
       form({ op: 'updateModule', moduleId: 'm', title: 'Week 2', unlockAfterStepId: '', releaseAfterDays: '7', releaseAt: '' }),

@@ -6,6 +6,7 @@ import { CommunityEditor } from './CommunityEditor';
 import { CommunityList } from './CommunityList';
 
 vi.mock('../actions', () => ({ editCommunityAction: vi.fn() }));
+vi.mock('@/components/ImageUpload/actions', () => ({ requestImageUploadAction: vi.fn() }));
 
 const community: Product = {
   id: 'c1',
@@ -18,6 +19,7 @@ const community: Product = {
   position: 0,
   themeOverride: null,
   certificates: false,
+  coverPath: null,
 };
 const channel = (id: string, title: string, position: number, over: Partial<Channel> = {}): Channel => ({
   id,
@@ -64,7 +66,7 @@ describe('CommunityList', () => {
 
 describe('CommunityEditor', () => {
   it('shows each channel with move buttons only where it can move', () => {
-    render(<CommunityEditor view={view()} />);
+    render(<CommunityEditor imageSrc={String} view={view()} />);
     const rows = channelRows();
     expect(within(rows[0]!).queryByRole('button', { name: 'Move up' })).toBeNull();
     expect(within(rows[0]!).getByRole('button', { name: 'Move down' })).toBeInTheDocument();
@@ -73,7 +75,7 @@ describe('CommunityEditor', () => {
   });
 
   it('private channels pick members: picked ones can be removed, the rest added', () => {
-    render(<CommunityEditor view={view()} />);
+    render(<CommunityEditor imageSrc={String} view={view()} />);
     const rows = channelRows();
     expect(within(rows[0]!).queryByRole('list', { name: 'Members of General' })).toBeNull();
     const picked = within(rows[1]!).getByRole('list', { name: 'Members of Wins' });
@@ -84,7 +86,7 @@ describe('CommunityEditor', () => {
   });
 
   it('picks channel moderators from those who read the channel; hidden without community.moderate', () => {
-    const { rerender } = render(<CommunityEditor view={view()} />);
+    const { rerender } = render(<CommunityEditor imageSrc={String} view={view()} />);
     const rows = channelRows();
     const mods = within(rows[0]!).getByRole('list', { name: 'Moderators of General' });
     expect(within(mods).getByText('Kim')).toBeInTheDocument();
@@ -94,13 +96,13 @@ describe('CommunityEditor', () => {
     const pick = within(rows[1]!).getByRole('combobox', { name: 'Pick moderator' });
     expect(within(pick).getAllByRole('option').map((o) => o.textContent)).toEqual(['Robin']);
     expect(screen.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', '/studio/communities/c1/reports');
-    rerender(<CommunityEditor view={view({ canModerate: false })} />);
+    rerender(<CommunityEditor imageSrc={String} view={view({ canModerate: false })} />);
     expect(screen.queryByText('No moderators picked yet.')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Reports' })).toBeNull();
   });
 
   it('lists access groups; only non-default groups can be deleted', () => {
-    render(<CommunityEditor view={view()} />);
+    render(<CommunityEditor imageSrc={String} view={view()} />);
     const groups = within(screen.getByRole('list', { name: 'Access groups' })).getAllByRole('listitem');
     expect(groups).toHaveLength(2);
     expect(within(groups[0]!).getByText('Default')).toBeInTheDocument();
@@ -111,10 +113,10 @@ describe('CommunityEditor', () => {
   });
 
   it('shows staff ticks only with staff.manage', () => {
-    const { rerender } = render(<CommunityEditor view={view()} />);
+    const { rerender } = render(<CommunityEditor imageSrc={String} view={view()} />);
     expect(screen.getByText('Sam')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove access' })).toBeInTheDocument();
-    rerender(<CommunityEditor view={view({ canManageStaff: false })} />);
+    rerender(<CommunityEditor imageSrc={String} view={view({ canManageStaff: false })} />);
     expect(screen.queryByText('Sam')).toBeNull();
   });
 });

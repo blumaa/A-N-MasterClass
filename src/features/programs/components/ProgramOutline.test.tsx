@@ -4,7 +4,7 @@ import type { Outline } from '../api/outline';
 import { ProgramOutline } from './ProgramOutline';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
-const program = { id: 'p', spaceId: 's', kind: 'program', slug: 'shibari-101', title: 'Shibari 101', subtitle: null, status: 'published', position: 0, themeOverride: null, certificates: false } as const;
+const program = { id: 'p', spaceId: 's', kind: 'program', slug: 'shibari-101', title: 'Shibari 101', subtitle: null, status: 'published', position: 0, themeOverride: null, certificates: false, coverPath: null } as const;
 
 const outline: Outline = {
   program,

@@ -71,7 +71,7 @@ import type {
 } from './types';
 
 export type NewProduct = Pick<Product, 'spaceId' | 'kind' | 'slug' | 'title'>;
-export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status' | 'themeOverride' | 'certificates'>>;
+export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status' | 'themeOverride' | 'certificates' | 'coverPath'>>;
 export type NewModule = Pick<Module, 'programId' | 'title'>;
 export type ModulePatch = Partial<
   Pick<

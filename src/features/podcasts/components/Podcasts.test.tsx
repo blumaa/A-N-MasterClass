@@ -8,6 +8,7 @@ import { StudioPodcasts } from './StudioPodcasts';
 
 vi.mock('../actions', () => ({ editPodcastsAction: vi.fn(), resetFeedAction: vi.fn() }));
 vi.mock('@/components/FileUpload/actions', () => ({ requestUploadAction: vi.fn() }));
+vi.mock('@/components/ImageUpload/actions', () => ({ requestImageUploadAction: vi.fn() }));
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 const product = { id: 'p1', slug: 'rope-talk', title: 'Rope Talk', subtitle: null, status: 'published' } as Product;
@@ -70,7 +71,7 @@ describe('StudioPodcasts', () => {
       settings: { productId: 'p1', author: 'Alexander', explicit: false, order: 'serial' },
       episodes: [{ ...episode(), productId: 'p1', audioPath: 'p1/welcome.mp3' }],
     };
-    render(<StudioPodcasts podcasts={[p]} />);
+    render(<StudioPodcasts imageSrc={String} podcasts={[p]} />);
     expect(screen.getByDisplayValue('Rope Talk')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Alexander')).toBeInTheDocument();
     expect(screen.getByText('Current file: welcome.mp3 · 1.0 MB')).toBeInTheDocument();
@@ -81,7 +82,7 @@ describe('StudioPodcasts', () => {
   });
 
   it('shows an empty state without podcasts', () => {
-    render(<StudioPodcasts podcasts={[]} />);
+    render(<StudioPodcasts imageSrc={String} podcasts={[]} />);
     expect(screen.getByText('No podcasts yet')).toBeInTheDocument();
   });
 });

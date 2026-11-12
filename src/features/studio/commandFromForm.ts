@@ -2,7 +2,7 @@
 // Only fields present in the form go into a patch; blank optional fields become null.
 import type { Direction } from '@/lib/data/repo';
 import { FormError, formReader, optional, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
-import { field, flag, readWhole, titleAndSlug } from '@/lib/forms/commands';
+import { coverField, field, flag, readWhole, titleAndSlug } from '@/lib/forms/commands';
 import { PART_KINDS, PUBLISH_STATUSES, type PartKind } from '@/lib/data/types';
 import { quizOptionsOf } from '@/lib/programs/quiz';
 import { vimeoIdOf } from '@/lib/video/vimeo';
@@ -58,6 +58,7 @@ const PARSERS: Record<CurriculumCommand['op'], (r: Reader) => CurriculumCommand>
       ...optional(r, 'subtitle', asText),
       ...statusField(r),
       ...field(r, 'certificates', () => flag(r, 'certificates')),
+      ...coverField(r),
     },
   }),
   createModule: (r) => ({ op: 'createModule', programId: r.required('programId'), title: r.required('title') }),

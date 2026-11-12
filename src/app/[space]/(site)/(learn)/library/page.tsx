@@ -15,6 +15,7 @@ import { library } from '@/features/programs/api/library';
 import { LibraryList } from '@/features/programs/components/LibraryList';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 
 export const metadata: Metadata = { title: 'Library' };
 
@@ -35,11 +36,11 @@ export default async function LibraryPage({ params }: PageProps<'/[space]/librar
       <Heading level={1} variant="title">
         Library
       </Heading>
-      <LibraryList items={items} />
-      <ProductTiles heading="Communities" products={communities} href={communityHref} />
-      <ProductTiles heading="Coaching" products={coaching} href={coachingHref} />
-      <ProductTiles heading="Podcasts" products={podcasts} href={podcastHref} />
-      <ProductTiles heading="Downloads" products={downloads} href={downloadHref} />
+      <LibraryList items={items} imageSrc={siteImageSrc} />
+      <ProductTiles heading="Communities" products={communities} href={communityHref} imageSrc={siteImageSrc} />
+      <ProductTiles heading="Coaching" products={coaching} href={coachingHref} imageSrc={siteImageSrc} />
+      <ProductTiles heading="Podcasts" products={podcasts} href={podcastHref} imageSrc={siteImageSrc} />
+      <ProductTiles heading="Downloads" products={downloads} href={downloadHref} imageSrc={siteImageSrc} />
     </Stack>
   );
 }

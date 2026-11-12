@@ -40,6 +40,11 @@ describe('productPatch', () => {
     expect(productPatch(reader({ subtitle: '', status: 'published' }))).toEqual({ subtitle: null, status: 'published' });
     expect(() => productPatch(reader({ status: 'gone' }))).toThrow();
   });
+
+  it('reads the cover path, blank as removed', () => {
+    expect(productPatch(reader({ coverPath: 's1/site/a.jpg' }))).toEqual({ coverPath: 's1/site/a.jpg' });
+    expect(productPatch(reader({ coverPath: '' }))).toEqual({ coverPath: null });
+  });
 });
 
 describe('readDuration', () => {

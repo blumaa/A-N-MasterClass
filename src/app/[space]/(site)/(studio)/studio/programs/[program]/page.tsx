@@ -10,6 +10,7 @@ import { curriculum } from '@/features/studio/api/curriculum';
 import { CurriculumEditor } from '@/features/studio/components/CurriculumEditor';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 import { DEFAULT_BRAND } from '@/tokens/resolveBrand';
 
 type Props = PageProps<'/[space]/studio/programs/[program]'>;
@@ -35,7 +36,7 @@ export default async function StudioProgramPage({ params }: Props) {
       <Heading level={1} variant="title">
         {data.program.title}
       </Heading>
-      <CurriculumEditor curriculum={data} previewHref={programHref(data.program.slug)} />
+      <CurriculumEditor curriculum={data} previewHref={programHref(data.program.slug)} imageSrc={siteImageSrc} />
       <Stack gap="base">
         <Heading level={2} variant="subtitle">
           Program colours

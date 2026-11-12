@@ -1,7 +1,7 @@
 // Studio > one community: settings, channels, access groups + messaging, staff ticks (G15).
-import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
+import { ProductFields, type ImageSrc } from '@/components/ProductFields/ProductFields';
 import { ButtonLink } from '@/components/ui/links';
-import { Badge, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
+import { Badge, Heading, Stack, Text } from '@/components/ui/mds';
 import type { StaffTick, StudioCommunity } from '../api/studio';
 import { studioEventsHref, studioReportsHref } from '../paths';
 import { ChannelEditor } from './ChannelEditor';
@@ -25,19 +25,13 @@ function StaffRow({ communityId, tick }: { communityId: string; tick: StaffTick 
   );
 }
 
-export function CommunityEditor({ view }: { view: StudioCommunity }) {
+export function CommunityEditor({ view, imageSrc }: { view: StudioCommunity; imageSrc: ImageSrc }) {
   const { community, channels, groups, members, channelMembers, channelModerators, staff, canManageStaff, canModerate } = view;
   const communityId = community.id;
   return (
     <Stack gap="loose">
       <CommunityForm fields={{ op: 'updateCommunity', communityId }} submit="Save community">
-        <Field label="Title">
-          <Input name="title" defaultValue={community.title} required />
-        </Field>
-        <Field label="Subtitle">
-          <Input name="subtitle" defaultValue={community.subtitle ?? ''} />
-        </Field>
-        <StatusSelect value={community.status} />
+        <ProductFields product={community} imageSrc={imageSrc} />
       </CommunityForm>
 
       <ChannelEditor

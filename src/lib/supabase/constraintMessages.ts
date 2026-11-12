@@ -118,6 +118,7 @@ const BY_NAME: Readonly<Record<string, string>> = {
   // Studio checks the quiz first; this fires only on a race with a delete.
   modules_unlock_quiz_fk: 'quiz not found',
   products_certificates_program: CERTIFICATES_PROGRAM_ONLY,
+  products_cover_path: FILE_OUTSIDE_FOLDER,
   // Raised by issue_certificate.
   certificates_off: CERTIFICATES_OFF,
   certificate_not_earned: CERTIFICATE_NOT_EARNED,

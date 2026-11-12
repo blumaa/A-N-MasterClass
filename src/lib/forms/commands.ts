@@ -3,7 +3,7 @@
 import { PUBLISH_STATUSES, type Product } from '@/lib/data/types';
 import { isTimeZone, zonedToUtc } from '@/lib/format/zoned';
 import { slugify } from '@/lib/text/slugify';
-import { FormError, formReader, parseForm, type FormReader as Reader } from './formReader';
+import { FormError, formReader, optional, parseForm, type FormReader as Reader } from './formReader';
 
 export type Parsed<C> = { ok: true; command: C } | { ok: false; message: string };
 
@@ -21,11 +21,15 @@ export function titleAndSlug(r: Reader): { title: string; slug: string } {
   return { title, slug: r.raw('slug') || slugify(title) };
 }
 
-/** Product title / subtitle / status patch; blank subtitle = none. */
-export const productPatch = (r: Reader): Partial<Pick<Product, 'title' | 'subtitle' | 'status'>> => ({
+/** Product cover image path (site bucket); blank = removed. Repo checks the folder. */
+export const coverField = (r: Reader): Partial<Pick<Product, 'coverPath'>> => optional(r, 'coverPath', (v) => v);
+
+/** Product title / subtitle / status / cover patch; blank subtitle = none. */
+export const productPatch = (r: Reader): Partial<Pick<Product, 'title' | 'subtitle' | 'status' | 'coverPath'>> => ({
   ...field(r, 'title', () => r.required('title')),
   ...field(r, 'subtitle', () => r.raw('subtitle') || null),
   ...field(r, 'status', () => r.oneOf('status', PUBLISH_STATUSES)),
+  ...coverField(r),
 });
 
 const DURATION = /^(?:(\d+):)?([0-5]?\d):([0-5]\d)$/;

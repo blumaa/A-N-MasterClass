@@ -1,0 +1,78 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--mds-space-6, 1.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--mds-border-subtle);
+  border-radius: var(--mds-radius-card);
+  background: var(--mds-surface-card);
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.card[data-linked]:hover {
+  transform: translateY(-2px);
+  border-color: var(--mds-border-strong);
+}
+
+.cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  background: color-mix(in srgb, var(--mds-accent) 14%, var(--mds-surface-media));
+}
+
+.image {
+  object-fit: cover;
+}
+
+.letter {
+  font-family: var(--mds-font-display);
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--mds-accent);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--mds-space-3, 0.75rem);
+  padding: var(--mds-space-5, 1.25rem);
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Stretch the title link over the whole card: one tab stop, whole card clickable. */
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.card:has(.link:focus-visible) {
+  outline: 2px solid var(--mds-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}

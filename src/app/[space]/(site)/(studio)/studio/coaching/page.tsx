@@ -8,6 +8,7 @@ import { studioCoaching } from '@/features/coaching/api/studio';
 import { StudioCoaching } from '@/features/coaching/components/StudioCoaching';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 
 export const metadata: Metadata = { title: 'Coaching' };
 
@@ -30,6 +31,7 @@ export default async function StudioCoachingPage({ params, searchParams }: PageP
         outcome={outcomeOf(query.calendar)}
         connect={connectCalendarAction}
         disconnect={disconnectCalendarAction}
+        imageSrc={siteImageSrc}
       />
     </Stack>
   );

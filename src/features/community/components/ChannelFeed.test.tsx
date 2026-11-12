@@ -22,6 +22,7 @@ const community: Product = {
   position: 0,
   themeOverride: null,
   certificates: false,
+  coverPath: null,
 };
 const channel = (over: Partial<Channel> = {}): Channel => ({
   id: 'ch1',

@@ -3,7 +3,7 @@
 // Publish times are typed in the chosen zone (shown in UTC); blank = draft, future = scheduled.
 import { ChoiceSelect, TimeZoneSelect, YesNoSelect } from '@/components/fields/fields';
 import { FileUpload } from '@/components/FileUpload/FileUpload';
-import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
+import { ProductFields, type ImageSrc } from '@/components/ProductFields/ProductFields';
 import { EmptyState, Field, Heading, Input, Stack, Textarea } from '@/components/ui/mds';
 import { EPISODE_TYPES, PODCAST_ORDERS, type Episode, type EpisodeType, type PodcastOrder } from '@/lib/data/types';
 import { formatDuration } from '@/lib/format/duration';
@@ -53,20 +53,14 @@ function EpisodeFields({ productId, e }: { productId: string; e?: Episode }) {
   );
 }
 
-function Podcast({ podcast: { product: p, settings: s, episodes } }: { podcast: StudioPodcast }) {
+function Podcast({ podcast: { product: p, settings: s, episodes }, imageSrc }: { podcast: StudioPodcast; imageSrc: ImageSrc }) {
   return (
     <li className={styles.row}>
       <Heading level={2} variant="subtitle">
         {p.title}
       </Heading>
       <PodcastForm fields={{ op: 'updateProduct', productId: p.id }} submit="Save">
-        <Field label="Title">
-          <Input name="title" defaultValue={p.title} required />
-        </Field>
-        <Field label="Subtitle">
-          <Input name="subtitle" defaultValue={p.subtitle ?? ''} />
-        </Field>
-        <StatusSelect value={p.status} />
+        <ProductFields product={p} imageSrc={imageSrc} />
       </PodcastForm>
       <PodcastForm fields={{ op: 'saveSettings', productId: p.id }} submit="Save show settings">
         <div className={styles.fields}>
@@ -97,7 +91,7 @@ function Podcast({ podcast: { product: p, settings: s, episodes } }: { podcast: 
   );
 }
 
-export function StudioPodcasts({ podcasts }: { podcasts: StudioPodcast[] }) {
+export function StudioPodcasts({ podcasts, imageSrc }: { podcasts: StudioPodcast[]; imageSrc: ImageSrc }) {
   return (
     <Stack gap="loose">
       <Heading level={1} variant="title">
@@ -108,7 +102,7 @@ export function StudioPodcasts({ podcasts }: { podcasts: StudioPodcast[] }) {
       ) : (
         <ul aria-label="Podcasts" className={styles.rows}>
           {podcasts.map((p) => (
-            <Podcast key={p.product.id} podcast={p} />
+            <Podcast key={p.product.id} podcast={p} imageSrc={imageSrc} />
           ))}
         </ul>
       )}

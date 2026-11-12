@@ -6,6 +6,7 @@ import { studioCommunity } from '@/features/community/api/studio';
 import { CommunityEditor } from '@/features/community/components/CommunityEditor';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 
 type Props = PageProps<'/[space]/studio/communities/[id]'>;
 
@@ -28,7 +29,7 @@ export default async function StudioCommunityPage({ params }: Props) {
       <Heading level={1} variant="title">
         {view.community.title}
       </Heading>
-      <CommunityEditor view={view} />
+      <CommunityEditor view={view} imageSrc={siteImageSrc} />
     </Stack>
   );
 }

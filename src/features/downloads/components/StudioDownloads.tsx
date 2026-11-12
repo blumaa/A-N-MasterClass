@@ -1,27 +1,21 @@
 // Studio > Downloads (G18, Kajabi Downloads): download products and their files. Files upload
 // straight to Storage (FileUpload); the form saves the returned path and size.
 import { FileUpload } from '@/components/FileUpload/FileUpload';
-import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
+import { ProductFields, type ImageSrc } from '@/components/ProductFields/ProductFields';
 import { EmptyState, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import { fileType, formatBytes } from '@/lib/format/bytes';
 import type { StudioDownload } from '../api/studio';
 import { DownloadForm } from './forms';
 import styles from './downloads.module.css';
 
-function Download({ download: { product: p, files } }: { download: StudioDownload }) {
+function Download({ download: { product: p, files }, imageSrc }: { download: StudioDownload; imageSrc: ImageSrc }) {
   return (
     <li className={styles.row}>
       <Heading level={2} variant="subtitle">
         {p.title}
       </Heading>
       <DownloadForm fields={{ op: 'updateProduct', productId: p.id }} submit="Save">
-        <Field label="Title">
-          <Input name="title" defaultValue={p.title} required />
-        </Field>
-        <Field label="Subtitle">
-          <Input name="subtitle" defaultValue={p.subtitle ?? ''} />
-        </Field>
-        <StatusSelect value={p.status} />
+        <ProductFields product={p} imageSrc={imageSrc} />
       </DownloadForm>
       <Heading level={3} variant="subtitle">
         Files
@@ -51,7 +45,7 @@ function Download({ download: { product: p, files } }: { download: StudioDownloa
   );
 }
 
-export function StudioDownloads({ downloads }: { downloads: StudioDownload[] }) {
+export function StudioDownloads({ downloads, imageSrc }: { downloads: StudioDownload[]; imageSrc: ImageSrc }) {
   return (
     <Stack gap="loose">
       <Heading level={1} variant="title">
@@ -62,7 +56,7 @@ export function StudioDownloads({ downloads }: { downloads: StudioDownload[] }) 
       ) : (
         <ul aria-label="Downloads" className={styles.rows}>
           {downloads.map((d) => (
-            <Download key={d.product.id} download={d} />
+            <Download key={d.product.id} download={d} imageSrc={imageSrc} />
           ))}
         </ul>
       )}

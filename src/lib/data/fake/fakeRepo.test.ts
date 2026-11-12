@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createFakeRepo, type FakeRepo } from './fakeRepo';
 import { emptyDb } from './db';
-import { ConstraintError } from '../errors';
+import { ConstraintError, FILE_OUTSIDE_FOLDER } from '../errors';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 
@@ -195,6 +195,19 @@ describe('branding', () => {
     expect(p.themeOverride).toBeNull();
     const colors = { accent: '#000000', 'accent-soft': '#000000', page: '#ffffff', card: '#ffffff', hairline: '#eeeeee', mid: '#888888', ink: '#000000' };
     expect((await repo.updateProduct(p.id, { themeOverride: colors })).themeOverride).toEqual(colors);
+  });
+
+  it('stores and clears a cover image from the space site folder', async () => {
+    const p = await program();
+    expect(p.coverPath).toBeNull();
+    expect((await repo.updateProduct(p.id, { coverPath: 's1/site/a-cover.jpg' })).coverPath).toBe('s1/site/a-cover.jpg');
+    expect((await repo.updateProduct(p.id, { coverPath: null })).coverPath).toBeNull();
+  });
+
+  it('refuses a cover outside the space site folder', async () => {
+    const p = await program();
+    await expect(repo.updateProduct(p.id, { coverPath: 's2/site/a-cover.jpg' })).rejects.toThrow(FILE_OUTSIDE_FOLDER);
+    await expect(repo.updateProduct(p.id, { coverPath: 's1/site/x/a.jpg' })).rejects.toThrow(FILE_OUTSIDE_FOLDER);
   });
 });
 

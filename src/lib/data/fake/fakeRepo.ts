@@ -1,7 +1,8 @@
 // Repo over in-memory tables. Enforces the same constraints as the SQL schema
 // (unique slug, one active grant, vimeo id digits, cascades) so fakes fail like Postgres.
+import { isSiteImagePath } from '@/lib/storage/siteImages';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
-import { ALREADY_MEMBER, CERTIFICATES_PROGRAM_ONLY, ConstraintError, HOST_TAKEN, ONE_PRIMARY_DOMAIN, QUIZ_PASS_PERCENT, SLUG_RESERVED } from '../errors';
+import { ALREADY_MEMBER, CERTIFICATES_PROGRAM_ONLY, ConstraintError, FILE_OUTSIDE_FOLDER, HOST_TAKEN, ONE_PRIMARY_DOMAIN, QUIZ_PASS_PERCENT, SLUG_RESERVED } from '../errors';
 import { grantIsActive } from '../grants';
 import type { Direction, Reorderable, Repo } from '../repo';
 import type { Grant, Module, Part, Product, Profile, Space, Step } from '../types';
@@ -186,6 +187,7 @@ export function createFakeRepo(db: Db): FakeRepo {
         status: 'draft',
         themeOverride: null,
         certificates: false,
+        coverPath: null,
         position: nextPosition(db.products.filter((p) => p.spaceId === input.spaceId)),
       };
       db.products.push(row);
@@ -202,6 +204,8 @@ export function createFakeRepo(db: Db): FakeRepo {
         }
       }
       if (patch.certificates && row.kind !== 'program') throw new ConstraintError(CERTIFICATES_PROGRAM_ONLY);
+      // SQL: products_cover_path check.
+      if (patch.coverPath && !isSiteImagePath(patch.coverPath, row.spaceId)) throw new ConstraintError(FILE_OUTSIDE_FOLDER);
       return Object.assign(row, patch);
     },
 

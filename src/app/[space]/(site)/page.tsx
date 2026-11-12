@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Heading, Stack } from '@/components/ui/mds';
 import { library } from '@/features/programs/api/library';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 import { LibraryList } from '@/features/programs/components/LibraryList';
 import { loadHome } from '@/features/site/api/load';
 import { PublicPageView } from '@/features/site/components/PublicPageView';
@@ -29,7 +30,7 @@ export default async function SpaceHome({ params }: Props) {
       <Heading level={1} variant="display">
         {viewer.space.name}
       </Heading>
-      <LibraryList items={items} />
+      <LibraryList items={items} imageSrc={siteImageSrc} />
     </Stack>
   );
 }

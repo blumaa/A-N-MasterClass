@@ -3,7 +3,7 @@
 // Google Calendar connection and upcoming sessions.
 import { ActionForm, type FormAction } from '@/components/ActionForm/ActionForm';
 import { ChoiceSelect, RowSelect, TimeZoneSelect } from '@/components/fields/fields';
-import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
+import { ProductFields, type ImageSrc } from '@/components/ProductFields/ProductFields';
 import { LinkRow } from '@/components/ui/links';
 import { Badge, EmptyState, Field, Heading, Input, ListGroup, Select, Stack, Text, Textarea } from '@/components/ui/mds';
 import { COACHING_KINDS, type CoachingKind } from '@/lib/data/types';
@@ -23,7 +23,7 @@ const OUTCOME: Record<ConnectOutcome, { text: string; tone: 'success' | 'danger'
   failed: { text: 'Connecting Google Calendar failed. Try again.', tone: 'danger' },
 };
 
-function Products({ products }: { products: Data['products'] }) {
+function Products({ products, imageSrc }: { products: Data['products']; imageSrc: ImageSrc }) {
   return (
     <Stack gap="base">
       <Heading level={2} variant="subtitle">
@@ -33,13 +33,7 @@ function Products({ products }: { products: Data['products'] }) {
         {products.map(({ product: p, program }) => (
           <li key={p.id} className={styles.row}>
             <CoachingForm fields={{ op: 'updateProduct', productId: p.id }} submit="Save">
-              <Field label="Title">
-                <Input name="title" defaultValue={p.title} required />
-              </Field>
-              <Field label="Subtitle">
-                <Input name="subtitle" defaultValue={p.subtitle ?? ''} />
-              </Field>
-              <StatusSelect value={p.status} />
+              <ProductFields product={p} imageSrc={imageSrc} />
             </CoachingForm>
             <CoachingForm fields={{ op: 'saveProgram', productId: p.id }} submit="Save sessions">
               <ChoiceSelect name="kind" label="Type" value={program.kind} options={COACHING_KINDS} labels={KIND_LABELS} />
@@ -254,15 +248,15 @@ function GroupSession({ products, timeZone }: { products: Data['products']; time
   );
 }
 
-type Props = { data: Data; outcome: ConnectOutcome | null; connect: FormAction; disconnect: FormAction };
+type Props = { data: Data; outcome: ConnectOutcome | null; connect: FormAction; disconnect: FormAction; imageSrc: ImageSrc };
 
-export function StudioCoaching({ data, outcome, connect, disconnect }: Props) {
+export function StudioCoaching({ data, outcome, connect, disconnect, imageSrc }: Props) {
   const zone = data.settings.timeZone;
   return (
     <Stack gap="loose">
       <Upcoming upcoming={data.upcoming} timeZone={zone} />
       <GroupSession products={data.products} timeZone={zone} />
-      <Products products={data.products} />
+      <Products products={data.products} imageSrc={imageSrc} />
       <Settings settings={data.settings} />
       <Hours rules={data.rules} defaultHours={data.defaultHours} timeZone={zone} />
       <Overrides overrides={data.overrides} />

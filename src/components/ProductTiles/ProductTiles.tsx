@@ -1,22 +1,34 @@
-// Library section: the products of one kind the viewer holds, each linking to its page.
-import { LinkRow } from '@/components/ui/links';
-import { Heading, ListGroup, Stack } from '@/components/ui/mds';
+// Library section: the products of one kind the viewer holds, as linked cover cards.
+import { ProductCard, ProductCardGrid } from '@/components/ProductCard/ProductCard';
+import { Heading, Stack } from '@/components/ui/mds';
 import type { Product } from '@/lib/data/types';
 
-type Props = { heading: string; products: Product[]; href: (slug: string) => string };
+type Props = {
+  heading: string;
+  products: Product[];
+  href: (slug: string) => string;
+  imageSrc: (path: string) => string;
+};
 
-export function ProductTiles({ heading, products, href }: Props) {
+export function ProductTiles({ heading, products, href, imageSrc }: Props) {
   if (products.length === 0) return null;
   return (
     <Stack gap="base">
       <Heading level={2} variant="subtitle">
         {heading}
       </Heading>
-      <ListGroup aria-label={heading}>
+      <ProductCardGrid label={heading}>
         {products.map((p) => (
-          <LinkRow key={p.id} href={href(p.slug)} title={p.title} description={p.subtitle ?? undefined} />
+          <ProductCard
+            key={p.id}
+            title={p.title}
+            subtitle={p.subtitle}
+            coverSrc={p.coverPath ? imageSrc(p.coverPath) : undefined}
+            href={href(p.slug)}
+            headingLevel={3}
+          />
         ))}
-      </ListGroup>
+      </ProductCardGrid>
     </Stack>
   );
 }
