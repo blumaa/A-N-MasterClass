@@ -1,9 +1,10 @@
-// Studio > Offers > one offer: settings, linked products, publish, checkout link, delete.
+// Studio > Offers > one offer: settings, linked products, bump/upsell, publish, checkout link, delete.
 import { AppLink } from '@/components/ui/links';
 import { Checkbox, Field, Heading, Input, Select, Stack, Text, Textarea } from '@/components/ui/mds';
 import type { StudioOfferDetail } from '../../api/offers';
 import { checkoutPath } from '../../paths';
 import { PriceFields } from './OfferFields';
+import { OfferLinks } from './OfferLinks';
 import { OfferStatus } from './OfferStatus';
 import { OfferForm } from './StudioForms';
 import styles from './Studio.module.css';
@@ -69,6 +70,8 @@ export function OfferEditor({ detail }: { detail: StudioOfferDetail }) {
           </fieldset>
         </OfferForm>
       </Stack>
+
+      <OfferLinks detail={detail} />
 
       <div className={styles.actions}>
         {published ? (

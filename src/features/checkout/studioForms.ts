@@ -6,7 +6,7 @@ import { titleAndSlug } from '@/lib/forms/commands';
 import type { OfferCommand } from './api/offers';
 import type { PaymentsInput } from './api/payments';
 
-const OPS: readonly OfferCommand['op'][] = ['create', 'update', 'setProducts', 'publish', 'unpublish', 'delete'];
+const OPS: readonly OfferCommand['op'][] = ['create', 'update', 'setProducts', 'setLinks', 'publish', 'unpublish', 'delete'];
 
 function price(r: FormReader): number {
   const cents = parsePrice(r.required('price'));
@@ -41,6 +41,8 @@ function parseOffer(form: FormData): OfferCommand {
           .filter((v): v is string => typeof v === 'string')
           .map((productId) => ({ productId, accessGroupId: r.raw(`group:${productId}`) || null })),
       };
+    case 'setLinks':
+      return { op, offerId, bumpOfferId: r.raw('bumpOfferId') || null, upsellOfferId: r.raw('upsellOfferId') || null };
     case 'publish':
     case 'unpublish':
     case 'delete':

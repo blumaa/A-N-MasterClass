@@ -10,6 +10,8 @@ export const thanksPath = (offerSlug: string, status: PaidStatus): string => `${
 
 export const studioOffersHref = '/studio/offers';
 export const studioOfferHref = (offerId: string): string => `${studioOffersHref}/${encodeURIComponent(offerId)}`;
+export const studioCouponsHref = '/studio/coupons';
+export const studioCouponHref = (couponId: string): string => `${studioCouponsHref}/${encodeURIComponent(couponId)}`;
 export const studioPaymentsHref = '/studio/payments';
 export const studioCustomersHref = '/studio/customers';
 export const contactsCsvHref = `${studioCustomersHref}/contacts.csv`;

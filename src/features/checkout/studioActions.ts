@@ -1,14 +1,16 @@
 'use server';
-// Studio commerce Server Actions (offers, payment settings). Space from Host (actionViewer),
+// Studio commerce Server Actions (offers, coupons, payment settings). Space from Host (actionViewer),
 // never from the form; the DAL re-checks capabilities.
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
+import { editCoupons } from './api/coupons';
 import { editOffers } from './api/offers';
 import { savePayments } from './api/payments';
-import { studioOfferHref, studioOffersHref } from './paths';
+import { couponCommandFromForm } from './couponForms';
+import { studioCouponHref, studioCouponsHref, studioOfferHref, studioOffersHref } from './paths';
 import { offerCommandFromForm, paymentsInputFromForm } from './studioForms';
 
 export type StudioFormState = { message: string } | null;
@@ -27,6 +29,21 @@ export async function editOfferAction(_prev: StudioFormState, form: FormData): P
   if (!result.ok) return { message: failureMessage(result, OFFERS_FORBIDDEN) };
   if (command.op === 'create' && result.id) redirect(studioOfferHref(result.id));
   if (command.op === 'delete') redirect(studioOffersHref);
+  refresh();
+  return null;
+}
+
+export async function editCouponAction(_prev: StudioFormState, form: FormData): Promise<StudioFormState> {
+  const parsed = couponCommandFromForm(form);
+  if (!parsed.ok) return { message: parsed.message };
+  const viewer = await actionViewer();
+  if (!viewer) return { message: OFFERS_FORBIDDEN };
+
+  const { command } = parsed;
+  const result = await editCoupons(getRepo(), viewer, command);
+  if (!result.ok) return { message: failureMessage(result, OFFERS_FORBIDDEN) };
+  if (command.op === 'create' && result.id) redirect(studioCouponHref(result.id));
+  if (command.op === 'delete') redirect(studioCouponsHref);
   refresh();
   return null;
 }

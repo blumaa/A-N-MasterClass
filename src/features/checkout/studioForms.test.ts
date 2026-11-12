@@ -8,6 +8,13 @@ const form = (entries: Record<string, string | string[]>): FormData => {
 };
 
 describe('offerCommandFromForm', () => {
+  it('parses bump and upsell links; empty means none', () => {
+    expect(offerCommandFromForm(form({ op: 'setLinks', offerId: 'o1', bumpOfferId: 'o2', upsellOfferId: '' }))).toEqual({
+      ok: true,
+      command: { op: 'setLinks', offerId: 'o1', bumpOfferId: 'o2', upsellOfferId: null },
+    });
+  });
+
   it('parses create with a decimal-comma price and a slug from the title', () => {
     expect(offerCommandFromForm(form({ op: 'create', title: 'Full Access', price: '49,95', currency: 'EUR' }))).toEqual({
       ok: true,

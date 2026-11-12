@@ -3,6 +3,8 @@ import {
   checkoutPath,
   contactsCsvHref,
   paypalWebhookPath,
+  studioCouponHref,
+  studioCouponsHref,
   studioCustomersHref,
   studioOfferHref,
   studioOffersHref,
@@ -19,9 +21,11 @@ describe('checkout paths', () => {
 });
 
 describe('studio commerce paths', () => {
-  it('builds offers, payments and customers URLs', () => {
+  it('builds offers, coupons, payments and customers URLs', () => {
     expect(studioOffersHref).toBe('/studio/offers');
     expect(studioOfferHref('o 1')).toBe('/studio/offers/o%201');
+    expect(studioCouponsHref).toBe('/studio/coupons');
+    expect(studioCouponHref('c 1')).toBe('/studio/coupons/c%201');
     expect(studioPaymentsHref).toBe('/studio/payments');
     expect(studioCustomersHref).toBe('/studio/customers');
     expect(contactsCsvHref).toBe('/studio/customers/contacts.csv');

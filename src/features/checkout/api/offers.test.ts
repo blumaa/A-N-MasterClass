@@ -144,4 +144,35 @@ describe('editOffers', () => {
       error: 'invalid',
     });
   });
+
+  it('links a bump and an upsell offer, and clears them (G23)', async () => {
+    const id = await created();
+    const bump = await created('bump');
+    const up = await created('up');
+    const v = await owner();
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: bump, upsellOfferId: up })).toEqual({ ok: true });
+    expect(await repo.offer(id)).toMatchObject({ bumpOfferId: bump, upsellOfferId: up });
+    expect((await studioOffer(repo, v, id))?.others.map((o) => o.id).toSorted()).toEqual([bump, up].toSorted());
+    await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: null, upsellOfferId: null });
+    expect(await repo.offer(id)).toMatchObject({ bumpOfferId: null, upsellOfferId: null });
+  });
+
+  it('refuses a bump in another currency, a self link and an offer of another space (G23)', async () => {
+    const id = await created();
+    const v = await owner();
+    const usd = await editOffers(repo, v, { op: 'create', title: 'Dollar', slug: 'usd', priceCents: 900, currency: 'USD' });
+    if (!usd.ok || !usd.id) throw new Error('create failed');
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: usd.id, upsellOfferId: null })).toMatchObject({
+      error: 'invalid',
+      message: expect.stringMatching(/currency/),
+    });
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: null, upsellOfferId: usd.id })).toEqual({ ok: true });
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: id, upsellOfferId: null })).toMatchObject({
+      message: 'An offer cannot be its own bump or upsell.',
+    });
+    const foreign = await repo.createOffer({ spaceId: SEED_IDS.natasha, title: 'F', slug: 'f', priceCents: 100, currency: 'EUR' });
+    expect(await editOffers(repo, v, { op: 'setLinks', offerId: id, bumpOfferId: null, upsellOfferId: foreign.id })).toMatchObject({
+      message: 'Pick offers of this site only.',
+    });
+  });
 });

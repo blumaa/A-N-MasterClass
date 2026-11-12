@@ -4,7 +4,7 @@
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { Currency } from '@/lib/commerce/money';
 import type { CommandResult } from '@/lib/data/commandResult';
-import { ConstraintError } from '@/lib/data/errors';
+import { ConstraintError, OFFER_LINK_SELF, OFFER_LINK_SPACE } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import type { Offer, OfferItem, ProductKind } from '@/lib/data/types';
 
@@ -14,6 +14,8 @@ export type StudioOfferDetail = {
   items: OfferItem[];
   /** groups: the extra access groups of a community; the default group is accessGroupId null. */
   products: { id: string; title: string; kind: ProductKind; groups: { id: string; title: string }[] }[];
+  /** Other offers of the space, to pick a bump or upsell from (G23). */
+  others: Pick<Offer, 'id' | 'title' | 'currency' | 'status'>[];
 };
 
 type Fields = { title: string; slug: string; priceCents: number; currency: Currency };
@@ -22,6 +24,7 @@ export type OfferCommand =
   | ({ op: 'create' } & Fields)
   | ({ op: 'update'; offerId: string; description: string } & Fields)
   | { op: 'setProducts'; offerId: string; items: OfferItem[] }
+  | { op: 'setLinks'; offerId: string; bumpOfferId: string | null; upsellOfferId: string | null }
   | { op: 'publish' | 'unpublish' | 'delete'; offerId: string };
 
 const OK: CommandResult = { ok: true };
@@ -45,7 +48,11 @@ export async function studioOffer(repo: Repo, viewer: Viewer, offerId: string): 
   if (!viewerCan(viewer, 'offers.manage')) return null;
   const offer = await ownOffer(repo, viewer, offerId);
   if (!offer) return null;
-  const [items, products] = await Promise.all([repo.offerItems(offer.id), repo.products(viewer.space.id)]);
+  const [items, products, offers] = await Promise.all([
+    repo.offerItems(offer.id),
+    repo.products(viewer.space.id),
+    repo.offers(viewer.space.id),
+  ]);
   const groups = await Promise.all(products.map((p) => (p.kind === 'community' ? repo.accessGroups(p.id) : [])));
   return {
     offer,
@@ -56,6 +63,7 @@ export async function studioOffer(repo: Repo, viewer: Viewer, offerId: string): 
       kind: p.kind,
       groups: groups[i]!.filter((g) => !g.isDefault).map((g) => ({ id: g.id, title: g.title })),
     })),
+    others: offers.filter((o) => o.id !== offer.id).map(({ id, title, currency, status }) => ({ id, title, currency, status })),
   };
 }
 
@@ -97,6 +105,15 @@ async function apply(repo: Repo, offer: Offer, cmd: Exclude<OfferCommand, { op: 
       }
       await repo.setOfferItems(offer.id, cmd.items);
       return OK;
+    case 'setLinks': {
+      // Bump is one PayPal order with the offer, so one currency. The repo checks space and self.
+      const bump = cmd.bumpOfferId === null ? null : await repo.offer(cmd.bumpOfferId);
+      if (bump && bump.id !== offer.id && bump.spaceId === offer.spaceId && bump.currency !== offer.currency) {
+        return invalid('The bump offer must use the same currency as this offer.');
+      }
+      await repo.updateOffer(offer.id, { bumpOfferId: cmd.bumpOfferId, upsellOfferId: cmd.upsellOfferId });
+      return OK;
+    }
     case 'publish':
       if ((await repo.offerItems(offer.id)).length === 0) return invalid('Link at least one product before publishing.');
       await repo.updateOffer(offer.id, { status: 'published' });
@@ -115,6 +132,8 @@ function constraintMessage(e: ConstraintError): string {
   if (/invalid slug/.test(e.message)) return 'Use lowercase letters, numbers and dashes for the address.';
   if (/price/.test(e.message)) return 'Enter a price between 0 and 99,999.99.';
   if (/orders/.test(e.message)) return 'This offer has orders and cannot be deleted. Unpublish it instead.';
+  if (e.message === OFFER_LINK_SELF) return 'An offer cannot be its own bump or upsell.';
+  if (e.message === OFFER_LINK_SPACE) return 'Pick offers of this site only.';
   if (/space/.test(e.message)) return 'Pick products of this site only.';
   if (/access group/.test(e.message)) return 'Pick an access group of that community.';
   return e.message;

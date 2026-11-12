@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { OfferEditor } from './OfferEditor';
 import { offer } from './fixtures';
@@ -15,6 +15,10 @@ const detail = (over = {}) => ({
     { id: 'p1', title: 'Shibari 101', kind: 'program' as const, groups: [] },
     { id: 'p2', title: 'Circle', kind: 'community' as const, groups: [] },
     { id: 'p3', title: 'Inner circle', kind: 'community' as const, groups: [{ id: 'g-vip', title: 'VIP' }] },
+  ],
+  others: [
+    { id: 'o2', title: 'Workbook', currency: 'EUR' as const, status: 'published' as const },
+    { id: 'o3', title: 'Dollar pack', currency: 'USD' as const, status: 'draft' as const },
   ],
 });
 
@@ -47,5 +51,15 @@ describe('OfferEditor', () => {
     render(<OfferEditor detail={detail({ status: 'published' })} />);
     expect(screen.getByRole('link', { name: '/checkout/full' })).toHaveAttribute('href', '/checkout/full');
     expect(screen.getByRole('button', { name: 'Unpublish' })).toBeInTheDocument();
+  });
+
+  it('picks a bump of the same currency and any upsell offer (G23)', () => {
+    render(<OfferEditor detail={detail({ bumpOfferId: 'o2' })} />);
+    const bump = screen.getByLabelText('Order bump');
+    expect(bump).toHaveValue('o2');
+    expect(within(bump).queryByRole('option', { name: /Dollar pack/ })).toBeNull();
+    const upsell = screen.getByLabelText('Upsell');
+    expect(upsell).toHaveValue('');
+    expect(within(upsell).getByRole('option', { name: 'Dollar pack (draft)' })).toBeInTheDocument();
   });
 });
