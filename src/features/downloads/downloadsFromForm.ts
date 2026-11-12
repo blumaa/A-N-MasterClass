@@ -1,4 +1,4 @@
-// Download studio forms -> commands. File size in bytes (whole number) until upload exists.
+// Download studio forms -> commands. Path and size come from the upload field (FileUpload).
 import { parser, productPatch, readWhole, titleAndSlug } from '@/lib/forms/commands';
 import type { FormReader as Reader } from '@/lib/forms/formReader';
 import type { DownloadCommand } from './api/studio';

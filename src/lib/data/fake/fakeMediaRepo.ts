@@ -90,8 +90,8 @@ export function createFakeMediaRepo(db: Db, id: (prefix: string) => string): Med
       const current = mustEpisode(eid);
       const next: Episode = { ...current, ...patch, title: (patch.title ?? current.title).trim() };
       checkEpisode(next);
-      Object.assign(current, next);
-      return current;
+      db.episodes = db.episodes.map((e) => (e.id === eid ? next : e));
+      return next;
     },
     async deleteEpisode(eid) {
       db.episodes = db.episodes.filter((e) => e.id !== eid);
@@ -125,10 +125,10 @@ export function createFakeMediaRepo(db: Db, id: (prefix: string) => string): Med
       return row;
     },
     async renameProductFile(fid, title) {
-      const current = mustFile(fid);
-      checkFile({ ...current, title: title.trim() });
-      current.title = title.trim();
-      return current;
+      const next = { ...mustFile(fid), title: title.trim() };
+      checkFile(next);
+      db.productFiles = db.productFiles.map((f) => (f.id === fid ? next : f));
+      return next;
     },
     async deleteProductFile(fid) {
       db.productFiles = db.productFiles.filter((f) => f.id !== fid);

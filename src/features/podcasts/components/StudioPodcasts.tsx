@@ -1,10 +1,11 @@
 // Studio > Podcasts (G18, Kajabi Podcasts): podcast products, show settings and episodes.
-// Audio is given as a storage path + size until upload is built (docs/PLAN.md, Launch 5 owes).
+// Audio uploads straight to Storage (FileUpload); the form saves the returned path and size.
 // Publish times are typed in the chosen zone (shown in UTC); blank = draft, future = scheduled.
 import { ChoiceSelect, TimeZoneSelect, YesNoSelect } from '@/components/fields/fields';
+import { FileUpload } from '@/components/FileUpload/FileUpload';
 import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 import { EmptyState, Field, Heading, Input, Stack, Textarea } from '@/components/ui/mds';
-import { EPISODE_MAX_BYTES, EPISODE_TYPES, PODCAST_ORDERS, type Episode, type EpisodeType, type PodcastOrder } from '@/lib/data/types';
+import { EPISODE_TYPES, PODCAST_ORDERS, type Episode, type EpisodeType, type PodcastOrder } from '@/lib/data/types';
 import { formatDuration } from '@/lib/format/duration';
 import { utcToZonedInput } from '@/lib/format/zoned';
 import type { StudioPodcast } from '../api/studio';
@@ -15,7 +16,7 @@ const SHOWN_IN = 'UTC';
 const TYPE_LABELS: Record<EpisodeType, string> = { full: 'Full episode', bonus: 'Bonus', trailer: 'Trailer' };
 const ORDER_LABELS: Record<PodcastOrder, string> = { episodic: 'Episodic (newest first)', serial: 'Serial (oldest first)' };
 
-function EpisodeFields({ e }: { e?: Episode }) {
+function EpisodeFields({ productId, e }: { productId: string; e?: Episode }) {
   return (
     <>
       <Field label="Title">
@@ -31,14 +32,14 @@ function EpisodeFields({ e }: { e?: Episode }) {
         </Field>
         <YesNoSelect name="explicit" label="Explicit" value={e?.explicit ?? false} yes="Yes" no="No" />
       </div>
-      <div className={styles.fields}>
-        <Field label="Audio file path (.mp3)">
-          <Input name="audioPath" defaultValue={e?.audioPath ?? ''} required />
-        </Field>
-        <Field label="File size (bytes)">
-          <Input type="number" name="audioBytes" min={1} max={EPISODE_MAX_BYTES} defaultValue={e?.audioBytes ?? ''} required />
-        </Field>
-      </div>
+      <FileUpload
+        productId={productId}
+        kind="podcast"
+        label={e ? 'Replace the audio' : 'Choose or drop the audio'}
+        pathName="audioPath"
+        sizeName="audioBytes"
+        current={e ? { path: e.audioPath, bytes: e.audioBytes } : undefined}
+      />
       <div className={styles.fields}>
         <Field label="Publish at (blank = draft)">
           <Input type="datetime-local" name="publishAt" defaultValue={e?.publishAt ? utcToZonedInput(e.publishAt, SHOWN_IN) : ''} />
@@ -83,14 +84,14 @@ function Podcast({ podcast: { product: p, settings: s, episodes } }: { podcast: 
         {episodes.map((e) => (
           <li key={e.id} className={styles.row}>
             <PodcastForm fields={{ op: 'updateEpisode', episodeId: e.id }} submit="Save episode">
-              <EpisodeFields e={e} />
+              <EpisodeFields productId={p.id} e={e} />
             </PodcastForm>
             <PodcastForm inline variant="danger" submit="Delete episode" confirm={`Delete "${e.title}"?`} fields={{ op: 'deleteEpisode', episodeId: e.id }} />
           </li>
         ))}
       </ul>
       <PodcastForm fields={{ op: 'createEpisode', productId: p.id }} submit="Add episode">
-        <EpisodeFields />
+        <EpisodeFields productId={p.id} />
       </PodcastForm>
     </li>
   );

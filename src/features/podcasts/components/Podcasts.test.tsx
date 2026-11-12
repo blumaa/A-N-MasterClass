@@ -7,6 +7,7 @@ import { ClientPodcast } from './ClientPodcast';
 import { StudioPodcasts } from './StudioPodcasts';
 
 vi.mock('../actions', () => ({ editPodcastsAction: vi.fn(), resetFeedAction: vi.fn() }));
+vi.mock('@/components/FileUpload/actions', () => ({ requestUploadAction: vi.fn() }));
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 const product = { id: 'p1', slug: 'rope-talk', title: 'Rope Talk', subtitle: null, status: 'published' } as Product;
@@ -72,7 +73,9 @@ describe('StudioPodcasts', () => {
     render(<StudioPodcasts podcasts={[p]} />);
     expect(screen.getByDisplayValue('Rope Talk')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Alexander')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('p1/welcome.mp3')).toBeInTheDocument();
+    expect(screen.getByText('Current file: welcome.mp3 · 1.0 MB')).toBeInTheDocument();
+    expect(document.querySelector('input[type=hidden][name=audioPath]')).toHaveValue('p1/welcome.mp3');
+    expect(screen.queryByRole('textbox', { name: /audio file path/i })).toBeNull();
     expect(screen.getByDisplayValue('12:30')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add podcast' })).toBeInTheDocument();
   });

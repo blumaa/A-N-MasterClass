@@ -153,8 +153,8 @@ export function createFakeCoachingRepo(db: Db, id: (prefix: string) => string): 
       if (!current) throw new Error('session not found');
       const next = { ...current, ...patch };
       checkSession(next);
-      Object.assign(current, patch);
-      return current;
+      db.coachingSessions = db.coachingSessions.map((s) => (s.id === sid ? next : s));
+      return next;
     },
 
     sessionNote: async (sessionId) => db.sessionNotes.find((n) => n.sessionId === sessionId) ?? null,

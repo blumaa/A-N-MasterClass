@@ -12,6 +12,7 @@ export {
   DataTable,
   EmptyState,
   Field,
+  FileDrop,
   Heading,
   Inline,
   Link,
@@ -25,4 +26,6 @@ export {
   Stack,
   Text,
   Textarea,
+  UploadProgress,
 } from '@mond-design-system/react';
+export type { UploadStatus } from '@mond-design-system/react';

@@ -2,18 +2,21 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { editDownloads, studioDownloads, type DownloadCommand } from './studio';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
+let files: ReturnType<typeof createFakeFileStore>;
 
 beforeEach(() => {
   repo = createFakeRepo(seedDb(NOW));
+  files = createFakeFileStore();
 });
 
 const as = async (who: string | null) => (await resolveViewer(repo, 'alexander', who))!;
-const run = async (c: DownloadCommand, who: string | null = SEED_IDS.assistant) => editDownloads(repo, await as(who), c, NOW);
-const FILE = { productId: SEED_IDS.downloads, title: 'Futomomo', filePath: 'pattern-pack/futomomo.pdf', sizeBytes: 900 };
+const run = async (c: DownloadCommand, who: string | null = SEED_IDS.assistant) => editDownloads(repo, files, await as(who), c, NOW);
+const FILE = { productId: SEED_IDS.downloads, title: 'Futomomo', filePath: `${SEED_IDS.alexander}/${SEED_IDS.downloads}/u1-futomomo.pdf`, sizeBytes: 900 };
 
 describe('studioDownloads', () => {
   it('lists download products with their files for editors only', async () => {
@@ -35,8 +38,16 @@ describe('editDownloads', () => {
     expect(await repo.productFile(id)).toMatchObject({ title: 'Futomomo', createdAt: NOW });
     expect(await run({ op: 'renameFile', fileId: id, title: 'Futomomo tie' })).toEqual({ ok: true });
     expect((await repo.productFile(id))!.title).toBe('Futomomo tie');
+    expect(files.removed).toEqual([]);
     expect(await run({ op: 'deleteFile', fileId: id })).toEqual({ ok: true });
     expect(await repo.productFile(id)).toBeNull();
+    expect(files.removed).toEqual([FILE.filePath]);
+  });
+
+  it('refuses a file path outside this product folder of this space', async () => {
+    for (const filePath of ['space-natasha/prod-downloads/u1-x.pdf', `${SEED_IDS.alexander}/${SEED_IDS.podcast}/u1-x.pdf`, 'pattern-pack/x.pdf']) {
+      expect(await run({ op: 'addFile', ...FILE, filePath })).toEqual({ ok: false, error: 'not_found' });
+    }
   });
 
   it('reports invalid input', async () => {
@@ -48,6 +59,6 @@ describe('editDownloads', () => {
     expect(await run({ op: 'addFile', ...FILE, productId: SEED_IDS.podcast })).toEqual({ ok: false, error: 'not_found' });
     expect(await run({ op: 'renameFile', fileId: 'nope', title: 'x' })).toEqual({ ok: false, error: 'not_found' });
     const other = await resolveViewer(repo, 'natasha', SEED_IDS.natashaOwner);
-    expect(await editDownloads(repo, other!, { op: 'deleteFile', fileId: 'file-hip-harness' }, NOW)).toEqual({ ok: false, error: 'not_found' });
+    expect(await editDownloads(repo, files, other!, { op: 'deleteFile', fileId: 'file-hip-harness' }, NOW)).toEqual({ ok: false, error: 'not_found' });
   });
 });

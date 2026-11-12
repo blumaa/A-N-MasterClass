@@ -207,7 +207,7 @@ Launch 5 as built:
 - Download = list of files; holders read the list. Every file and audio request goes through a server route that returns a 302 to a short signed URL (`signedRedirect`, `cache-control: no-store`).
 - Files in private bucket `resources` (no object policies = service role only). Bucket limit 250 MB; Supabase Free caps uploads at 50 MB, Pro allows up to 500 GB (https://supabase.com/docs/guides/storage/uploads/file-limits).
 - Client: Podcasts + Downloads tiles in the library, podcast page (episodes, feed URL, reset), downloads page. Studio: Podcasts + Downloads nav (products.edit).
-- Not yet: file upload UI (paths entered by hand in Studio), Supabase file store adapter (`getFileStore` throws for supabase), "Download all" zip, download parts in program steps through the same signed route.
+- Not yet: "Download all" zip, download parts in program steps through the same signed route.
 
 **Launch 5** — podcast + download products.
 **Launch 6 — finish the deferred gaps** (no outside service needed; decided 2026-11-12). External setup (email provider, PayPal app, platform domain, paid plans) waits until this is done. Order:
@@ -224,6 +224,16 @@ Launch 5 as built:
 11. Quizzes (`parts.kind = quiz`, `quiz_passed` unlock) + certificates (G26).
 12. Coupons, order bumps, upsells (G23).
 13. Subscriptions + payment plans (G5), built against the PayPal fake.
+
+Launch 6 item 1 as built:
+- `createSupabaseFileStore` (service role): `signedUrl`, `uploadUrl` (`createSignedUploadUrl`, valid 2 h), `remove`. Contract test against ksb (`fileStore.contract.test.ts`).
+- Upload flow: Studio `FileUpload` field asks `requestUploadAction` for a ticket, then PUTs the bytes straight to Storage (XHR for progress, same request as supabase-js `uploadToSignedUrl`, no upsert), then fills hidden path + size inputs. The picker has no name, so bytes never go through the Server Action.
+- Ticket checks: products.edit, product in the viewer's space (Host), right kind, size 1 byte..250 MB, podcast = .mp3.
+- Object key `<spaceId>/<productId>/<uuid>-<safe name>` (`uploadPath`). `addFile`, `createEpisode`, `updateEpisode` refuse any path outside that folder (not_found). An unchanged legacy episode path still saves.
+- Delete file, delete episode or replace episode audio removes the old object after the DB write. Storage errors are thrown, not swallowed.
+- CSP: `media-src` now allows the Supabase origin (episode `<audio>` follows the 302). Upload XHR is covered by `connect-src`.
+- Fake repos (media, coaching) now replace rows on update instead of mutating them, like the Supabase repo. Other fake repos still mutate rows in place.
+- Not yet: cleanup of orphaned objects (uploaded, never saved); size is what the browser reports, not read back from Storage; uploads do nothing with `DATA_SOURCE=fake` (fake upload URL points nowhere). Supabase Free caps one upload at 50 MB; the bucket allows 250 MB on Pro.
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

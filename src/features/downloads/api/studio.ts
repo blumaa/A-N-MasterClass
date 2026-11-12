@@ -1,10 +1,13 @@
 // Studio side of downloads (G18): download products and their files. Gate: products.edit (G15).
-// Files arrive as a storage path + size; the upload itself is not built yet (docs/PLAN.md, Launch 5 owes).
+// Files are uploaded first (requestUpload, FileUpload); the form saves the path + size. A path must sit
+// in this product's folder of this space (isProductPath). Deleting a row removes its object after the DB write.
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { NewProductFile, ProductPatch, Repo } from '@/lib/data/repo';
 import type { Product, ProductFile } from '@/lib/data/types';
+import type { FileStore } from '@/lib/storage/fileStore';
+import { isProductPath } from '@/lib/storage/uploadPath';
 
 export type StudioDownload = { product: Product; files: ProductFile[] };
 
@@ -24,7 +27,7 @@ export type DownloadCommand =
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
 const NOT_FOUND: CommandResult = { ok: false, error: 'not_found' };
 
-type Ctx = { repo: Repo; spaceId: string; now: Date };
+type Ctx = { repo: Repo; files: FileStore; spaceId: string; now: Date };
 
 const isDownload = async (repo: Repo, spaceId: string, productId: string) => {
   const p = await repo.product(productId);
@@ -37,8 +40,9 @@ async function owns({ repo, spaceId }: Ctx, c: DownloadCommand): Promise<boolean
     case 'createDownload':
       return true;
     case 'updateProduct':
-    case 'addFile':
       return isDownload(repo, spaceId, c.productId);
+    case 'addFile':
+      return isProductPath(c.filePath, spaceId, c.productId) && isDownload(repo, spaceId, c.productId);
     case 'renameFile':
     case 'deleteFile': {
       const f = await repo.productFile(c.fileId);
@@ -47,7 +51,7 @@ async function owns({ repo, spaceId }: Ctx, c: DownloadCommand): Promise<boolean
   }
 }
 
-async function run({ repo, spaceId, now }: Ctx, c: DownloadCommand): Promise<string | undefined> {
+async function run({ repo, files, spaceId, now }: Ctx, c: DownloadCommand): Promise<string | undefined> {
   switch (c.op) {
     case 'createDownload':
       return (await repo.createProduct({ spaceId, kind: 'download', slug: c.slug, title: c.title })).id;
@@ -59,14 +63,17 @@ async function run({ repo, spaceId, now }: Ctx, c: DownloadCommand): Promise<str
     }
     case 'renameFile':
       return void (await repo.renameProductFile(c.fileId, c.title));
-    case 'deleteFile':
-      return void (await repo.deleteProductFile(c.fileId));
+    case 'deleteFile': {
+      const file = await repo.productFile(c.fileId);
+      await repo.deleteProductFile(c.fileId);
+      return void (file && (await files.remove([file.filePath])));
+    }
   }
 }
 
-export async function editDownloads(repo: Repo, viewer: Viewer, c: DownloadCommand, now: Date): Promise<CommandResult> {
+export async function editDownloads(repo: Repo, files: FileStore, viewer: Viewer, c: DownloadCommand, now: Date): Promise<CommandResult> {
   if (!viewer.profile || !viewerCan(viewer, 'products.edit')) return FORBIDDEN;
-  const ctx: Ctx = { repo, spaceId: viewer.space.id, now };
+  const ctx: Ctx = { repo, files, spaceId: viewer.space.id, now };
   if (!(await owns(ctx, c))) return NOT_FOUND;
   try {
     return { ok: true, id: await run(ctx, c) };

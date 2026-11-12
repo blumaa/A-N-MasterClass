@@ -36,6 +36,12 @@ describe('contentSecurityPolicy', () => {
     expect(directive(csp, 'connect-src')).toEqual(expect.arrayContaining(['https://abc.supabase.co', 'wss://abc.supabase.co']));
     expect(directive(csp, 'img-src')).toContain('https://abc.supabase.co');
   });
+
+  it('lets <audio> follow the episode route redirect to Storage', () => {
+    const csp = contentSecurityPolicy({ dev: false, dataOrigin: 'https://abc.supabase.co' });
+    expect(directive(csp, 'media-src')).toEqual(["'self'", 'https://abc.supabase.co']);
+    expect(directive(prod, 'media-src')).toEqual(["'self'"]);
+  });
 });
 
 describe('securityHeaders', () => {

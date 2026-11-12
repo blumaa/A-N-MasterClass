@@ -1,5 +1,6 @@
-// Studio > Downloads (G18, Kajabi Downloads): download products and their files. Files are given
-// as a storage path + size until upload is built (docs/PLAN.md, Launch 5 owes).
+// Studio > Downloads (G18, Kajabi Downloads): download products and their files. Files upload
+// straight to Storage (FileUpload); the form saves the returned path and size.
+import { FileUpload } from '@/components/FileUpload/FileUpload';
 import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 import { EmptyState, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import { fileType, formatBytes } from '@/lib/format/bytes';
@@ -43,13 +44,8 @@ function Download({ download: { product: p, files } }: { download: StudioDownloa
           <Field label="File title">
             <Input name="title" required />
           </Field>
-          <Field label="File path">
-            <Input name="filePath" required />
-          </Field>
-          <Field label="File size (bytes)">
-            <Input type="number" name="sizeBytes" min={1} required />
-          </Field>
         </div>
+        <FileUpload productId={p.id} kind="download" label="Choose or drop a file" pathName="filePath" sizeName="sizeBytes" />
       </DownloadForm>
     </li>
   );

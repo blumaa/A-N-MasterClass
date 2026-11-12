@@ -48,6 +48,7 @@ describe('episodes', () => {
     const e = await repo.createEpisode(episode({ title: ' New ' }));
     expect(e.title).toBe('New');
     expect((await repo.updateEpisode(e.id, { season: 2 })).season).toBe(2);
+    expect(e.season).not.toBe(2); // rows read earlier are snapshots, like the Supabase repo
     expect((await repo.episodes(SEED_IDS.podcast)).map((x) => x.id)).toContain(e.id);
     await repo.deleteEpisode(e.id);
     expect(await repo.episode(e.id)).toBeNull();
@@ -96,6 +97,7 @@ describe('product files', () => {
     const f = await repo.createProductFile({ productId: SEED_IDS.downloads, title: 'Extra', filePath: 'x/extra.zip', sizeBytes: 5, createdAt: NOW });
     expect((await repo.productFiles(SEED_IDS.downloads)).at(-1)!.id).toBe(f.id);
     expect((await repo.renameProductFile(f.id, ' Bonus ')).title).toBe('Bonus');
+    expect(f.title).toBe('Extra');
     await repo.deleteProductFile(f.id);
     expect(await repo.productFile(f.id)).toBeNull();
   });

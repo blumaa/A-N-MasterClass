@@ -114,6 +114,7 @@ describe('sessions', () => {
     await repo.createCoachingSession(session({ startsAt: at(30), endsAt: at(31) }));
     const moved = await repo.updateCoachingSession(a.id, { startsAt: at(24.5), endsAt: at(25.5) });
     expect(moved.startsAt).toEqual(at(24.5));
+    expect(a.startsAt).not.toEqual(at(24.5));
     await expect(repo.updateCoachingSession(a.id, { startsAt: at(30), endsAt: at(31) })).rejects.toThrow(ConstraintError);
   });
 });

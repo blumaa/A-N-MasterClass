@@ -10,4 +10,12 @@ describe('fake file store', () => {
     expect(url.searchParams.get('download')).toBe('Hip harness.pdf');
     expect(new URL(await store.signedUrl('a.mp3')).searchParams.has('download')).toBe(false);
   });
+
+  it('hands out an upload URL for the path and records removed paths', async () => {
+    const store = createFakeFileStore();
+    expect(new URL(await store.uploadUrl('s/p/a b.mp3')).pathname).toBe('/upload/resources/s/p/a%20b.mp3');
+    await store.remove(['s/p/a.mp3']);
+    await store.remove(['s/p/b.pdf']);
+    expect(store.removed).toEqual(['s/p/a.mp3', 's/p/b.pdf']);
+  });
 });

@@ -6,6 +6,7 @@ import { ClientDownloads } from './ClientDownloads';
 import { StudioDownloads } from './StudioDownloads';
 
 vi.mock('../actions', () => ({ editDownloadsAction: vi.fn() }));
+vi.mock('@/components/FileUpload/actions', () => ({ requestUploadAction: vi.fn() }));
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 const product = { id: 'p1', slug: 'pattern-pack', title: 'Pattern Pack', subtitle: null, status: 'published' } as Product;
@@ -39,6 +40,13 @@ describe('StudioDownloads', () => {
     expect(screen.getByDisplayValue('Hip harness')).toBeInTheDocument();
     expect(screen.getByText('pattern-pack/hip.pdf · PDF · 2.4 MB')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add download' })).toBeInTheDocument();
+  });
+
+  it('adds files through the upload field, not a typed path', () => {
+    const { container } = render(<StudioDownloads downloads={[{ product, files: [] }]} />);
+    expect(container.querySelector('input[type=file]')).not.toHaveAttribute('name');
+    expect(container.querySelector('input[type=hidden][name=filePath]')).toHaveValue('');
+    expect(screen.queryByRole('textbox', { name: 'File path' })).toBeNull();
   });
 
   it('shows an empty state without downloads', () => {

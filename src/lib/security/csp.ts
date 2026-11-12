@@ -12,7 +12,7 @@ const VIMEO_PLAYER = 'https://player.vimeo.com';
 
 export type CspOptions = {
   dev: boolean;
-  /** Supabase project origin (REST, Realtime, Storage images); omitted until wired. */
+  /** Supabase project origin (REST, Realtime, Storage reads and uploads); omitted until wired. */
   dataOrigin?: string;
 };
 
@@ -25,6 +25,8 @@ export function contentSecurityPolicy({ dev, dataOrigin }: CspOptions): string {
     ['style-src', ["'self'", "'unsafe-inline'", ...PAYPAL]],
     ['img-src', ["'self'", 'blob:', 'data:', ...data, ...PAYPAL]],
     ['font-src', ["'self'"]],
+    // Episode audio: the app route 302s to a signed Storage URL.
+    ['media-src', ["'self'", ...data]],
     ['connect-src', ["'self'", ...data, ...realtime, ...PAYPAL]],
     ['frame-src', ["'self'", VIMEO_PLAYER, ...PAYPAL]],
     ['child-src', ["'self'", ...PAYPAL]],
