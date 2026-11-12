@@ -2,7 +2,7 @@
 // `pnpm test:sql`: runs supabase/tests/*.test.sql via psql against SUPABASE_DB_URL.
 // psql, not pg_prove/`supabase test db`: those need Docker locally. finish(true) + ON_ERROR_STOP=1 = non-zero exit on any failure.
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,15 +28,12 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-// Static check first (no DB needed): plain finish() would exit 0 on failures.
-const unguarded = files.filter(
-  (f) => !/finish\s*\(\s*true\s*\)/.test(readFileSync(join(TESTS_DIR, f), 'utf8')),
-);
-if (unguarded.length > 0) {
-  console.error(
-    'These test files call finish() without `true`, so their failures would not fail the run:\n' +
-      unguarded.map((f) => `  ${f}`).join('\n'),
-  );
+// Static check first (no DB needed): same gate as `pnpm gates`.
+try {
+  execFileSync('node', [fileURLToPath(new URL('./check-sql.mjs', import.meta.url)), '--root', TESTS_DIR], {
+    stdio: 'inherit',
+  });
+} catch {
   process.exit(1);
 }
 

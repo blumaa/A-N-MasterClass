@@ -2,6 +2,7 @@
 # Runs every SQL suite against the linked hosted project (no Docker, no DB password).
 # Each suite rolls back; finish(true) raises on a failed assertion, which the CLI reports as an Error.
 set -uo pipefail
+node scripts/check-sql.mjs || exit 1
 failed=0
 for f in supabase/tests/*.test.sql; do
   out=$(supabase db query --linked -f "$f" 2>&1)

@@ -239,3 +239,17 @@ describe('check:tokens — every --mds-* used is declared', () => {
     expect(run('check-tokens.mjs', root).code).toBe(0);
   });
 });
+
+describe('check:sql — every SQL suite fails loudly', () => {
+  it('fails on a suite that ends with plain finish()', () => {
+    const root = fixture({ '000.test.sql': 'begin; select plan(1); select ok(true); select * from finish(); rollback;' });
+    const { code, output } = run('check-sql.mjs', root);
+    expect(code).toBe(1);
+    expect(output).toContain('000.test.sql');
+  });
+
+  it('passes on finish(true)', () => {
+    const root = fixture({ '000.test.sql': 'begin; select plan(1); select ok(true); select * from finish(true); rollback;' });
+    expect(run('check-sql.mjs', root).code).toBe(0);
+  });
+});

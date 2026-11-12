@@ -104,5 +104,5 @@ delete from public.offers where id = '21b00000-0000-4000-8000-000000000004';
 select results_eq($$ select upsell_offer_id, bump_offer_id from public.offers where id = '21b00000-0000-4000-8000-000000000001' $$,
   $$ values (null::uuid, '21b00000-0000-4000-8000-000000000002'::uuid) $$, 'deleted upsell offer clears only that link');
 
-select * from finish();
+select * from finish(true);
 rollback;
