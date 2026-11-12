@@ -9,6 +9,8 @@ import { PageEditor } from '@/features/site/components/PageEditor';
 import { studioSiteHref } from '@/features/site/paths';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { sectionImages } from '@/lib/site/sectionImages';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 
 type Props = PageProps<'/[space]/studio/site/pages/[id]'>;
 
@@ -35,7 +37,7 @@ export default async function StudioPageEditor({ params }: Props) {
       <Heading level={1} variant="title">
         {data.page.title}
       </Heading>
-      <PageEditor page={data.page} versions={data.versions} choices={data.choices} />
+      <PageEditor page={data.page} versions={data.versions} choices={data.choices} images={sectionImages(data.page.draft, siteImageSrc)} />
     </Stack>
   );
 }

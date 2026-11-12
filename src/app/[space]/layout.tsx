@@ -97,9 +97,11 @@ export default async function SpaceLayout({
           </nav>
         ) : null}
       </header>
-      <Container width="wide">
-        <main className={styles.main}>{children}</main>
-      </Container>
+      <div className={styles.page}>
+        <Container width="wide">
+          <main className={styles.main}>{children}</main>
+        </Container>
+      </div>
       {chrome ? (
         <SiteFooter
           spaceName={viewer.space.name}

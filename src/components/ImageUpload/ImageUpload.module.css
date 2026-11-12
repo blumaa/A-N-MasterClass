@@ -1,0 +1,23 @@
+.upload {
+  display: grid;
+  gap: var(--mds-space-2);
+}
+
+.preview {
+  display: flex;
+  align-items: end;
+  gap: var(--mds-space-3);
+}
+
+.frame {
+  position: relative;
+  width: 12rem;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--mds-radius-media);
+  background: var(--mds-surface-media);
+}
+
+.image {
+  object-fit: cover;
+}

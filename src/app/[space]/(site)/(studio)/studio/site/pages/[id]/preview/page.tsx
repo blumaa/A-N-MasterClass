@@ -8,6 +8,7 @@ import { PublicPageView } from '@/features/site/components/PublicPageView';
 import { studioPageHref } from '@/features/site/paths';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 
 export const metadata: Metadata = { title: 'Preview', robots: { index: false } };
 
@@ -16,7 +17,7 @@ export default async function StudioPagePreview({ params }: PageProps<'/[space]/
   const viewer = await currentViewer(space);
   const preview = viewer ? await draftPreview(getRepo(), viewer, id) : null;
   if (!viewer || !preview) notFound();
-  const refs = await sectionRefs(getRepo(), viewer.space, preview.sections);
+  const refs = await sectionRefs(getRepo(), viewer.space, preview.sections, siteImageSrc);
   return (
     <Stack gap="loose">
       <Text role="status" tone="secondary">

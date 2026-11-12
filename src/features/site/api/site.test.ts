@@ -23,6 +23,7 @@ const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
 let n = 0;
 const newId = () => `sec-${++n}`;
+const imageUrl = (path: string) => `https://cdn.test/${path}`;
 
 beforeEach(() => {
   repo = createFakeRepo(seedDb(NOW));
@@ -268,11 +269,11 @@ describe('public reads', () => {
     const sections: SiteSection[] = [
       { id: 's', kind: 'curriculum', hidden: false, fields: { heading: '', programSlug: 'shibari-101' }, items: [] },
     ];
-    const refs = await sectionRefs(repo, { id: SEED_IDS.alexander, locale: 'en' }, sections);
+    const refs = await sectionRefs(repo, { id: SEED_IDS.alexander, locale: 'en' }, sections, imageUrl);
     const program = refs.curricula['shibari-101']!;
     expect(program.title).toBeTruthy();
     expect(program.modules.length).toBeGreaterThan(0);
-    expect(await sectionRefs(repo, { id: SEED_IDS.natasha, locale: 'en' }, sections)).toEqual({ curricula: {}, offers: {} });
+    expect(await sectionRefs(repo, { id: SEED_IDS.natasha, locale: 'en' }, sections, imageUrl)).toEqual({ curricula: {}, offers: {}, images: {} });
   });
 
   it('resolves published offers of this space for offer sections, price in the space locale', async () => {
@@ -286,11 +287,11 @@ describe('public reads', () => {
       fields: { heading: '', offerSlug },
       items: [],
     }));
-    const refs = await sectionRefs(repo, { id: SEED_IDS.alexander, locale: 'en' }, sections);
+    const refs = await sectionRefs(repo, { id: SEED_IDS.alexander, locale: 'en' }, sections, imageUrl);
     expect(refs.offers).toEqual({
       full: { title: 'Full access', description: 'Everything', price: '€49.00', href: '/checkout/full' },
     });
-    expect((await sectionRefs(repo, { id: SEED_IDS.natasha, locale: 'en' }, sections)).offers).toEqual({});
+    expect((await sectionRefs(repo, { id: SEED_IDS.natasha, locale: 'en' }, sections, imageUrl)).offers).toEqual({});
   });
 
   it('lists programs and offers of this space as section choices', async () => {

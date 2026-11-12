@@ -45,10 +45,10 @@ const sql = readdirSync(MIGRATIONS)
   .map((f) => readFileSync(join(MIGRATIONS, f), 'utf8'))
   .join('\n');
 
-/** First capture group of `re` as a list of SQL string literals. */
+/** First capture group of the last match of `re` (latest migration wins) as a list of SQL string literals. */
 const list = (re: RegExp) =>
-  sql
-    .match(re)?.[1]
+  [...sql.matchAll(new RegExp(re.source, 'g'))]
+    .at(-1)?.[1]
     .split(',')
     .map((s) => s.trim().replace(/'/g, ''));
 

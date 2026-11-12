@@ -4,6 +4,7 @@ import type { SiteSection } from '@/lib/site/sections';
 import { SectionEditor } from './SectionEditor';
 
 vi.mock('../actions', () => ({ editSiteAction: vi.fn() }));
+vi.mock('@/components/ImageUpload/actions', () => ({ requestImageUploadAction: vi.fn() }));
 
 const faq: SiteSection = {
   id: 's1',
@@ -46,5 +47,15 @@ describe('SectionEditor', () => {
     expect(screen.getByRole('button', { name: 'Move down' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show' })).toBeInTheDocument();
     expect(screen.getByText('Hidden')).toBeInTheDocument();
+  });
+
+  it('uses an image upload and a background choice for a hero', () => {
+    const hero: SiteSection = { id: 'h', kind: 'hero', hidden: false, fields: { heading: 'Hi', image: 'sp/site/a.jpg', layout: 'split' }, items: [] };
+    render(<SectionEditor pageId="p1" section={hero} choices={{ program: [], offer: [] }} images={{ 'sp/site/a.jpg': 'https://cdn.test/a.jpg' }} first last />);
+    expect(hidden('f.image')).toHaveValue('sp/site/a.jpg');
+    expect(screen.getByRole('img', { name: 'Image preview' })).toHaveAttribute('src', 'https://cdn.test/a.jpg');
+    expect(screen.getByLabelText('Layout')).toHaveValue('split');
+    expect(screen.getByLabelText('Background')).toHaveValue('plain');
+    expect(screen.getByRole('option', { name: 'Photo beside text' })).toBeInTheDocument();
   });
 });

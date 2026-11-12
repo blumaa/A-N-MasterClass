@@ -17,7 +17,7 @@ describe('seedSite', () => {
   it('only stores sections that pass their spec', () => {
     for (const page of db.pages) {
       for (const s of [...page.draft, ...(page.published ?? [])]) {
-        expect(validateSection(s, s.fields, s.items), `${page.slug}/${s.id}`).toMatchObject({ ok: true });
+        expect(validateSection(s, s.fields, s.items, page.spaceId), `${page.slug}/${s.id}`).toMatchObject({ ok: true });
       }
     }
   });

@@ -1,11 +1,23 @@
 // Generic editor for one page section, driven by SECTION_SPECS (G11). Posts fields as
 // `f.<name>` and item rows as `i.<row>.<name>`; one blank row adds an item, blank rows drop.
+import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
 import { Badge, Card, CardBody, Field, Heading, Input, Select, Stack, Text, Textarea } from '@/components/ui/mds';
+import type { ImageUrls } from '@/lib/site/sectionImages';
 import { SECTION_SPECS, isRefType, type FieldSpec, type RefType, type SectionChoices, type SiteSection } from '@/lib/site/sections';
 import { SiteForm } from './SiteForm';
 import styles from './SiteEditor.module.css';
 
-type Props = { pageId: string; section: SiteSection; choices: SectionChoices; first: boolean; last: boolean };
+type Props = {
+  pageId: string;
+  section: SiteSection;
+  choices: SectionChoices;
+  /** Stored image path -> public URL, for previews. */
+  images?: ImageUrls;
+  first: boolean;
+  last: boolean;
+};
+
+const NO_IMAGES: ImageUrls = {};
 
 const HINTS: Partial<Record<FieldSpec['type'], string>> = {
   href: 'A site path like /programs, or a full https:// link.',
@@ -14,9 +26,20 @@ const HINTS: Partial<Record<FieldSpec['type'], string>> = {
 
 const PLACEHOLDERS: Record<RefType, string> = { program: 'Choose a program', offer: 'Choose an offer' };
 
-type FieldProps = { spec: FieldSpec; name: string; value: string; choices: SectionChoices };
+type FieldProps = { spec: FieldSpec; name: string; value: string; choices: SectionChoices; images: ImageUrls };
 
 function Control({ spec, name, value, choices }: FieldProps) {
+  if (spec.type === 'choice') {
+    return (
+      <Select name={name} defaultValue={value || spec.options?.[0]?.value}>
+        {spec.options?.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </Select>
+    );
+  }
   if (isRefType(spec.type)) {
     return (
       <Select name={name} defaultValue={value}>
@@ -33,7 +56,11 @@ function Control({ spec, name, value, choices }: FieldProps) {
 }
 
 function SpecField(props: FieldProps) {
-  const { spec } = props;
+  const { spec, name, value, images } = props;
+  if (spec.type === 'image') {
+    const src = value ? images[value] : undefined;
+    return <ImageUpload name={name} label={spec.label} current={value && src ? { path: value, src } : undefined} />;
+  }
   return (
     <Field label={spec.label} hint={HINTS[spec.type]} required={spec.required}>
       <Control {...props} />
@@ -41,7 +68,7 @@ function SpecField(props: FieldProps) {
   );
 }
 
-export function SectionEditor({ pageId, section, choices, first, last }: Props) {
+export function SectionEditor({ pageId, section, choices, images = NO_IMAGES, first, last }: Props) {
   const spec = SECTION_SPECS[section.kind];
   const ref = { pageId, sectionId: section.id };
   const rows = spec.item ? [...section.items, {}] : [];
@@ -58,7 +85,7 @@ export function SectionEditor({ pageId, section, choices, first, last }: Props) 
 
           <SiteForm fields={{ op: 'updateSection', ...ref }} submit="Save section" variant="primary">
             {spec.fields.map((f) => (
-              <SpecField key={f.name} spec={f} name={`f.${f.name}`} value={section.fields[f.name] ?? ''} choices={choices} />
+              <SpecField key={f.name} spec={f} name={`f.${f.name}`} value={section.fields[f.name] ?? ''} choices={choices} images={images} />
             ))}
             {spec.item ? (
               <fieldset className={styles.rows}>
@@ -68,7 +95,7 @@ export function SectionEditor({ pageId, section, choices, first, last }: Props) 
                 {rows.map((row, i) => (
                   <div key={i} className={styles.row}>
                     {spec.item!.fields.map((f) => (
-                      <SpecField key={f.name} spec={{ ...f, required: false }} name={`i.${i}.${f.name}`} value={row[f.name] ?? ''} choices={choices} />
+                      <SpecField key={f.name} spec={{ ...f, required: false }} name={`i.${i}.${f.name}`} value={row[f.name] ?? ''} choices={choices} images={images} />
                     ))}
                   </div>
                 ))}

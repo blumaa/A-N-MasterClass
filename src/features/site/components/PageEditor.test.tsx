@@ -4,6 +4,7 @@ import type { Page } from '@/lib/data/types';
 import { PageEditor } from './PageEditor';
 
 vi.mock('../actions', () => ({ editSiteAction: vi.fn() }));
+vi.mock('@/components/ImageUpload/actions', () => ({ requestImageUploadAction: vi.fn() }));
 
 const draftOnly: Page = {
   id: 'p1',

@@ -3,6 +3,7 @@ import { Badge, Checkbox, Field, Heading, Input, ListGroup, ListItem, Select, St
 import { ButtonLink } from '@/components/ui/links';
 import { formatDate } from '@/lib/format/date';
 import { LEGAL_KINDS, type Page, type PageVersion } from '@/lib/data/types';
+import type { ImageUrls } from '@/lib/site/sectionImages';
 import { SECTION_KINDS, SECTION_SPECS, type SectionChoices } from '@/lib/site/sections';
 import { pageHref, studioPreviewHref } from '../paths';
 import { LEGAL_LABELS } from '../rules';
@@ -10,7 +11,7 @@ import { SectionEditor } from './SectionEditor';
 import { SiteForm } from './SiteForm';
 import styles from './SiteEditor.module.css';
 
-type Props = { page: Page; versions: readonly PageVersion[]; choices: SectionChoices };
+type Props = { page: Page; versions: readonly PageVersion[]; choices: SectionChoices; images?: ImageUrls };
 
 function PublishBar({ page }: { page: Page }) {
   const live = page.published !== null;
@@ -92,7 +93,7 @@ function Versions({ page, versions }: { page: Page; versions: readonly PageVersi
   );
 }
 
-export function PageEditor({ page, versions, choices }: Props) {
+export function PageEditor({ page, versions, choices, images }: Props) {
   return (
     <Stack gap="loose">
       <PublishBar page={page} />
@@ -102,7 +103,7 @@ export function PageEditor({ page, versions, choices }: Props) {
       </Heading>
       {page.draft.length === 0 ? <Text tone="muted">No sections yet.</Text> : null}
       {page.draft.map((section, i) => (
-        <SectionEditor key={section.id} pageId={page.id} section={section} choices={choices} first={i === 0} last={i === page.draft.length - 1} />
+        <SectionEditor key={section.id} pageId={page.id} section={section} choices={choices} images={images} first={i === 0} last={i === page.draft.length - 1} />
       ))}
       <SiteForm inline fields={{ op: 'addSection', pageId: page.id }} submit="Add section">
         <Field label="Section type">

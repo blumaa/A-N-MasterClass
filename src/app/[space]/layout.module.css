@@ -15,6 +15,12 @@
   gap: var(--mds-space-4, 1rem);
 }
 
+.page {
+  overflow-x: clip;
+}
+
+/* --page-pad: full-width page sections pull their first/last band onto header and footer. */
 .main {
-  padding-block: var(--mds-space-6, 1.5rem);
+  --page-pad: var(--mds-space-6, 1.5rem);
+  padding-block: var(--page-pad);
 }

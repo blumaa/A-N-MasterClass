@@ -1,9 +1,23 @@
 // Page builder sections (G11): pages -> sections -> fields/items. One spec per kind drives
 // the generic Studio editor, the server-side validation and the stored JSON shape.
 // Stored in pages.draft / pages.published (jsonb).
+import { isSiteImagePath } from '@/lib/storage/siteImages';
 import { vimeoIdOf } from '@/lib/video/vimeo';
 
-export const SECTION_KINDS = ['hero', 'text', 'video', 'curriculum', 'offer', 'testimonials', 'faq', 'cta'] as const;
+export const SECTION_KINDS = [
+  'hero',
+  'text',
+  'imageText',
+  'bio',
+  'cards',
+  'highlights',
+  'video',
+  'curriculum',
+  'offer',
+  'testimonials',
+  'faq',
+  'cta',
+] as const;
 export type SectionKind = (typeof SECTION_KINDS)[number];
 
 /** Field types that point at another record of the space by slug (checked on save). */
@@ -15,8 +29,16 @@ export const isRefType = (v: string): v is RefType => REF_TYPES.includes(v as Re
 export type RefChoice = { slug: string; title: string };
 export type SectionChoices = Record<RefType, readonly RefChoice[]>;
 
-export type FieldType = 'text' | 'textarea' | 'href' | 'vimeo' | RefType;
-export type FieldSpec = { name: string; label: string; type: FieldType; required?: boolean };
+export type FieldType = 'text' | 'textarea' | 'href' | 'vimeo' | 'image' | 'choice' | RefType;
+export type ChoiceOption = { value: string; label: string };
+/** `options` only for 'choice' fields; blank = first option. */
+export type FieldSpec = {
+  name: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+  options?: readonly ChoiceOption[];
+};
 export type SectionSpec = {
   label: string;
   fields: readonly FieldSpec[];
@@ -32,53 +54,124 @@ export type SiteSection = {
 };
 
 const heading: FieldSpec = { name: 'heading', label: 'Heading', type: 'text' };
+const eyebrow: FieldSpec = { name: 'eyebrow', label: 'Small line above heading', type: 'text' };
+const body: FieldSpec = { name: 'body', label: 'Text', type: 'textarea' };
 const button: FieldSpec[] = [
   { name: 'ctaLabel', label: 'Button text', type: 'text' },
   { name: 'ctaHref', label: 'Button link', type: 'href' },
 ];
 
+/** Image field plus its paired description (alt text) field `<name>Alt`. */
+const image = (name = 'image', label = 'Image'): FieldSpec[] => [
+  { name, label, type: 'image' },
+  { name: `${name}Alt`, label: 'Image description', type: 'text' },
+];
+
+const choice = (name: string, label: string, options: [string, string][]): FieldSpec => ({
+  name,
+  label,
+  type: 'choice',
+  options: options.map(([value, text]) => ({ value, label: text })),
+});
+
+/** Background band of every section. */
+export const TONES = ['plain', 'soft', 'dark'] as const;
+export type Tone = (typeof TONES)[number];
+const tone = choice('tone', 'Background', [
+  ['plain', 'Plain'],
+  ['soft', 'Soft'],
+  ['dark', 'Dark'],
+]);
+
+/** Spec with the shared background choice appended. */
+const spec = (label: string, fields: FieldSpec[], item?: SectionSpec['item']): SectionSpec =>
+  item ? { label, fields: [...fields, tone], item } : { label, fields: [...fields, tone] };
+
 export const SECTION_SPECS: Readonly<Record<SectionKind, SectionSpec>> = {
-  hero: {
-    label: 'Hero',
-    fields: [{ ...heading, required: true }, { name: 'subheading', label: 'Subheading', type: 'textarea' }, ...button],
-  },
-  text: { label: 'Text', fields: [heading, { name: 'body', label: 'Text', type: 'textarea', required: true }] },
-  video: { label: 'Video', fields: [heading, { name: 'vimeoId', label: 'Vimeo link', type: 'vimeo', required: true }] },
-  curriculum: {
-    label: 'Curriculum',
-    fields: [heading, { name: 'programSlug', label: 'Program', type: 'program', required: true }],
-  },
-  offer: {
-    label: 'Offer',
-    fields: [heading, { name: 'offerSlug', label: 'Offer', type: 'offer', required: true }],
-  },
-  testimonials: {
-    label: 'Testimonials',
-    fields: [heading],
-    item: {
-      label: 'Testimonial',
-      fields: [
-        { name: 'quote', label: 'Quote', type: 'textarea', required: true },
-        { name: 'name', label: 'Name', type: 'text', required: true },
-      ],
-    },
-  },
-  faq: {
-    label: 'FAQ',
-    fields: [heading],
-    item: {
-      label: 'Question',
-      fields: [
-        { name: 'question', label: 'Question', type: 'text', required: true },
-        { name: 'answer', label: 'Answer', type: 'textarea', required: true },
-      ],
-    },
-  },
-  cta: {
-    label: 'Call to action',
-    fields: [{ ...heading, required: true }, { name: 'body', label: 'Text', type: 'textarea' }, ...button],
-  },
+  hero: spec('Hero', [
+    eyebrow,
+    { ...heading, required: true },
+    { name: 'subheading', label: 'Subheading', type: 'textarea' },
+    ...image(),
+    choice('layout', 'Layout', [
+      ['overlay', 'Text over photo'],
+      ['split', 'Photo beside text'],
+    ]),
+    ...button,
+  ]),
+  text: spec('Text', [heading, { ...body, required: true }]),
+  imageText: spec('Image and text', [
+    eyebrow,
+    heading,
+    body,
+    ...image(),
+    choice('side', 'Image side', [
+      ['left', 'Left'],
+      ['right', 'Right'],
+    ]),
+    ...button,
+  ]),
+  bio: spec('About me', [
+    eyebrow,
+    heading,
+    { ...body, required: true },
+    ...image('image', 'Photo'),
+    { name: 'signature', label: 'Signature', type: 'text' },
+  ]),
+  cards: spec('Cards', [heading], {
+    label: 'Card',
+    fields: [
+      ...image(),
+      { name: 'title', label: 'Title', type: 'text', required: true },
+      body,
+      { name: 'href', label: 'Link', type: 'href' },
+    ],
+  }),
+  highlights: spec('Highlights', [heading], {
+    label: 'Highlight',
+    fields: [{ name: 'text', label: 'Text', type: 'text', required: true }],
+  }),
+  video: spec('Video', [heading, { name: 'vimeoId', label: 'Vimeo link', type: 'vimeo', required: true }]),
+  curriculum: spec('Curriculum', [heading, { name: 'programSlug', label: 'Program', type: 'program', required: true }]),
+  offer: spec('Offer', [heading, { name: 'offerSlug', label: 'Offer', type: 'offer', required: true }]),
+  testimonials: spec('Testimonials', [heading], {
+    label: 'Testimonial',
+    fields: [
+      { name: 'quote', label: 'Quote', type: 'textarea', required: true },
+      { name: 'name', label: 'Name', type: 'text', required: true },
+    ],
+  }),
+  faq: spec('FAQ', [heading], {
+    label: 'Question',
+    fields: [
+      { name: 'question', label: 'Question', type: 'text', required: true },
+      { name: 'answer', label: 'Answer', type: 'textarea', required: true },
+    ],
+  }),
+  cta: spec('Call to action', [{ ...heading, required: true }, body, ...button]),
 };
+
+/** Stored choice value, or the first option when blank. */
+export function choiceOf(section: SiteSection, name: string): string {
+  const options = SECTION_SPECS[section.kind].fields.find((f) => f.name === name)?.options ?? [];
+  return section.fields[name] || (options[0]?.value ?? '');
+}
+
+export type AccentPart = { text: string; accent: boolean };
+const ACCENT = /\*(\S(?:[^*]*\S)?)\*/g;
+
+/** Splits a heading on `*word*` pairs; accent parts render in italics. */
+export function splitAccent(text: string): AccentPart[] {
+  const parts: AccentPart[] = [];
+  let at = 0;
+  for (const m of text.matchAll(ACCENT)) {
+    if (m.index > at) parts.push({ text: text.slice(at, m.index), accent: false });
+    parts.push({ text: m[1], accent: true });
+    at = m.index + m[0].length;
+  }
+  if (at < text.length) parts.push({ text: text.slice(at), accent: false });
+  return parts;
+}
 
 export const isSectionKind = (v: unknown): v is SectionKind => SECTION_KINDS.includes(v as SectionKind);
 
@@ -100,7 +193,12 @@ export function newSection(kind: SectionKind, id: string): SiteSection {
 
 class Invalid extends Error {}
 
-function readFields(specs: readonly FieldSpec[], raw: Record<string, string>, where: string): Record<string, string> {
+function readFields(
+  specs: readonly FieldSpec[],
+  raw: Record<string, string>,
+  where: string,
+  spaceId: string,
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const spec of specs) {
     let value = (raw[spec.name] ?? '').trim();
@@ -112,6 +210,10 @@ function readFields(specs: readonly FieldSpec[], raw: Record<string, string>, wh
       const id = vimeoIdOf(value);
       if (!id) throw new Invalid(`${where}${spec.label}: paste a Vimeo link or video id.`);
       value = id;
+    } else if (spec.type === 'image' && !isSiteImagePath(value, spaceId)) {
+      throw new Invalid(`${where}${spec.label}: upload the image again.`);
+    } else if (spec.type === 'choice' && !spec.options?.some((o) => o.value === value)) {
+      throw new Invalid(`${where}${spec.label}: choose one of the options.`);
     }
     out[spec.name] = value;
   }
@@ -120,11 +222,13 @@ function readFields(specs: readonly FieldSpec[], raw: Record<string, string>, wh
 
 export type SectionResult = { ok: true; section: SiteSection } | { ok: false; message: string };
 
-/** New fields/items for an existing section, checked against its spec. Blank item rows are dropped. */
+/** New fields/items for an existing section, checked against its spec. Blank item rows are dropped.
+ * Images must sit in the space's site folder. */
 export function validateSection(
   section: SiteSection,
   fields: Record<string, string>,
   items: Record<string, string>[],
+  spaceId: string,
 ): SectionResult {
   const spec = SECTION_SPECS[section.kind];
   try {
@@ -134,8 +238,8 @@ export function validateSection(
       ok: true,
       section: {
         ...section,
-        fields: readFields(spec.fields, fields, ''),
-        items: itemSpec ? filled.map((row, i) => readFields(itemSpec.fields, row, `${itemSpec.label} ${i + 1}: `)) : [],
+        fields: readFields(spec.fields, fields, '', spaceId),
+        items: itemSpec ? filled.map((row, i) => readFields(itemSpec.fields, row, `${itemSpec.label} ${i + 1}: `, spaceId)) : [],
       },
     };
   } catch (err) {

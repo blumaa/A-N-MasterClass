@@ -19,6 +19,7 @@ import {
   type SectionKind,
   type SiteSection,
 } from '@/lib/site/sections';
+import { sectionImages, type ImageUrls } from '@/lib/site/sectionImages';
 import { SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { pageHref } from '../paths';
 import { LEGAL_LABELS, RESERVED_PAGE_SLUGS, checkNav, legalGaps } from '../rules';
@@ -62,7 +63,12 @@ export async function siteChrome(repo: Repo, spaceId: string): Promise<SiteChrom
 
 export type CurriculumPreview = { title: string; modules: { title: string; steps: string[] }[] };
 export type OfferPreview = { title: string; description: string | null; price: string; href: string };
-export type SectionRefs = { curricula: Record<string, CurriculumPreview>; offers: Record<string, OfferPreview> };
+export type SectionRefs = {
+  curricula: Record<string, CurriculumPreview>;
+  offers: Record<string, OfferPreview>;
+  /** Stored image path -> public URL. */
+  images: ImageUrls;
+};
 
 /** Distinct non-empty slugs the sections' ref fields of one type point at. */
 function refSlugs(sections: readonly SiteSection[], type: RefType): string[] {
@@ -81,17 +87,18 @@ async function bySlug<T>(slugs: readonly string[], find: (slug: string) => Promi
   return Object.fromEntries(entries.filter((e): e is readonly [string, Awaited<T>] => e[1] !== null));
 }
 
-/** What curriculum and offer sections show: published programs and offers of this space only. */
+/** What curriculum, offer and image fields show: published programs and offers of this space only. */
 export async function sectionRefs(
   repo: Repo,
   space: Pick<Space, 'id' | 'locale'>,
   sections: readonly SiteSection[],
+  imageUrl: (path: string) => string,
 ): Promise<SectionRefs> {
   const [curricula, offers] = await Promise.all([
     bySlug(refSlugs(sections, 'program'), (slug) => outline(repo, space.id, slug)),
     bySlug(refSlugs(sections, 'offer'), (slug) => offerPreview(repo, space, slug)),
   ]);
-  return { curricula, offers };
+  return { curricula, offers, images: sectionImages(sections, imageUrl) };
 }
 
 async function offerPreview(repo: Repo, space: Pick<Space, 'id' | 'locale'>, slug: string): Promise<OfferPreview | null> {
@@ -292,7 +299,7 @@ async function editSection(
 
   switch (cmd.op) {
     case 'updateSection': {
-      const checked = validateSection(section, cmd.fields, cmd.items);
+      const checked = validateSection(section, cmd.fields, cmd.items, page.spaceId);
       if (!checked.ok) return invalid(checked.message);
       const problem = await refProblem(repo, page.spaceId, checked.section);
       if (problem) return invalid(problem);

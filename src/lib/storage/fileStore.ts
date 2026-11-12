@@ -13,8 +13,8 @@ export const SIGNED_URL_TTL_S = 60;
 /** Bucket `resources` file_size_limit (migration 20261110091000). Supabase Free caps uploads at 50 MB. */
 export const RESOURCE_MAX_BYTES = 262_144_000;
 
-/** Private buckets. `community` caps size and types itself (migration 20261112100000). */
-export const BUCKETS = ['resources', 'community'] as const;
+/** Buckets. `community` caps size and types itself (migration 20261112100000). `site` is public, images only (siteImages.ts). */
+export const BUCKETS = ['resources', 'community', 'site'] as const;
 export type Bucket = (typeof BUCKETS)[number];
 
 export type FileStore = {
@@ -29,8 +29,11 @@ export type FileStore = {
   remove(paths: string[]): Promise<void>;
 };
 
+/** Origin of fake file URLs (DATA_SOURCE=fake); nothing is served there. */
+export const FAKE_FILES_ORIGIN = 'https://files.example.test';
+
 const fakeUrl = (prefix: string, path: string) =>
-  new URL(`https://files.example.test/${prefix}/${path.split('/').map(encodeURIComponent).join('/')}`);
+  new URL(`${FAKE_FILES_ORIGIN}/${prefix}/${path.split('/').map(encodeURIComponent).join('/')}`);
 
 /** Stand-in for DATA_SOURCE=fake: recognisable URLs, nothing behind them. `removed` = paths deleted. */
 export function createFakeFileStore(now: () => Date = () => new Date(), bucket: Bucket = 'resources'): FileStore & { removed: string[] } {

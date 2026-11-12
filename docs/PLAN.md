@@ -356,6 +356,14 @@ Launch 6 item 13 as built:
 - `subscription_payments` keeps paid amount + livemode for revenue (G10). No revenue view yet.
 - Not yet: real PayPal sandbox run (adapter tested with fake provider and mocked fetch only), Studio cancel/refund buttons (do it in PayPal), member self-cancel toggle, coupons on recurring offers, price change for existing subscribers, reactivation, dunning emails, one grant per product shared by two subscriptions of the same product.
 
+UI pass 1 (site sections) as built:
+- Model: alignedyoga (calm editorial base) + voicebodyconnection (personal variants). Layout and behaviour only, no copy, photos or brand (G0).
+- Section images: public `site` bucket, path `<spaceId>/site/<id>-<name>`, upload via signed URL (`requestSiteImageUpload`), `ImageUpload` field in the section editor. Migration `20261112210000_site_images.sql` + `supabase/tests/230-site-images.test.sql`.
+- New kinds: imageText (side left/right), bio (portrait + signature), cards (photo, title, link), highlights (chips). Hero layout overlay (full-bleed photo, scrim) or split. Every section has tone plain / soft / dark. `*word*` = accent italic.
+- Bands are full-bleed; colours come from MDS tokens only, so any brand colour works.
+- Images through next/image (`images.remotePatterns` from the Supabase URL). Vercel image optimization is billed by usage on Pro; check pricing before launch, or set `unoptimized`.
+- Not yet: logo upload, header/footer polish, demo content in the test space.
+
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 
 **Later** — drip release emails (`pg_cron`), embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.
