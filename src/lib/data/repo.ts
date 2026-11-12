@@ -35,6 +35,10 @@ import type {
   Offer,
   Order,
   OrderProvider,
+  ProviderPlan,
+  RecurringProvider,
+  Subscription,
+  SubscriptionPayment,
   Page,
   PageVersion,
   PageKind,
@@ -89,6 +93,7 @@ export type QuizQuestionInput = {
 };
 export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'> & {
   orderId?: string | null;
+  subscriptionId?: string | null;
   accessGroupId?: string | null;
 };
 
@@ -100,7 +105,21 @@ export type NewPageVersion = Omit<PageVersion, 'id'>;
 
 export type NewOffer = Pick<Offer, 'spaceId' | 'slug' | 'title' | 'priceCents' | 'currency'>;
 export type OfferPatch = Partial<
-  Pick<Offer, 'slug' | 'title' | 'description' | 'priceCents' | 'currency' | 'status' | 'bumpOfferId' | 'upsellOfferId'>
+  Pick<
+    Offer,
+    | 'slug'
+    | 'title'
+    | 'description'
+    | 'priceCents'
+    | 'currency'
+    | 'status'
+    | 'bumpOfferId'
+    | 'upsellOfferId'
+    | 'kind'
+    | 'billingInterval'
+    | 'trialDays'
+    | 'installments'
+  >
 >;
 type OrderExtras = 'couponId' | 'discountCents' | 'bumpOfferId' | 'bumpCents';
 /** Extras default to none (null / 0). */
@@ -110,6 +129,13 @@ export type NewCoupon = Omit<Coupon, 'id' | 'createdAt'>;
 export type CouponPatch = Partial<Omit<Coupon, 'id' | 'spaceId' | 'createdAt'>>;
 /** Paid uses of a coupon: all buyers, and the given email. */
 export type CouponUses = { total: number; byEmail: number };
+/** Starts pending, no buyer, no payments. */
+export type NewSubscription = Omit<
+  Subscription,
+  'id' | 'profileId' | 'status' | 'paymentsMade' | 'currentPeriodEnd' | 'endedAt' | 'createdAt'
+>;
+export type SubscriptionPatch = Partial<Pick<Subscription, 'profileId' | 'status' | 'currentPeriodEnd' | 'endedAt'>>;
+export type NewSubscriptionPayment = Pick<SubscriptionPayment, 'subscriptionId' | 'saleId' | 'amountCents' | 'paidAt'>;
 export type OrderPatch = Partial<Pick<Order, 'profileId' | 'captureId' | 'status' | 'paidAt'>>;
 /** consent null = leave marketing consent as it is (never withdrawn by a purchase). */
 export type ContactUpsert = {
@@ -233,6 +259,10 @@ export interface Repo {
    */
   createGrant(input: NewGrant): Promise<Grant>;
   revokeGrant(id: string): Promise<void>;
+  /** Grants paid for by a subscription (G5). */
+  grantsForSubscription(subscriptionId: string): Promise<Grant[]>;
+  /** null = no end. A cancelled subscription keeps access until its period ends. */
+  setGrantExpiry(id: string, expiresAt: Date | null): Promise<void>;
 
   // progress
   completedStepIds(profileId: string, stepIds: readonly string[]): Promise<Set<string>>;
@@ -310,6 +340,32 @@ export interface Repo {
   couponUses(couponId: string, email: string): Promise<CouponUses>;
   /** Public checkout: whether to show the coupon field. Leaks no codes. */
   hasActiveCoupon(offerId: string, now: Date): Promise<boolean>;
+
+  // commerce: subscriptions and payment plans (G5, newest first). Server writes only.
+  subscriptions(spaceId: string): Promise<Subscription[]>;
+  subscriptionsForProfile(spaceId: string, profileId: string): Promise<Subscription[]>;
+  subscription(id: string): Promise<Subscription | null>;
+  subscriptionByProviderId(provider: RecurringProvider, providerSubscriptionId: string): Promise<Subscription | null>;
+  /** Unique (provider, provider subscription id) is a constraint. */
+  createSubscription(input: NewSubscription): Promise<Subscription>;
+  updateSubscription(id: string, patch: SubscriptionPatch): Promise<Subscription>;
+  /**
+   * Idempotent on (provider, sale id); false = already recorded. Adds one payment, extends the
+   * period by one interval from the payment, clears past_due, completes a paid-off plan. Atomic in SQL.
+   */
+  recordSubscriptionPayment(input: NewSubscriptionPayment): Promise<boolean>;
+  /** Oldest first. */
+  subscriptionPayments(subscriptionId: string): Promise<SubscriptionPayment[]>;
+  /** Marks a sale refunded; null when unknown. */
+  refundSubscriptionPayment(provider: RecurringProvider, saleId: string): Promise<SubscriptionPayment | null>;
+  /** Cached provider billing plan id for these terms, or null. */
+  providerPlan(
+    offerId: string,
+    provider: RecurringProvider,
+    livemode: boolean,
+    termsKey: string,
+  ): Promise<string | null>;
+  saveProviderPlan(row: ProviderPlan): Promise<void>;
 
   // commerce: PayPal credentials (G28). Secret apart: Vault in SQL, never sent to the browser.
   paymentCredentials(spaceId: string, env: PaymentEnv): Promise<PaymentCredentials | null>;

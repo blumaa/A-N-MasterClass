@@ -8,6 +8,8 @@ import type {
   OfferItem,
   Order,
   PaymentCredentials,
+  Subscription,
+  SubscriptionPayment,
 } from "@/lib/data/types";
 import { toDate, toDateOrNull, type Row } from "./context";
 
@@ -22,6 +24,10 @@ export const toOffer = (r: Row<"offers">): Offer => ({
   status: r.status as Offer["status"],
   bumpOfferId: r.bump_offer_id,
   upsellOfferId: r.upsell_offer_id,
+  kind: r.kind as Offer["kind"],
+  billingInterval: r.billing_interval as Offer["billingInterval"],
+  trialDays: r.trial_days,
+  installments: r.installments,
 });
 
 export const toOfferItem = (r: Row<"offer_products">): OfferItem => ({
@@ -98,4 +104,44 @@ export const toCoupon = (
   active: r.active,
   offerIds: r.coupon_offers.map((o) => o.offer_id).toSorted(),
   createdAt: toDate(r.created_at),
+});
+
+export const toSubscription = (r: Row<"subscriptions">): Subscription => ({
+  id: r.id,
+  spaceId: r.space_id,
+  offerId: r.offer_id,
+  profileId: r.profile_id,
+  email: r.email,
+  kind: r.kind as Subscription["kind"],
+  provider: r.provider as Subscription["provider"],
+  providerSubscriptionId: r.provider_subscription_id,
+  status: r.status as Subscription["status"],
+  amountCents: r.amount_cents,
+  currency: r.currency as Subscription["currency"],
+  billingInterval: r.billing_interval as Subscription["billingInterval"],
+  trialDays: r.trial_days,
+  installments: r.installments,
+  paymentsMade: r.payments_made,
+  currentPeriodEnd: toDateOrNull(r.current_period_end),
+  endedAt: toDateOrNull(r.ended_at),
+  livemode: r.livemode,
+  waiverVersion: r.waiver_version,
+  waiverAcceptedAt: toDate(r.waiver_accepted_at),
+  marketingConsent: r.marketing_consent,
+  createdAt: toDate(r.created_at),
+});
+
+export const toSubscriptionPayment = (
+  r: Row<"subscription_payments">,
+): SubscriptionPayment => ({
+  id: r.id,
+  subscriptionId: r.subscription_id,
+  spaceId: r.space_id,
+  provider: r.provider as SubscriptionPayment["provider"],
+  saleId: r.sale_id,
+  amountCents: r.amount_cents,
+  currency: r.currency as SubscriptionPayment["currency"],
+  status: r.status as SubscriptionPayment["status"],
+  livemode: r.livemode,
+  paidAt: toDate(r.paid_at),
 });

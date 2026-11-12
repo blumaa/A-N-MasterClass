@@ -139,6 +139,8 @@ export type Grant = {
   expiresAt: Date | null;
   /** Order that paid for it; a full refund of that order revokes it (G28). */
   orderId: string | null;
+  /** Subscription or payment plan that gives it (G5): access follows the subscription's status. */
+  subscriptionId: string | null;
   /** Community products only: access group joined; null = the community's default group. */
   accessGroupId: string | null;
 };
@@ -175,7 +177,13 @@ export type PageVersion = { id: string; pageId: string; sections: SiteSection[];
 export type NavItem = { label: string; href: string };
 export type SiteNav = { spaceId: string; header: NavItem[]; footer: NavItem[] };
 
-// Commerce (G3, G5, G10, G16, G25, G28). One-time offers only in v1.
+// Commerce (G3, G5, G10, G16, G25, G28).
+/** Price type (G5). subscription: charged every interval until cancelled. payment_plan: a fixed number of payments. */
+export const OFFER_KINDS = ['one_time', 'subscription', 'payment_plan'] as const;
+export type OfferKind = (typeof OFFER_KINDS)[number];
+export const BILLING_INTERVALS = ['week', 'month', 'year'] as const;
+export type BillingInterval = (typeof BILLING_INTERVALS)[number];
+
 export type Offer = {
   id: string;
   spaceId: string;
@@ -183,10 +191,17 @@ export type Offer = {
   slug: string;
   title: string;
   description: string | null;
-  /** Tax-inclusive (G3). 0 = free offer, no payment provider. */
+  /** Tax-inclusive (G3). 0 = free offer, no payment provider. Recurring: amount of each payment (> 0). */
   priceCents: number;
   currency: Currency;
   status: PublishStatus;
+  kind: OfferKind;
+  /** Recurring offers only: time between payments. */
+  billingInterval: BillingInterval | null;
+  /** Subscriptions only: free days before the first payment. */
+  trialDays: number | null;
+  /** Payment plans only: number of payments, the first one included. */
+  installments: number | null;
   /** Order bump (G23): an extra offer the buyer can tick at checkout. Same space, never itself. */
   bumpOfferId: string | null;
   /** Upsell (G23): offer shown on the thank-you page after a paid order. */
@@ -259,6 +274,75 @@ export type Order = {
   marketingConsent: boolean;
   createdAt: Date;
   paidAt: Date | null;
+};
+
+/** Recurring payments go through a provider; free offers are never recurring. */
+export type RecurringProvider = Exclude<OrderProvider, 'free'>;
+
+/**
+ * Subscription status (G5), following Kajabi: pending until the buyer approves; past_due after a
+ * failed payment (access kept while the provider retries); cancelled (access until periodEnd);
+ * completed = every payment of a payment plan made (access kept).
+ */
+export const SUBSCRIPTION_STATUSES = ['pending', 'active', 'past_due', 'cancelled', 'completed'] as const;
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
+/** A subscription or payment plan (G5). Terms are copied from the offer at checkout and never change. */
+export type Subscription = {
+  id: string;
+  spaceId: string;
+  offerId: string;
+  /** Set on activation (buyer found or created by email). */
+  profileId: string | null;
+  email: string;
+  kind: Exclude<OfferKind, 'one_time'>;
+  provider: RecurringProvider;
+  /** PayPal subscription id. Unique per provider. */
+  providerSubscriptionId: string;
+  status: SubscriptionStatus;
+  /** Amount of each payment. */
+  amountCents: number;
+  currency: Currency;
+  billingInterval: BillingInterval;
+  trialDays: number | null;
+  /** Payment plans only. */
+  installments: number | null;
+  paymentsMade: number;
+  /** End of the time paid for (or of the trial). A cancelled subscription keeps access until then. */
+  currentPeriodEnd: Date | null;
+  /** When access ends or ended after a cancel. */
+  endedAt: Date | null;
+  /** false = sandbox/fake: kept out of revenue (G10). */
+  livemode: boolean;
+  waiverVersion: string;
+  waiverAcceptedAt: Date;
+  marketingConsent: boolean;
+  createdAt: Date;
+};
+
+/** One payment of a subscription. saleId (PayPal sale) is the idempotency key. Revenue = paid rows. */
+export type SubscriptionPayment = {
+  id: string;
+  subscriptionId: string;
+  spaceId: string;
+  provider: RecurringProvider;
+  saleId: string;
+  amountCents: number;
+  currency: Currency;
+  status: 'paid' | 'refunded';
+  livemode: boolean;
+  paidAt: Date;
+};
+
+/** Provider billing plan cached per offer terms (PayPal plans are fixed once created). */
+export type ProviderPlan = {
+  spaceId: string;
+  offerId: string;
+  provider: RecurringProvider;
+  livemode: boolean;
+  /** recurringTermsKey(offer): price, currency, interval, trial, installments. */
+  termsKey: string;
+  planId: string;
 };
 
 /** One PayPal REST app per space and env (G28). Secret lives apart (Vault in SQL). */

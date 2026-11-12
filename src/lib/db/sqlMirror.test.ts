@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ALWAYS_REACH, MATRIX, ROLES } from '@/lib/auth/capabilities';
 import { CURRENCIES, MAX_PRICE_CENTS } from '@/lib/commerce/money';
+import { INSTALLMENT_LIMITS, TRIAL_DAYS_MAX } from '@/lib/commerce/recurring';
 import {
   CHANNEL_KINDS,
   CHANNEL_PRIVACIES,
@@ -14,6 +15,9 @@ import {
   EPISODE_TYPES,
   LEADERBOARD_VISIBILITIES,
   NOTIFICATION_TYPES,
+  BILLING_INTERVALS,
+  OFFER_KINDS,
+  SUBSCRIPTION_STATUSES,
   REACTION_EMOJIS,
   REACTION_TARGETS,
   LEGAL_KINDS,
@@ -108,11 +112,11 @@ describe('SQL mirrors: site', () => {
 });
 
 describe('SQL mirrors: commerce', () => {
-  it('currency checks equal CURRENCIES', () => {
+  it('currency checks (offers, orders, subscriptions, payments) equal CURRENCIES', () => {
     const lists = [...sql.matchAll(/currency text not null check \(currency in \(([^)]+)\)\)/g)].map((m) =>
       m[1].split(',').map((s) => s.trim().replace(/'/g, '')),
     );
-    expect(lists).toHaveLength(2);
+    expect(lists).toHaveLength(4);
     for (const l of lists) expect(l).toEqual([...CURRENCIES]);
   });
 
@@ -130,6 +134,30 @@ describe('SQL mirrors: commerce', () => {
 
   it('orders status check equals ORDER_STATUSES', () => {
     expect(list(/orders_status check \(status in \(([^)]+)\)\)/)).toEqual([...ORDER_STATUSES]);
+  });
+
+  it('offers kind check equals OFFER_KINDS', () => {
+    expect(list(/offers_kind check \(kind in \(([^)]+)\)\)/)).toEqual([...OFFER_KINDS]);
+  });
+
+  it('billing interval checks equal BILLING_INTERVALS', () => {
+    expect(list(/offers_billing_interval check \(billing_interval in \(([^)]+)\)\)/)).toEqual([...BILLING_INTERVALS]);
+    expect(list(/subscriptions_billing_interval check \(billing_interval in \(([^)]+)\)\)/)).toEqual([
+      ...BILLING_INTERVALS,
+    ]);
+  });
+
+  it('subscriptions status check equals SUBSCRIPTION_STATUSES', () => {
+    expect(list(/subscriptions_status check \(status in \(([^)]+)\)\)/)).toEqual([...SUBSCRIPTION_STATUSES]);
+  });
+
+  it('offer trial and installment limits equal recurring.ts', () => {
+    expect(sql).toContain(`offers_trial_days check (trial_days between 1 and ${TRIAL_DAYS_MAX})`);
+    const { week, month, year } = INSTALLMENT_LIMITS;
+    expect(week.min === 2 && month.min === 2 && year.min === 2).toBe(true);
+    expect(sql).toContain(
+      `installments between 2 and case billing_interval when 'week' then ${week.max} when 'month' then ${month.max} else ${year.max} end`,
+    );
   });
 
   it('payment_credentials env check equals PAYMENT_ENVS', () => {

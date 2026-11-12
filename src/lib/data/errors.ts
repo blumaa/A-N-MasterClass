@@ -52,3 +52,10 @@ export const COUPON_OFFER_SPACE = 'offer not in coupon space';
 export const OFFER_LINK_SPACE = 'linked offer not in this space';
 export const OFFER_LINK_SELF = 'an offer cannot link to itself';
 export const ORDER_EXTRAS = 'discount needs a coupon, bump price needs a bump offer';
+
+// Subscriptions and payment plans (G5).
+export const OFFER_TERMS =
+  'check the price type: paid, with an interval; a payment plan needs a valid number of payments and no trial';
+export const OFFER_TRIAL_DAYS = 'trial: 1 to 365 days';
+export const OFFER_HAS_SUBSCRIPTIONS = 'offer has subscriptions';
+export const SUBSCRIPTION_ID_TAKEN = 'provider subscription id taken';

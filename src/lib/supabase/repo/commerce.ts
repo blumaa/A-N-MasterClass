@@ -120,6 +120,10 @@ export function createCommerceRepo({ db, admin }: RepoCtx): CommerceRepo {
               status: patch.status,
               bump_offer_id: patch.bumpOfferId,
               upsell_offer_id: patch.upsellOfferId,
+              kind: patch.kind,
+              billing_interval: patch.billingInterval,
+              trial_days: patch.trialDays,
+              installments: patch.installments,
               updated_at: new Date().toISOString(),
             }),
           )

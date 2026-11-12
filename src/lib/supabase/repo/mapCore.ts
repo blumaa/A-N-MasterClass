@@ -116,5 +116,6 @@ export const toGrant = (r: Row<'grants'>): Grant => ({
   grantedAt: toDate(r.granted_at),
   expiresAt: toDateOrNull(r.expires_at),
   orderId: r.order_id,
+  subscriptionId: r.subscription_id,
   accessGroupId: r.access_group_id,
 });

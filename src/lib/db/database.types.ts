@@ -1005,6 +1005,7 @@ export type Database = {
           profile_id: string
           source: string
           status: string
+          subscription_id: string | null
         }
         Insert: {
           access_group_id?: string | null
@@ -1016,6 +1017,7 @@ export type Database = {
           profile_id: string
           source: string
           status?: string
+          subscription_id?: string | null
         }
         Update: {
           access_group_id?: string | null
@@ -1027,6 +1029,7 @@ export type Database = {
           profile_id?: string
           source?: string
           status?: string
+          subscription_id?: string | null
         }
         Relationships: [
           {
@@ -1055,6 +1058,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grants_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -1458,49 +1468,58 @@ export type Database = {
       offers: {
         Row: {
           access_days: number | null
+          billing_interval: string | null
           bump_offer_id: string | null
           created_at: string
           currency: string
           description: string | null
           id: string
+          installments: number | null
           kind: string
           price_cents: number
           slug: string
           space_id: string
           status: string
           title: string
+          trial_days: number | null
           updated_at: string
           upsell_offer_id: string | null
         }
         Insert: {
           access_days?: number | null
+          billing_interval?: string | null
           bump_offer_id?: string | null
           created_at?: string
           currency: string
           description?: string | null
           id?: string
+          installments?: number | null
           kind?: string
           price_cents: number
           slug: string
           space_id: string
           status?: string
           title: string
+          trial_days?: number | null
           updated_at?: string
           upsell_offer_id?: string | null
         }
         Update: {
           access_days?: number | null
+          billing_interval?: string | null
           bump_offer_id?: string | null
           created_at?: string
           currency?: string
           description?: string | null
           id?: string
+          installments?: number | null
           kind?: string
           price_cents?: number
           slug?: string
           space_id?: string
           status?: string
           title?: string
+          trial_days?: number | null
           updated_at?: string
           upsell_offer_id?: string | null
         }
@@ -2151,6 +2170,51 @@ export type Database = {
           },
         ]
       }
+      provider_plans: {
+        Row: {
+          created_at: string
+          livemode: boolean
+          offer_id: string
+          plan_id: string
+          provider: string
+          space_id: string
+          terms_key: string
+        }
+        Insert: {
+          created_at?: string
+          livemode: boolean
+          offer_id: string
+          plan_id: string
+          provider: string
+          space_id: string
+          terms_key: string
+        }
+        Update: {
+          created_at?: string
+          livemode?: boolean
+          offer_id?: string
+          plan_id?: string
+          provider?: string
+          space_id?: string
+          terms_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_plans_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_plans_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -2774,6 +2838,157 @@ export type Database = {
           },
         ]
       }
+      subscription_payments: {
+        Row: {
+          amount_cents: number
+          currency: string
+          id: string
+          livemode: boolean
+          paid_at: string
+          provider: string
+          sale_id: string
+          space_id: string
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          amount_cents: number
+          currency: string
+          id?: string
+          livemode: boolean
+          paid_at: string
+          provider: string
+          sale_id: string
+          space_id: string
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          amount_cents?: number
+          currency?: string
+          id?: string
+          livemode?: boolean
+          paid_at?: string
+          provider?: string
+          sale_id?: string
+          space_id?: string
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          amount_cents: number
+          billing_interval: string
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          email: string
+          ended_at: string | null
+          id: string
+          installments: number | null
+          kind: string
+          livemode: boolean
+          marketing_consent: boolean
+          offer_id: string
+          payments_made: number
+          profile_id: string | null
+          provider: string
+          provider_subscription_id: string
+          space_id: string
+          status: string
+          trial_days: number | null
+          waiver_accepted_at: string
+          waiver_version: string
+        }
+        Insert: {
+          amount_cents: number
+          billing_interval: string
+          created_at?: string
+          currency: string
+          current_period_end?: string | null
+          email: string
+          ended_at?: string | null
+          id?: string
+          installments?: number | null
+          kind: string
+          livemode: boolean
+          marketing_consent?: boolean
+          offer_id: string
+          payments_made?: number
+          profile_id?: string | null
+          provider: string
+          provider_subscription_id: string
+          space_id: string
+          status?: string
+          trial_days?: number | null
+          waiver_accepted_at: string
+          waiver_version: string
+        }
+        Update: {
+          amount_cents?: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          email?: string
+          ended_at?: string | null
+          id?: string
+          installments?: number | null
+          kind?: string
+          livemode?: boolean
+          marketing_consent?: boolean
+          offer_id?: string
+          payments_made?: number
+          profile_id?: string | null
+          provider?: string
+          provider_subscription_id?: string
+          space_id?: string
+          status?: string
+          trial_days?: number | null
+          waiver_accepted_at?: string
+          waiver_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_offer_space"
+            columns: ["offer_id", "space_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id", "space_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_position: {
         Row: {
           last_position_s: number
@@ -3174,6 +3389,15 @@ export type Database = {
       }
       reaches_group: {
         Args: { target_community: string; target_group: string }
+        Returns: boolean
+      }
+      record_subscription_payment: {
+        Args: {
+          amount: number
+          paid: string
+          sale: string
+          target_subscription: string
+        }
         Returns: boolean
       }
       report_reporters: {

@@ -158,6 +158,7 @@ export function seedDb(now: Date = new Date()): Db {
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
     orderId: null,
+    subscriptionId: null,
     accessGroupId: null,
   });
 
@@ -170,6 +171,7 @@ export function seedDb(now: Date = new Date()): Db {
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
     orderId: null,
+    subscriptionId: null,
     accessGroupId: null,
   });
   db.accessGroups.push({
@@ -278,6 +280,7 @@ function seedCoaching(db: Db, now: Date): void {
     grantedAt: new Date(now.getTime() - 2 * DAY),
     expiresAt: null,
     orderId: null,
+    subscriptionId: null,
     accessGroupId: null,
   });
 }
@@ -334,6 +337,7 @@ function seedMedia(db: Db, now: Date): void {
       grantedAt: new Date(now.getTime() - 2 * DAY),
       expiresAt: null,
       orderId: null,
+      subscriptionId: null,
       accessGroupId: null,
     });
   }

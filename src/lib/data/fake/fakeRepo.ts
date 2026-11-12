@@ -10,6 +10,7 @@ import { createFakeCoachingRepo } from './fakeCoachingRepo';
 import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
 import { createFakeCouponRepo } from './fakeCouponRepo';
+import { createFakeSubscriptionRepo } from './fakeSubscriptionRepo';
 import { createFakeCommunityRepo } from './fakeCommunityRepo';
 import { createFakeCommunityFiles } from './fakeCommunityFiles';
 import { createFakeEventsRepo } from './fakeEventsRepo';
@@ -85,6 +86,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...chat,
     ...createFakeCommerceRepo(db, id),
     ...createFakeCouponRepo(db, id),
+    ...createFakeSubscriptionRepo(db, id),
     ...createFakeCommunityRepo(db, id),
     ...createFakeCommunityFiles(db, id),
     ...createFakeEventsRepo(db, id),
@@ -303,6 +305,7 @@ export function createFakeRepo(db: Db): FakeRepo {
         ...input,
         accessGroupId,
         orderId: input.orderId ?? null,
+        subscriptionId: input.subscriptionId ?? null,
         id: id('grant'),
         status: 'active',
         grantedAt: new Date(),
@@ -310,6 +313,10 @@ export function createFakeRepo(db: Db): FakeRepo {
       };
       db.grants.push(row);
       return row;
+    },
+    grantsForSubscription: async (subscriptionId) => db.grants.filter((g) => g.subscriptionId === subscriptionId),
+    async setGrantExpiry(gid, expiresAt) {
+      must(db.grants.find((g) => g.id === gid), 'grant').expiresAt = expiresAt;
     },
     async revokeGrant(gid) {
       must(db.grants.find((g) => g.id === gid), 'grant').status = 'revoked';

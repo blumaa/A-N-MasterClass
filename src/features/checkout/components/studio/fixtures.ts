@@ -11,6 +11,10 @@ export const offer = (over: Partial<Offer> = {}): Offer => ({
   status: 'draft',
   bumpOfferId: null,
   upsellOfferId: null,
+  kind: 'one_time',
+  billingInterval: null,
+  trialDays: null,
+  installments: null,
   ...over,
 });
 

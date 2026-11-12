@@ -16,6 +16,7 @@ import { createModerationRepo } from './moderation';
 import { createPushRepo } from './push';
 import { createQuizRepo } from './quiz';
 import { createSiteRepo } from './site';
+import { createSubscriptionRepo } from './subscription';
 
 export type { RepoCtx };
 
@@ -25,6 +26,7 @@ export function createSupabaseRepo(ctx: RepoCtx): Repo {
     ...createSiteRepo(ctx),
     ...createCommerceRepo(ctx),
     ...createCouponRepo(ctx),
+    ...createSubscriptionRepo(ctx),
     ...createCommunityRepo(ctx),
     ...createCommunityFilesRepo(ctx),
     ...createChatRepo(ctx),

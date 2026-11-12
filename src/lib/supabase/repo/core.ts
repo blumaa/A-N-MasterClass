@@ -64,6 +64,8 @@ export type CoreRepo = Pick<
   | 'grants'
   | 'grantsForProduct'
   | 'grantsForOrder'
+  | 'grantsForSubscription'
+  | 'setGrantExpiry'
   | 'createGrant'
   | 'revokeGrant'
   | 'completedStepIds'
@@ -416,11 +418,18 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
             source: input.source,
             order_id: input.orderId ?? null,
             access_group_id: input.accessGroupId ?? null,
+            subscription_id: input.subscriptionId ?? null,
           })
           .select('*')
           .single(),
       );
       return toGrant(row);
+    },
+    async grantsForSubscription(subscriptionId) {
+      return unwrap(await (await db()).from('grants').select('*').eq('subscription_id', subscriptionId)).map(toGrant);
+    },
+    async setGrantExpiry(id, expiresAt) {
+      check(await (await db()).from('grants').update({ expires_at: isoOrNull(expiresAt) }).eq('id', id));
     },
     async revokeGrant(id) {
       check(await (await db()).from('grants').update({ status: 'revoked' }).eq('id', id));

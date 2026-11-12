@@ -5,9 +5,20 @@
 // one credentials row per (space, env), contacts unique on (space, lower(email)).
 // G23 (*_coupons_bumps_upsells.sql): bump/upsell links in the same space and never self, cleared
 // when the linked offer goes; order coupon and bump in the order's space, no extras without them.
+// G5 (*_subscriptions.sql): offers_recurring_terms / offers_trial_days via recurringTermsError,
+// no offer delete once it has subscriptions.
 import { MAX_PRICE_CENTS } from '@/lib/commerce/money';
+import { recurringTermsError } from '@/lib/commerce/recurring';
 import { SLUG_PATTERN } from '@/lib/tenancy/slug';
-import { ConstraintError, OFFER_LINK_SELF, OFFER_LINK_SPACE, ORDER_EXTRAS } from '../errors';
+import {
+  ConstraintError,
+  OFFER_HAS_SUBSCRIPTIONS,
+  OFFER_LINK_SELF,
+  OFFER_LINK_SPACE,
+  OFFER_TERMS,
+  OFFER_TRIAL_DAYS,
+  ORDER_EXTRAS,
+} from '../errors';
 import type { Repo } from '../repo';
 import type { Contact, Offer, Order } from '../types';
 import type { Db } from './db';
@@ -45,6 +56,8 @@ function checkOffer(db: Db, row: Offer): void {
   if (!Number.isInteger(row.priceCents) || row.priceCents < 0 || row.priceCents > MAX_PRICE_CENTS) {
     throw new ConstraintError('price out of range');
   }
+  const terms = recurringTermsError(row);
+  if (terms) throw new ConstraintError(terms === 'trial' ? OFFER_TRIAL_DAYS : OFFER_TERMS);
   for (const link of [row.bumpOfferId, row.upsellOfferId]) {
     if (link === null) continue;
     if (link === row.id) throw new ConstraintError(OFFER_LINK_SELF);
@@ -85,7 +98,18 @@ export function createFakeCommerceRepo(db: Db, id: (prefix: string) => string): 
     offer: async (oid) => db.offers.find((o) => o.id === oid) ?? null,
     offerBySlug: async (spaceId, slug) => db.offers.find((o) => o.spaceId === spaceId && o.slug === slug) ?? null,
     async createOffer(input) {
-      const row: Offer = { ...input, id: id('offer'), description: null, status: 'draft', bumpOfferId: null, upsellOfferId: null };
+      const row: Offer = {
+        ...input,
+        id: id('offer'),
+        description: null,
+        status: 'draft',
+        bumpOfferId: null,
+        upsellOfferId: null,
+        kind: 'one_time',
+        billingInterval: null,
+        trialDays: null,
+        installments: null,
+      };
       checkOffer(db, row);
       db.offers.push(row);
       return row;
@@ -97,6 +121,8 @@ export function createFakeCommerceRepo(db: Db, id: (prefix: string) => string): 
     },
     async deleteOffer(oid) {
       if (db.orders.some((o) => o.offerId === oid || o.bumpOfferId === oid)) throw new ConstraintError('offer has orders');
+      if (db.subscriptions.some((s) => s.offerId === oid)) throw new ConstraintError(OFFER_HAS_SUBSCRIPTIONS);
+      db.providerPlans = db.providerPlans.filter((p) => p.offerId !== oid);
       for (const o of db.offers) {
         if (o.bumpOfferId === oid) o.bumpOfferId = null;
         if (o.upsellOfferId === oid) o.upsellOfferId = null;

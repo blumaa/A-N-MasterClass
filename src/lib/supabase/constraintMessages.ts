@@ -20,6 +20,9 @@ import {
   INVALID_PUSH_SUBSCRIPTION,
   INVALID_REPEAT,
   OCCURRENCE_MISSING,
+  OFFER_TERMS,
+  OFFER_TRIAL_DAYS,
+  OFFER_HAS_SUBSCRIPTIONS,
   OFFER_LINK_SELF,
   OFFER_LINK_SPACE,
   ONE_PRIMARY_DOMAIN,
@@ -32,6 +35,7 @@ import {
   REPORT_TARGET_MISSING,
   SESSION_OVERLAP,
   SLUG_RESERVED,
+  SUBSCRIPTION_ID_TAKEN,
   TOO_MANY_PHOTOS,
 } from '@/lib/data/errors';
 import { bodyRangeMessage, COMMENT_MAX, ENTRY_MAX, MESSAGE_MAX, POST_MAX, REPORT_REASON_RANGE } from '@/lib/data/limits';
@@ -130,6 +134,13 @@ const BY_NAME: Readonly<Record<string, string>> = {
   orders_coupon_space: COUPON_HAS_ORDERS,
   orders_bump_space: 'offer has orders',
   orders_extras: ORDER_EXTRAS,
+  // Subscriptions and payment plans (G5). The subscription FK fires on offer delete.
+  offers_kind: OFFER_TERMS,
+  offers_billing_interval: OFFER_TERMS,
+  offers_recurring_terms: OFFER_TERMS,
+  offers_trial_days: OFFER_TRIAL_DAYS,
+  subscriptions_offer_space: OFFER_HAS_SUBSCRIPTIONS,
+  subscriptions_provider_id: SUBSCRIPTION_ID_TAKEN,
 };
 
 const TITLE_CHECK = /_title(_check)?$/;
