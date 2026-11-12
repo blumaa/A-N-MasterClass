@@ -2,7 +2,8 @@
 // Download: file goes straight to Storage in the program folder (FileUpload); the form saves path + size.
 // Quiz: pass mark here, questions in QuizEditor (G26).
 import { FileUpload } from '@/components/FileUpload/FileUpload';
-import { Badge, Card, CardBody, Field, Input, Stack, Textarea } from '@/components/ui/mds';
+import { RichTextField } from '@/components/RichTextField/RichTextField';
+import { Badge, Card, CardBody, Field, Input, Stack } from '@/components/ui/mds';
 import type { Part } from '@/lib/data/types';
 import type { EditorQuestion } from '../api/curriculum';
 import { CommandForm } from './CommandForm';
@@ -39,7 +40,7 @@ function KindFields({ part, programId }: { part: Part; programId: string }) {
     default:
       return (
         <Field label="Text">
-          <Textarea name="text" rows={5} defaultValue={part.text ?? ''} />
+          <RichTextField name="text" label="Text" defaultValue={part.text} />
         </Field>
       );
   }

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
+import { fromPlainText } from '@/lib/doc/doc';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { createFakeFileStore } from '@/lib/storage/fileStore';
@@ -66,10 +67,10 @@ describe('editCurriculum', () => {
     const r = await editCurriculum(repo, files, await as(SEED_IDS.natashaOwner, 'natasha'), {
       op: 'updatePart',
       partId: 'part-intro-text',
-      patch: { text: 'hacked' },
+      patch: { text: fromPlainText('hacked') },
     });
     expect(r).toEqual({ ok: false, error: 'not_found' });
-    expect((await repo.part('part-intro-text'))?.text).not.toBe('hacked');
+    expect((await repo.part('part-intro-text'))?.text).not.toEqual(fromPlainText('hacked'));
   });
 
   it('adds a module, step and part', async () => {

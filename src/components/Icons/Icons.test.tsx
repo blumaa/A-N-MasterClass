@@ -4,7 +4,7 @@ import { Icon } from '@/components/ui/mds';
 import { Icons } from './Icons';
 
 describe('Icons', () => {
-  it.each(['arrow-up', 'arrow-down'])('draws %s', (name) => {
+  it.each(['arrow-up', 'arrow-down', 'bold', 'italic', 'heading-2', 'heading-3', 'list', 'list-ordered', 'text-quote', 'link'])('draws %s', (name) => {
     const { container } = render(
       <Icons>
         <Icon name={name} />

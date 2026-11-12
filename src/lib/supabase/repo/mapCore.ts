@@ -1,5 +1,6 @@
 // Row (snake_case, ISO strings, jsonb) -> domain type (camelCase, Date). Core tables only.
 // jsonb shapes are guarded by SQL checks (is_brand_colors), so the casts below trust the DB.
+import { docOf } from '@/lib/doc/doc';
 import type { FontId } from '@/lib/fonts/catalog';
 import type {
   Grant,
@@ -97,14 +98,14 @@ export const toStep = (r: Row<'steps'>): Step => ({
   status: r.status as Step['status'],
 });
 
-/** Part.text lives in parts.body as a jsonb string (TipTap JSON later). */
+/** Part.text lives in parts.body as a TipTap document (older rows: a plain string). */
 export const toPart = (r: Row<'parts'>): Part => ({
   id: r.id,
   stepId: r.step_id,
   kind: r.kind as Part['kind'],
   title: r.title,
   position: r.position,
-  text: typeof r.body === 'string' ? r.body : null,
+  text: docOf(r.body),
   vimeoId: r.vimeo_id,
   aspect: r.aspect,
   filePath: r.file_path,

@@ -2,6 +2,7 @@
 // navigation) to the route that checks step access and redirects to a short-lived signed URL.
 // Quiz = questions without the key (G26).
 import { Heading, Link, Stack, Text } from '@/components/ui/mds';
+import { DocBody } from '@/components/DocBody/DocBody';
 import { VimeoEmbed } from '@/components/VimeoEmbed/VimeoEmbed';
 import type { Part } from '@/lib/data/types';
 import { fileType, formatBytes } from '@/lib/format/bytes';
@@ -42,7 +43,7 @@ function PartBlock({ part, programSlug, quizzes }: { part: Part; programSlug: st
       ) : null;
     }
     default:
-      return part.text ? <Text className={styles.text}>{part.text}</Text> : null;
+      return part.text ? <DocBody doc={part.text} /> : null;
   }
 }
 

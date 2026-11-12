@@ -16,3 +16,10 @@ vi.mock('@testing-library/react', async (importOriginal) => {
 afterEach(() => {
   cleanup();
 });
+
+// jsdom has no layout, so Range lacks the rect methods. ProseMirror (TipTap) measures the
+// selection to scroll it into view after every focused command. Empty rects = nothing to scroll.
+if (typeof Range !== 'undefined' && !Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
+  Range.prototype.getBoundingClientRect = () => new DOMRect();
+}

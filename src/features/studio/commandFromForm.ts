@@ -6,6 +6,7 @@ import { coverField, field, flag, readWhole, titleAndSlug } from '@/lib/forms/co
 import { PART_KINDS, PUBLISH_STATUSES, type PartKind } from '@/lib/data/types';
 import { quizOptionsOf } from '@/lib/programs/quiz';
 import { vimeoIdOf } from '@/lib/video/vimeo';
+import { parseDoc } from '@/lib/doc/doc';
 import type { CurriculumCommand } from './api/curriculum';
 
 export type Parsed = { ok: true; command: CurriculumCommand } | { ok: false; message: string };
@@ -91,7 +92,7 @@ const PARSERS: Record<CurriculumCommand['op'], (r: Reader) => CurriculumCommand>
       partId: r.required('partId'),
       patch: {
         ...optional(r, 'title', asText),
-        ...optional(r, 'text', asText),
+        ...optional(r, 'text', parseDoc),
         ...fileFields(r),
         ...optional(r, 'passPercent', asPercent),
         ...(video === undefined ? {} : { vimeoId: video === '' ? null : asVimeoId(video) }),

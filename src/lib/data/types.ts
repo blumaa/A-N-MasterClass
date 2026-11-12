@@ -1,6 +1,7 @@
 // Domain rows. Mirror supabase/migrations (snake_case there, camelCase here).
 import type { Role } from '@/lib/auth/capabilities';
 import type { Currency } from '@/lib/commerce/money';
+import type { Doc } from '@/lib/doc/doc';
 import type { FontId } from '@/lib/fonts/catalog';
 import type { PublishStatus } from '@/lib/programs/access';
 import type { SiteSection } from '@/lib/site/sections';
@@ -103,8 +104,8 @@ export type Part = {
   kind: PartKind;
   title: string | null;
   position: number;
-  /** Plain text for now; TipTap JSON when the rich editor lands. */
-  text: string | null;
+  /** Rich text (TipTap document); null when blank. */
+  text: Doc | null;
   vimeoId: string | null;
   aspect: number | null;
   filePath: string | null;

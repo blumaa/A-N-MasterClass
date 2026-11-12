@@ -4,6 +4,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ConstraintError, FILE_OUTSIDE_FOLDER } from '@/lib/data/errors';
+import { fromPlainText } from '@/lib/doc/doc';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { DEFAULT_BRAND } from '@/tokens/resolveBrand';
 import { adminClient } from '../admin';
@@ -160,7 +161,7 @@ describe.skipIf(!enabled)('core repo (Supabase contract)', () => {
       const text = await repo.createPart({ stepId: s1.id, kind: 'text' });
       const video = await repo.createPart({ stepId: s1.id, kind: 'video' });
       expect(video.position).toBe(text.position + 1);
-      expect((await repo.updatePart(text.id, { text: 'Hello' })).text).toBe('Hello');
+      expect((await repo.updatePart(text.id, { text: fromPlainText('Hello') })).text).toEqual(fromPlainText('Hello'));
       expect((await repo.updatePart(video.id, { vimeoId: '123456' })).vimeoId).toBe('123456');
       await expect(repo.updatePart(video.id, { vimeoId: 'abc' })).rejects.toBeInstanceOf(ConstraintError);
       expect(await repo.updatePart(text.id, { filePath: 'x/y/z.pdf', fileSize: 42 })).toMatchObject({ filePath: 'x/y/z.pdf', fileSize: 42 });

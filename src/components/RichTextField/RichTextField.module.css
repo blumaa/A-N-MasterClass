@@ -1,0 +1,68 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mds-gap-tight);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mds-gap-hairline);
+}
+
+.linkForm {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: var(--mds-gap-tight);
+}
+
+/* The writing surface, dressed as an MDS text field. */
+.content {
+  box-sizing: border-box;
+  min-height: 8rem;
+  padding: var(--mds-pad-tight) var(--mds-pad-control-md);
+  border: var(--mds-border-width) solid var(--mds-control-border);
+  border-radius: var(--mds-radius-control);
+  background: var(--mds-surface-card);
+  color: var(--mds-text-primary);
+  font-family: var(--mds-font-body);
+  font-size: var(--mds-text-control);
+  line-height: var(--mds-leading-normal);
+}
+
+.content:focus-visible {
+  outline: var(--mds-focus-width) solid var(--mds-focus-ring-color);
+  outline-offset: var(--mds-focus-offset);
+}
+
+.content > * {
+  margin: 0;
+}
+
+.content > * + * {
+  margin-block-start: var(--mds-stack-item);
+}
+
+.content :global(p.is-editor-empty:first-child)::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--mds-text-muted);
+  pointer-events: none;
+}
+
+.content blockquote {
+  padding-inline-start: var(--mds-pad-control);
+  border-inline-start: var(--mds-border-width) solid var(--mds-border-strong);
+}
+
+.content ul,
+.content ol {
+  padding-inline-start: var(--mds-gap-loose);
+}
+
+.content a {
+  color: var(--mds-text-accent);
+}

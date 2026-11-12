@@ -381,7 +381,8 @@ UI pass 3 (walkthroughs: visitor, member, phone, Studio, platform) as built:
 - Fake seed has a platform admin (`user-platform`, platform@example.test) that owns no space.
 - Forgot password: blocked on transactional email.
 - Done: offer form shows only the chosen price type's fields; coupon currency only for amount coupons; shared icon Move up/down buttons (MDS IconProvider, app icon set); row-level Remove is ghost, danger kept for a page's one destructive action; default accent is warm clay `#9a4a2c` with warm neutrals; token gate reads MDS component slots (`--mds-icon-slot`).
-- Still open: MDS Avatar initials keep punctuation ("Robin (student)" gives "R("; fix in MDS `initials()`: first letter or digit per word), MDS badge/meta text is mono with no brand font slot (MDS), text part is a plain textarea (not TipTap).
+- Still open: MDS Avatar initials keep punctuation ("Robin (student)" gives "R("; fix in MDS `initials()`: first letter or digit per word), MDS badge/meta text is mono with no brand font slot (MDS), MDS `Field` label has no id, so a non-native control (TipTap editor) cannot use `aria-labelledby` and carries its own `aria-label`.
+- Text parts: TipTap editor (`RichTextField`, heading, bold, italic, lists, quote, link), stored as a TipTap document in `parts.body`, read by `DocBody` (old plain-string rows still read).
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

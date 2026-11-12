@@ -1,5 +1,6 @@
 // Dev seed for DATA_SOURCE=fake. Two spaces, staff of each role, one student with a grant,
 // a program tree showing every access state (open, step-locked, drip, fixed date).
+import { fromPlainText } from '@/lib/doc/doc';
 import { DEFAULT_RULES } from '@/lib/scheduling/slots';
 import { ALL_GROUP_FEATURES, type Channel } from '../types';
 import { emptyDb, type Db } from './db';
@@ -149,10 +150,10 @@ export function seedDb(now: Date = new Date()): Db {
   });
   db.parts.push(
     part('part-intro-video', 'step-intro', 0, { kind: 'video', title: 'Welcome', vimeoId: '76979871', aspect: 16 / 9 }),
-    part('part-intro-text', 'step-intro', 1, { text: 'Welcome to Shibari 101. Watch the video, then tick Complete & Continue.' }),
-    part('part-safety-text', 'step-safety', 0, { text: 'Always keep safety shears within reach.' }),
+    part('part-intro-text', 'step-intro', 1, { text: fromPlainText('Welcome to Shibari 101. Watch the video, then tick Complete & Continue.') }),
+    part('part-safety-text', 'step-safety', 0, { text: fromPlainText('Always keep safety shears within reach.') }),
     part('part-safety-pdf', 'step-safety', 1, { kind: 'download', title: 'Safety checklist (PDF)', filePath: 'shibari-101/safety.pdf', fileSize: 240_000 }),
-    part('part-single', 'step-single-column', 0, { text: 'Single column tie walkthrough.' }),
+    part('part-single', 'step-single-column', 0, { text: fromPlainText('Single column tie walkthrough.') }),
   );
 
   db.grants.push({

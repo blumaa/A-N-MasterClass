@@ -1,0 +1,18 @@
+.doc > * + * {
+  margin-block-start: var(--mds-stack-item);
+}
+
+.quote {
+  margin: 0;
+  padding-inline-start: var(--mds-pad-control);
+  border-inline-start: var(--mds-border-width) solid var(--mds-border-strong);
+}
+
+.list {
+  margin: 0;
+  padding-inline-start: var(--mds-gap-loose);
+}
+
+.list > li + li {
+  margin-block-start: var(--mds-gap-tight);
+}
