@@ -10,7 +10,7 @@ import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
 import { googleClient } from '@/lib/google/server';
-import { platformOrigin, requestOrigin } from '@/lib/tenancy/origin';
+import { headersOrigin, platformOrigin } from '@/lib/tenancy/origin';
 import { editBooking } from './api/booking';
 import { calendarPortFor } from './api/googleCalendar';
 import { disconnectCalendar, startConnect } from './api/googleConnect';
@@ -60,7 +60,7 @@ export async function connectCalendarAction(_prev: CoachingState, _form: FormDat
   const viewer = await actionViewer();
   if (!viewer) return { message: NO_SETTINGS };
   const h = await headers();
-  const origin = requestOrigin(h.get('host') ?? '', h.get('x-forwarded-proto'));
+  const origin = headersOrigin(h);
   const state = startConnect(viewer, config.stateSecret, origin + studioCoachingHref, new Date());
   if (!state) return { message: NO_SETTINGS };
   const url = new URL(googleConnectPath, platformOrigin(origin, platformHost()));

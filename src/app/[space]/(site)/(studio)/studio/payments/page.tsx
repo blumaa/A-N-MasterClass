@@ -9,7 +9,7 @@ import { paypalWebhookPath } from '@/features/checkout/paths';
 import { paymentsEnv } from '@/config/payments';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
-import { requestOrigin } from '@/lib/tenancy/origin';
+import { headersOrigin } from '@/lib/tenancy/origin';
 
 export const metadata: Metadata = { title: 'Payments' };
 
@@ -18,7 +18,7 @@ export default async function StudioPaymentsPage({ params }: PageProps<'/[space]
   const view = viewer ? await studioPayments(getRepo(), viewer) : null;
   if (!viewer || !view) notFound();
   const h = await headers();
-  const webhookUrl = requestOrigin(h.get('host') ?? '', h.get('x-forwarded-proto')) + paypalWebhookPath(viewer.space.slug);
+  const webhookUrl = headersOrigin(h) + paypalWebhookPath(viewer.space.slug);
   return (
     <Stack gap="loose">
       <Heading level={1} variant="title">

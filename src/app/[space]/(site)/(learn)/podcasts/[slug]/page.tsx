@@ -6,7 +6,7 @@ import { clientPodcast } from '@/features/podcasts/api/listen';
 import { ClientPodcast } from '@/features/podcasts/components/ClientPodcast';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
-import { requestOrigin } from '@/lib/tenancy/origin';
+import { headersOrigin } from '@/lib/tenancy/origin';
 
 type Props = PageProps<'/[space]/podcasts/[slug]'>;
 
@@ -14,7 +14,7 @@ async function load(params: Props['params']) {
   const [{ space, slug }, h] = await Promise.all([params, headers()]);
   const viewer = await currentViewer(space);
   if (!viewer) return null;
-  const origin = requestOrigin(h.get('host') ?? '', h.get('x-forwarded-proto'));
+  const origin = headersOrigin(h);
   return clientPodcast(getRepo(), viewer, slug, origin, new Date());
 }
 

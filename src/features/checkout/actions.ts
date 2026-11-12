@@ -11,6 +11,7 @@ import { getServiceRepo } from '@/lib/data/getRepo';
 import { claimPath, setPasswordHref } from '@/lib/routes';
 import { PaymentProviderError } from '@/lib/payments/provider';
 import { spaceProvider } from '@/lib/payments/spaceProvider';
+import { headersOrigin } from '@/lib/tenancy/origin';
 import { completeCheckout, previewCoupon, startCheckout, type CouponPreview } from './api/checkout';
 import { claimAccount } from './api/claim';
 import type { FulfilResult } from './api/fulfil';
@@ -33,7 +34,7 @@ async function afterFulfil(offerSlug: string, result: FulfilResult | ActivateRes
   await startSession(result.profileId);
   if (result.claimToken && devLogsAllowed(process.env)) {
     // Transactional email is not set up yet: show the receipt link in the dev server log.
-    console.info(`[dev] claim link: http://${(await headers()).get('host')}${claimPath(result.claimToken)}`);
+    console.info(`[dev] claim link: ${headersOrigin(await headers())}${claimPath(result.claimToken)}`);
   }
   return thanksPath(offerSlug, 'welcome');
 }

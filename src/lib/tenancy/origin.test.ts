@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { platformOrigin, requestOrigin, spaceOrigin } from './origin';
+import { headersOrigin, platformOrigin, requestOrigin, spaceOrigin } from './origin';
 
 describe('requestOrigin', () => {
   it('uses the forwarded protocol when present', () => {
@@ -10,6 +10,14 @@ describe('requestOrigin', () => {
   it('defaults to http on localhost and https elsewhere', () => {
     expect(requestOrigin('alexander.localhost:3000', null)).toBe('http://alexander.localhost:3000');
     expect(requestOrigin('alexander.example.com', null)).toBe('https://alexander.example.com');
+  });
+});
+
+describe('headersOrigin', () => {
+  it('builds the origin from the forwarded host and protocol', () => {
+    const h = new Headers({ host: 'localhost:3000', 'x-forwarded-host': 'alexander.localhost:3000' });
+    expect(headersOrigin(h)).toBe('http://alexander.localhost:3000');
+    expect(headersOrigin(new Headers({ host: 'alexander-ma.com', 'x-forwarded-proto': 'https' }))).toBe('https://alexander-ma.com');
   });
 });
 

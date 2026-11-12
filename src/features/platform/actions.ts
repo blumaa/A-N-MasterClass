@@ -7,7 +7,7 @@ import { currentPlatformAdmin } from '@/lib/auth/currentViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
 import { claimPath } from '@/lib/routes';
-import { requestOrigin, spaceOrigin } from '@/lib/tenancy/origin';
+import { headersOrigin, spaceOrigin } from '@/lib/tenancy/origin';
 import { runPlatformCommand, type PlatformResult } from './api/spaces';
 import { parsePlatformCommand } from './forms';
 
@@ -41,7 +41,7 @@ export async function platformClaimAction(_prev: ClaimFormState, form: FormData)
   if (!result.ok) return { message: message(result) };
   if (!result.slug || !result.claimToken) return { message: 'No claim link was made.' };
   const h = await headers();
-  const origin = spaceOrigin(requestOrigin(h.get('host') ?? '', h.get('x-forwarded-proto')), result.slug);
+  const origin = spaceOrigin(headersOrigin(h), result.slug);
   refresh();
   return { slug: result.slug, claimUrl: origin + claimPath(result.claimToken) };
 }
