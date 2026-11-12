@@ -27,6 +27,7 @@ import type {
   Comment,
   CommentTarget,
   Contact,
+  Coupon,
   Grant,
   Member,
   Module,
@@ -98,8 +99,17 @@ export type PagePatch = Partial<
 export type NewPageVersion = Omit<PageVersion, 'id'>;
 
 export type NewOffer = Pick<Offer, 'spaceId' | 'slug' | 'title' | 'priceCents' | 'currency'>;
-export type OfferPatch = Partial<Pick<Offer, 'slug' | 'title' | 'description' | 'priceCents' | 'currency' | 'status'>>;
-export type NewOrder = Omit<Order, 'id' | 'profileId' | 'captureId' | 'status' | 'paidAt'>;
+export type OfferPatch = Partial<
+  Pick<Offer, 'slug' | 'title' | 'description' | 'priceCents' | 'currency' | 'status' | 'bumpOfferId' | 'upsellOfferId'>
+>;
+type OrderExtras = 'couponId' | 'discountCents' | 'bumpOfferId' | 'bumpCents';
+/** Extras default to none (null / 0). */
+export type NewOrder = Omit<Order, 'id' | 'profileId' | 'captureId' | 'status' | 'paidAt' | OrderExtras> &
+  Partial<Pick<Order, OrderExtras>>;
+export type NewCoupon = Omit<Coupon, 'id' | 'createdAt'>;
+export type CouponPatch = Partial<Omit<Coupon, 'id' | 'spaceId' | 'createdAt'>>;
+/** Paid uses of a coupon: all buyers, and the given email. */
+export type CouponUses = { total: number; byEmail: number };
 export type OrderPatch = Partial<Pick<Order, 'profileId' | 'captureId' | 'status' | 'paidAt'>>;
 /** consent null = leave marketing consent as it is (never withdrawn by a purchase). */
 export type ContactUpsert = {
@@ -288,6 +298,18 @@ export interface Repo {
   createOrder(input: NewOrder): Promise<Order>;
   /** Unique (provider, capture_id) is a constraint. */
   updateOrder(id: string, patch: OrderPatch): Promise<Order>;
+
+  // commerce: coupons (G23, ordered by code). Codes are matched uppercase.
+  coupons(spaceId: string): Promise<Coupon[]>;
+  coupon(id: string): Promise<Coupon | null>;
+  couponByCode(spaceId: string, code: string): Promise<Coupon | null>;
+  createCoupon(input: NewCoupon): Promise<Coupon>;
+  updateCoupon(id: string, patch: CouponPatch): Promise<Coupon>;
+  /** Refused (constraint) once orders used the coupon: deactivate instead. */
+  deleteCoupon(id: string): Promise<void>;
+  couponUses(couponId: string, email: string): Promise<CouponUses>;
+  /** Public checkout: whether to show the coupon field. Leaks no codes. */
+  hasActiveCoupon(offerId: string, now: Date): Promise<boolean>;
 
   // commerce: PayPal credentials (G28). Secret apart: Vault in SQL, never sent to the browser.
   paymentCredentials(spaceId: string, env: PaymentEnv): Promise<PaymentCredentials | null>;

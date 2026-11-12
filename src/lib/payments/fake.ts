@@ -1,7 +1,7 @@
 // Fake payment provider for DATA_SOURCE=fake dev: no network, every capture completes.
 // State is per instance; the composition root keeps one instance on globalThis.
 import type { Currency } from '@/lib/commerce/money';
-import type { Capture, CaptureStatus, PaymentProvider } from './provider';
+import { orderTotalCents, type Capture, type CaptureStatus, type PaymentProvider } from './provider';
 
 type FakeOrder = { amountCents: number; currency: Currency; capture: Capture | null };
 
@@ -17,9 +17,9 @@ export function createFakeProvider(): FakeProvider {
 
   return {
     name: 'fake',
-    async createOrder({ amountCents, currency }) {
+    async createOrder(input) {
       const id = `FAKE-ORDER-${++seq}`;
-      orders.set(id, { amountCents, currency, capture: null });
+      orders.set(id, { amountCents: orderTotalCents(input), currency: input.currency, capture: null });
       return id;
     },
     async captureOrder(providerOrderId) {

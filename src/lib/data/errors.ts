@@ -41,3 +41,14 @@ export const QUIZ_PASS_PERCENT = 'pass mark must be 1 to 100';
 export const CERTIFICATES_OFF = 'certificates are off for this program';
 export const CERTIFICATE_NOT_EARNED = 'finish every step to earn the certificate';
 export const CERTIFICATES_PROGRAM_ONLY = 'only programs give certificates';
+
+// Coupons, bumps, upsells (G23).
+export const COUPON_CODE = 'code: 3 to 32 letters, digits, - or _';
+export const COUPON_CODE_TAKEN = 'code taken';
+export const COUPON_DISCOUNT = 'set a percent (1-100) or an amount with a currency';
+export const COUPON_MAX_USES = 'max uses must be at least 1';
+export const COUPON_HAS_ORDERS = 'coupon has orders';
+export const COUPON_OFFER_SPACE = 'offer not in coupon space';
+export const OFFER_LINK_SPACE = 'linked offer not in this space';
+export const OFFER_LINK_SELF = 'an offer cannot link to itself';
+export const ORDER_EXTRAS = 'discount needs a coupon, bump price needs a bump offer';

@@ -1,5 +1,6 @@
 // In-memory tables for DATA_SOURCE=fake. REPLACED BY: Supabase tables (supabase/migrations).
 import type {
+  Coupon,
   AccessGroup,
   AvailabilityOverride,
   AvailabilityRule,
@@ -84,6 +85,8 @@ export type Db = {
   offers: Offer[];
   offerProducts: OfferProduct[];
   orders: Order[];
+  /** Fake keeps the offer links inline (coupon_offers in SQL). */
+  coupons: Coupon[];
   paymentCredentials: PaymentCredentials[];
   /** Stands in for Supabase Vault. */
   paymentSecrets: { spaceId: string; env: PaymentEnv; secret: string }[];
@@ -150,6 +153,7 @@ export const emptyDb = (): Db => ({
   offers: [],
   offerProducts: [],
   orders: [],
+  coupons: [],
   paymentCredentials: [],
   paymentSecrets: [],
   contacts: [],

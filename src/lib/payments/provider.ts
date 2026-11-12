@@ -16,8 +16,13 @@ export type Capture = {
   currency: string;
 };
 
+/** One item of the order: the offer, then an order bump (G23). Quantity is always 1. */
+export type OrderLine = { name: string; amountCents: number };
+
 export type CreateOrderInput = {
-  amountCents: number;
+  lines: readonly OrderLine[];
+  /** Coupon discount on the order (G23). Total = sum of lines - discount. */
+  discountCents: number;
   currency: Currency;
   description: string;
   /** Our offer id; shows up in the instructor's PayPal dashboard. */
@@ -25,6 +30,10 @@ export type CreateOrderInput = {
   /** Idempotency key (PayPal-Request-Id). */
   requestId: string;
 };
+
+export const lineTotalCents = (lines: readonly OrderLine[]): number => lines.reduce((sum, l) => sum + l.amountCents, 0);
+export const orderTotalCents = ({ lines, discountCents }: Pick<CreateOrderInput, 'lines' | 'discountCents'>): number =>
+  lineTotalCents(lines) - discountCents;
 
 export type ProviderEvent =
   | { kind: 'capture.completed'; providerOrderId: string; capture: Capture }

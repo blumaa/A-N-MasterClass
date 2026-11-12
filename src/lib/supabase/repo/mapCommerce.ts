@@ -3,6 +3,7 @@
 import type {
   ClaimToken,
   Contact,
+  Coupon,
   Offer,
   OfferItem,
   Order,
@@ -19,6 +20,8 @@ export const toOffer = (r: Row<"offers">): Offer => ({
   priceCents: r.price_cents,
   currency: r.currency as Offer["currency"],
   status: r.status as Offer["status"],
+  bumpOfferId: r.bump_offer_id,
+  upsellOfferId: r.upsell_offer_id,
 });
 
 export const toOfferItem = (r: Row<"offer_products">): OfferItem => ({
@@ -37,6 +40,10 @@ export const toOrder = (r: Row<"orders">): Order => ({
   captureId: r.capture_id,
   status: r.status as Order["status"],
   amountCents: r.amount_cents,
+  couponId: r.coupon_id,
+  discountCents: r.discount_cents,
+  bumpOfferId: r.bump_offer_id,
+  bumpCents: r.bump_cents,
   currency: r.currency as Order["currency"],
   livemode: r.livemode,
   waiverVersion: r.waiver_version,
@@ -73,4 +80,22 @@ export const toClaimToken = (r: Row<"claim_tokens">): ClaimToken => ({
   profileId: r.profile_id,
   expiresAt: toDate(r.expires_at),
   usedAt: toDateOrNull(r.used_at),
+});
+
+/** coupon_offers rows come embedded: select("*, coupon_offers(offer_id)"). */
+export const toCoupon = (
+  r: Row<"coupons"> & { coupon_offers: { offer_id: string }[] },
+): Coupon => ({
+  id: r.id,
+  spaceId: r.space_id,
+  code: r.code,
+  percentOff: r.percent_off,
+  amountOffCents: r.amount_off_cents,
+  currency: r.currency as Coupon["currency"],
+  maxUses: r.max_uses,
+  oncePerCustomer: r.once_per_customer,
+  expiresAt: toDateOrNull(r.expires_at),
+  active: r.active,
+  offerIds: r.coupon_offers.map((o) => o.offer_id).toSorted(),
+  createdAt: toDate(r.created_at),
 });

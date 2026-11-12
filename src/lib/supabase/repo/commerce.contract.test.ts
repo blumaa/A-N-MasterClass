@@ -1,7 +1,12 @@
 // Commerce Supabase repo against the linked project. Runs as the service client: RLS is covered by
 // the SQL suites; this checks queries, mapping, ordering and constraint mapping.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ConstraintError } from "@/lib/data/errors";
+import {
+  ConstraintError,
+  OFFER_LINK_SELF,
+  OFFER_LINK_SPACE,
+  ORDER_EXTRAS,
+} from "@/lib/data/errors";
 import type { ClaimToken, Order } from "@/lib/data/types";
 import { createCommerceRepo, type CommerceRepo } from "./commerce";
 import { createCoreRepo, type CoreRepo } from "./core";
@@ -132,6 +137,48 @@ describe.skipIf(!contractEnabled)("commerce repo (Supabase contract)", () => {
           title: "x",
         }),
       ).rejects.toThrow();
+    });
+
+    it("links a bump and upsell in the space; refuses self; clears on delete", async () => {
+      const mk = (slug: string, space = spaceId) =>
+        repo.createOffer({
+          spaceId: space,
+          slug,
+          title: slug,
+          priceCents: 100,
+          currency: "EUR",
+        });
+      const [main, bump, up] = await Promise.all([
+        mk("lk-main"),
+        mk("lk-bump"),
+        mk("lk-up"),
+      ]);
+      expect(main).toMatchObject({ bumpOfferId: null, upsellOfferId: null });
+      const linked = await repo.updateOffer(main.id, {
+        bumpOfferId: bump.id,
+        upsellOfferId: up.id,
+      });
+      expect(linked).toMatchObject({
+        bumpOfferId: bump.id,
+        upsellOfferId: up.id,
+      });
+      await expect(
+        repo.updateOffer(main.id, { bumpOfferId: main.id }),
+      ).rejects.toThrow(OFFER_LINK_SELF);
+      const foreign = await createContractSpace("commerce-links");
+      try {
+        const far = await mk("lk-far", foreign.spaceId);
+        await expect(
+          repo.updateOffer(main.id, { upsellOfferId: far.id }),
+        ).rejects.toThrow(OFFER_LINK_SPACE);
+      } finally {
+        await foreign.cleanup();
+      }
+      await repo.deleteOffer(up.id);
+      expect(await repo.offer(main.id)).toMatchObject({
+        bumpOfferId: bump.id,
+        upsellOfferId: null,
+      });
     });
 
     it("sets items as a replacing set; rejects foreign products and wrong groups", async () => {
@@ -281,6 +328,42 @@ describe.skipIf(!contractEnabled)("commerce repo (Supabase contract)", () => {
   });
 
   describe("orders", () => {
+    it("stores coupon and bump extras; refuses a discount without a coupon", async () => {
+      const mk = (slug: string) =>
+        repo.createOffer({
+          spaceId,
+          slug,
+          title: slug,
+          priceCents: 4900,
+          currency: "EUR",
+        });
+      const [main, bump] = await Promise.all([mk("ex-main"), mk("ex-bump")]);
+      const plain = await repo.createOrder(newOrder(main.id));
+      expect(plain).toMatchObject({
+        couponId: null,
+        discountCents: 0,
+        bumpOfferId: null,
+        bumpCents: 0,
+      });
+      const withBump = await repo.createOrder(
+        newOrder(main.id, {
+          amountCents: 5800,
+          bumpOfferId: bump.id,
+          bumpCents: 900,
+        }),
+      );
+      expect(withBump).toMatchObject({
+        amountCents: 5800,
+        bumpOfferId: bump.id,
+        bumpCents: 900,
+      });
+      await expect(
+        repo.createOrder(newOrder(main.id, { discountCents: 100 })),
+      ).rejects.toThrow(ORDER_EXTRAS);
+      await expect(repo.deleteOffer(bump.id)).rejects.toBeInstanceOf(
+        ConstraintError,
+      );
+    });
     it("creates created-orders with lowercased email, newest first, finds by provider id and capture", async () => {
       const o = await repo.createOffer({
         spaceId,

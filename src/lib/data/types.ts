@@ -187,6 +187,32 @@ export type Offer = {
   priceCents: number;
   currency: Currency;
   status: PublishStatus;
+  /** Order bump (G23): an extra offer the buyer can tick at checkout. Same space, never itself. */
+  bumpOfferId: string | null;
+  /** Upsell (G23): offer shown on the thank-you page after a paid order. */
+  upsellOfferId: string | null;
+};
+
+/**
+ * Coupon (G23). Exactly one of percentOff / amountOffCents. An amount coupon has a currency.
+ * Uses are not stored: they are the coupon's orders past 'created' (counted once, on fulfilment).
+ */
+export type Coupon = {
+  id: string;
+  spaceId: string;
+  /** Uppercase, unique per space. */
+  code: string;
+  percentOff: number | null;
+  amountOffCents: number | null;
+  currency: Currency | null;
+  /** null = unlimited. */
+  maxUses: number | null;
+  oncePerCustomer: boolean;
+  expiresAt: Date | null;
+  active: boolean;
+  /** Offers the coupon works on. Empty = none. */
+  offerIds: string[];
+  createdAt: Date;
 };
 
 /** accessGroupId: for a community product, the group the buyer joins (null = default group). */
@@ -216,8 +242,14 @@ export type Order = {
   /** PayPal capture id = fulfilment idempotency key. Unique per provider. */
   captureId: string | null;
   status: OrderStatus;
-  /** Price copied from the offer at order time; capture must match it. */
+  /** Paid total = offer price - discount + bump, priced on the server. Capture must match it. */
   amountCents: number;
+  /** Coupon applied to the offer price (G23), or null. */
+  couponId: string | null;
+  discountCents: number;
+  /** Order bump bought with this order (G23), or null. */
+  bumpOfferId: string | null;
+  bumpCents: number;
   currency: Currency;
   /** false = sandbox/fake: kept out of revenue (G10). */
   livemode: boolean;

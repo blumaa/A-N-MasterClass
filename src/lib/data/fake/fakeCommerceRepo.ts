@@ -3,9 +3,11 @@
 // (with an access group of that community, if any),
 // unique (provider, provider_order_id) and (provider, capture_id), no offer delete once sold,
 // one credentials row per (space, env), contacts unique on (space, lower(email)).
+// G23 (*_coupons_bumps_upsells.sql): bump/upsell links in the same space and never self, cleared
+// when the linked offer goes; order coupon and bump in the order's space, no extras without them.
 import { MAX_PRICE_CENTS } from '@/lib/commerce/money';
 import { SLUG_PATTERN } from '@/lib/tenancy/slug';
-import { ConstraintError } from '../errors';
+import { ConstraintError, OFFER_LINK_SELF, OFFER_LINK_SPACE, ORDER_EXTRAS } from '../errors';
 import type { Repo } from '../repo';
 import type { Contact, Offer, Order } from '../types';
 import type { Db } from './db';
@@ -43,12 +45,26 @@ function checkOffer(db: Db, row: Offer): void {
   if (!Number.isInteger(row.priceCents) || row.priceCents < 0 || row.priceCents > MAX_PRICE_CENTS) {
     throw new ConstraintError('price out of range');
   }
+  for (const link of [row.bumpOfferId, row.upsellOfferId]) {
+    if (link === null) continue;
+    if (link === row.id) throw new ConstraintError(OFFER_LINK_SELF);
+    if (db.offers.find((o) => o.id === link)?.spaceId !== row.spaceId) throw new ConstraintError(OFFER_LINK_SPACE);
+  }
 }
 
 function checkOrder(db: Db, row: Order): void {
   const others = db.orders.filter((o) => o.provider === row.provider && o.id !== row.id);
   if (others.some((o) => o.providerOrderId === row.providerOrderId)) throw new ConstraintError('provider order id taken');
   if (row.captureId !== null && others.some((o) => o.captureId === row.captureId)) throw new ConstraintError('capture id taken');
+  if ((row.couponId === null && row.discountCents !== 0) || (row.bumpOfferId === null && row.bumpCents !== 0)) {
+    throw new ConstraintError(ORDER_EXTRAS);
+  }
+  if (row.couponId !== null && db.coupons.find((c) => c.id === row.couponId)?.spaceId !== row.spaceId) {
+    throw new ConstraintError('coupon not in order space');
+  }
+  if (row.bumpOfferId !== null && db.offers.find((o) => o.id === row.bumpOfferId)?.spaceId !== row.spaceId) {
+    throw new ConstraintError('bump offer not in order space');
+  }
 }
 
 export function createFakeCommerceRepo(db: Db, id: (prefix: string) => string): CommerceRepo {
@@ -69,7 +85,7 @@ export function createFakeCommerceRepo(db: Db, id: (prefix: string) => string): 
     offer: async (oid) => db.offers.find((o) => o.id === oid) ?? null,
     offerBySlug: async (spaceId, slug) => db.offers.find((o) => o.spaceId === spaceId && o.slug === slug) ?? null,
     async createOffer(input) {
-      const row: Offer = { ...input, id: id('offer'), description: null, status: 'draft' };
+      const row: Offer = { ...input, id: id('offer'), description: null, status: 'draft', bumpOfferId: null, upsellOfferId: null };
       checkOffer(db, row);
       db.offers.push(row);
       return row;
@@ -80,7 +96,12 @@ export function createFakeCommerceRepo(db: Db, id: (prefix: string) => string): 
       return Object.assign(row, patch);
     },
     async deleteOffer(oid) {
-      if (db.orders.some((o) => o.offerId === oid)) throw new ConstraintError('offer has orders');
+      if (db.orders.some((o) => o.offerId === oid || o.bumpOfferId === oid)) throw new ConstraintError('offer has orders');
+      for (const o of db.offers) {
+        if (o.bumpOfferId === oid) o.bumpOfferId = null;
+        if (o.upsellOfferId === oid) o.upsellOfferId = null;
+      }
+      for (const c of db.coupons) c.offerIds = c.offerIds.filter((x) => x !== oid);
       db.offerProducts = db.offerProducts.filter((op) => op.offerId !== oid);
       db.offers = db.offers.filter((o) => o.id !== oid);
     },
@@ -112,6 +133,10 @@ export function createFakeCommerceRepo(db: Db, id: (prefix: string) => string): 
     async createOrder(input) {
       findOffer(input.offerId);
       const row: Order = {
+        couponId: null,
+        discountCents: 0,
+        bumpOfferId: null,
+        bumpCents: 0,
         ...input,
         email: input.email.toLowerCase(),
         id: id('order'),

@@ -5,9 +5,12 @@ import { centsToDecimal, decimalToCents } from '@/lib/commerce/money';
 import type { PaymentEnv } from '@/lib/data/types';
 import {
   CAPTURE_STATUSES,
+  lineTotalCents,
+  orderTotalCents,
   PaymentProviderError,
   type Capture,
   type CaptureStatus,
+  type CreateOrderInput,
   type PaymentProvider,
   type ProviderEvent,
 } from './provider';
@@ -19,6 +22,23 @@ export const PAYPAL_BASE_URL: Record<PaymentEnv, string> = {
 
 /** purchase_units[].description max length (Orders v2). */
 const DESCRIPTION_MAX = 127;
+
+/**
+ * One purchase unit with items + breakdown. PayPal checks value = item_total - discount (422 if not).
+ * https://developer.paypal.com/docs/api/orders/v2/#orders_create
+ */
+function purchaseUnit({ lines, discountCents, currency, description, referenceId }: CreateOrderInput) {
+  const money = (cents: number) => ({ currency_code: currency, value: centsToDecimal(cents) });
+  return {
+    reference_id: referenceId,
+    description: description.slice(0, DESCRIPTION_MAX),
+    amount: {
+      ...money(orderTotalCents({ lines, discountCents })),
+      breakdown: { item_total: money(lineTotalCents(lines)), ...(discountCents > 0 ? { discount: money(discountCents) } : {}) },
+    },
+    items: lines.map((l) => ({ name: l.name.slice(0, DESCRIPTION_MAX), quantity: '1', category: 'DIGITAL_GOODS', unit_amount: money(l.amountCents) })),
+  };
+}
 /** Renew the token this long before PayPal's expiry. */
 const TOKEN_MARGIN_MS = 60_000;
 
@@ -98,20 +118,11 @@ export function createPayPalProvider(config: PayPalConfig, fetchImpl: typeof fet
   return {
     name: 'paypal',
 
-    async createOrder({ amountCents, currency, description, referenceId, requestId }) {
+    async createOrder(input) {
       const body = await call('/v2/checkout/orders', {
         method: 'POST',
-        headers: { 'PayPal-Request-Id': requestId },
-        body: JSON.stringify({
-          intent: 'CAPTURE',
-          purchase_units: [
-            {
-              reference_id: referenceId,
-              description: description.slice(0, DESCRIPTION_MAX),
-              amount: { currency_code: currency, value: centsToDecimal(amountCents) },
-            },
-          ],
-        }),
+        headers: { 'PayPal-Request-Id': input.requestId },
+        body: JSON.stringify({ intent: 'CAPTURE', purchase_units: [purchaseUnit(input)] }),
       });
       const id = str(body.id);
       if (!id) throw new PaymentProviderError(200, 'NO_ORDER_ID', null);

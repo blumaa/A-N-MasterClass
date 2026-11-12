@@ -779,6 +779,89 @@ export type Database = {
           },
         ]
       }
+      coupon_offers: {
+        Row: {
+          coupon_id: string
+          offer_id: string
+          space_id: string
+        }
+        Insert: {
+          coupon_id: string
+          offer_id: string
+          space_id: string
+        }
+        Update: {
+          coupon_id?: string
+          offer_id?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_offers_coupon_space"
+            columns: ["coupon_id", "space_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id", "space_id"]
+          },
+          {
+            foreignKeyName: "coupon_offers_offer_space"
+            columns: ["offer_id", "space_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id", "space_id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean
+          amount_off_cents: number | null
+          code: string
+          created_at: string
+          currency: string | null
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          once_per_customer: boolean
+          percent_off: number | null
+          space_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount_off_cents?: number | null
+          code: string
+          created_at?: string
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          once_per_customer?: boolean
+          percent_off?: number | null
+          space_id: string
+        }
+        Update: {
+          active?: boolean
+          amount_off_cents?: number | null
+          code?: string
+          created_at?: string
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          once_per_customer?: boolean
+          percent_off?: number | null
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dm_reads: {
         Row: {
           profile_id: string
@@ -1375,6 +1458,7 @@ export type Database = {
       offers: {
         Row: {
           access_days: number | null
+          bump_offer_id: string | null
           created_at: string
           currency: string
           description: string | null
@@ -1386,9 +1470,11 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          upsell_offer_id: string | null
         }
         Insert: {
           access_days?: number | null
+          bump_offer_id?: string | null
           created_at?: string
           currency: string
           description?: string | null
@@ -1400,9 +1486,11 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          upsell_offer_id?: string | null
         }
         Update: {
           access_days?: number | null
+          bump_offer_id?: string | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -1414,8 +1502,16 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          upsell_offer_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "offers_bump_space"
+            columns: ["bump_offer_id", "space_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id", "space_id"]
+          },
           {
             foreignKeyName: "offers_space_id_fkey"
             columns: ["space_id"]
@@ -1423,14 +1519,25 @@ export type Database = {
             referencedRelation: "spaces"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "offers_upsell_space"
+            columns: ["upsell_offer_id", "space_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id", "space_id"]
+          },
         ]
       }
       orders: {
         Row: {
           amount_cents: number
+          bump_cents: number
+          bump_offer_id: string | null
           capture_id: string | null
+          coupon_id: string | null
           created_at: string
           currency: string
+          discount_cents: number
           email: string
           id: string
           livemode: boolean
@@ -1447,9 +1554,13 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          bump_cents?: number
+          bump_offer_id?: string | null
           capture_id?: string | null
+          coupon_id?: string | null
           created_at?: string
           currency: string
+          discount_cents?: number
           email: string
           id?: string
           livemode: boolean
@@ -1466,9 +1577,13 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          bump_cents?: number
+          bump_offer_id?: string | null
           capture_id?: string | null
+          coupon_id?: string | null
           created_at?: string
           currency?: string
+          discount_cents?: number
           email?: string
           id?: string
           livemode?: boolean
@@ -1484,6 +1599,20 @@ export type Database = {
           waiver_version?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_bump_space"
+            columns: ["bump_offer_id", "space_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id", "space_id"]
+          },
+          {
+            foreignKeyName: "orders_coupon_space"
+            columns: ["coupon_id", "space_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id", "space_id"]
+          },
           {
             foreignKeyName: "orders_offer_id_fkey"
             columns: ["offer_id"]
@@ -2903,9 +3032,13 @@ export type Database = {
         }
         Returns: {
           amount_cents: number
+          bump_cents: number
+          bump_offer_id: string | null
           capture_id: string | null
+          coupon_id: string | null
           created_at: string
           currency: string
+          discount_cents: number
           email: string
           id: string
           livemode: boolean
@@ -3093,9 +3226,13 @@ export type Database = {
         Args: { new_status: string; target_order: string }
         Returns: {
           amount_cents: number
+          bump_cents: number
+          bump_offer_id: string | null
           capture_id: string | null
+          coupon_id: string | null
           created_at: string
           currency: string
+          discount_cents: number
           email: string
           id: string
           livemode: boolean

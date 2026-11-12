@@ -38,7 +38,8 @@ describe('PayPal adapter', () => {
   it('gets a token with basic auth, then creates a CAPTURE order with our price', async () => {
     replies.push(token(), json({ id: 'PO-1', status: 'CREATED' }, 201));
     const id = await provider().createOrder({
-      amountCents: 4950,
+      lines: [{ name: 'Full access', amountCents: 4950 }],
+      discountCents: 0,
       currency: 'EUR',
       description: 'Full access',
       referenceId: 'offer-1',
@@ -54,23 +55,61 @@ describe('PayPal adapter', () => {
     expect(header(create, 'PayPal-Request-Id')).toBe('req-1');
     expect(JSON.parse(String(create.init.body))).toEqual({
       intent: 'CAPTURE',
-      purchase_units: [{ reference_id: 'offer-1', description: 'Full access', amount: { currency_code: 'EUR', value: '49.50' } }],
+      purchase_units: [
+        {
+          reference_id: 'offer-1',
+          description: 'Full access',
+          amount: { currency_code: 'EUR', value: '49.50', breakdown: { item_total: { currency_code: 'EUR', value: '49.50' } } },
+          items: [{ name: 'Full access', quantity: '1', category: 'DIGITAL_GOODS', unit_amount: { currency_code: 'EUR', value: '49.50' } }],
+        },
+      ],
     });
+  });
+
+  it('sends a bump as a second item and a coupon as a discount (value = item_total - discount)', async () => {
+    replies.push(token(), json({ id: 'PO-1' }, 201));
+    await provider().createOrder({
+      lines: [
+        { name: 'Full', amountCents: 4900 },
+        { name: 'Workbook', amountCents: 1500 },
+      ],
+      discountCents: 980,
+      currency: 'EUR',
+      description: 'Full',
+      referenceId: 'offer-1',
+      requestId: 'r',
+    });
+    const unit = JSON.parse(String(calls[1].init.body)).purchase_units[0];
+    expect(unit.amount).toEqual({
+      currency_code: 'EUR',
+      value: '54.20',
+      breakdown: { item_total: { currency_code: 'EUR', value: '64.00' }, discount: { currency_code: 'EUR', value: '9.80' } },
+    });
+    expect(unit.items.map((i: { name: string }) => i.name)).toEqual(['Full', 'Workbook']);
   });
 
   it('reuses the token until it expires', async () => {
     replies.push(token(), json({ id: 'A' }, 201), json({ id: 'B' }, 201));
     const p = provider();
-    const input = { amountCents: 100, currency: 'EUR' as const, description: 'x', referenceId: 'o', requestId: 'r' };
+    const input = { lines: [{ name: 'x', amountCents: 100 }], discountCents: 0, currency: 'EUR' as const, description: 'x', referenceId: 'o', requestId: 'r' };
     await p.createOrder(input);
     await p.createOrder({ ...input, requestId: 'r2' });
     expect(calls.filter((c) => c.url.endsWith('/oauth2/token'))).toHaveLength(1);
   });
 
-  it('cuts the description to PayPal’s 127 characters', async () => {
+  it('cuts the description and item names to PayPal’s 127 characters', async () => {
     replies.push(token(), json({ id: 'PO-1' }, 201));
-    await provider().createOrder({ amountCents: 1, currency: 'EUR', description: 'x'.repeat(200), referenceId: 'o', requestId: 'r' });
-    expect(JSON.parse(String(calls[1].init.body)).purchase_units[0].description).toHaveLength(127);
+    await provider().createOrder({
+      lines: [{ name: 'y'.repeat(200), amountCents: 1 }],
+      discountCents: 0,
+      currency: 'EUR',
+      description: 'x'.repeat(200),
+      referenceId: 'o',
+      requestId: 'r',
+    });
+    const unit = JSON.parse(String(calls[1].init.body)).purchase_units[0];
+    expect(unit.description).toHaveLength(127);
+    expect(unit.items[0].name).toHaveLength(127);
   });
 
   it('captures with return=representation and reads the capture', async () => {

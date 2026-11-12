@@ -6,6 +6,7 @@ import { createChatRepo } from './chat';
 import { createCoachingRepo } from './coaching';
 import { createCommerceRepo } from './commerce';
 import { createCommunityRepo } from './community';
+import { createCouponRepo } from './coupon';
 import { createCommunityFilesRepo } from './communityFiles';
 import type { RepoCtx } from './context';
 import { createCoreRepo } from './core';
@@ -23,6 +24,7 @@ export function createSupabaseRepo(ctx: RepoCtx): Repo {
     ...createCoreRepo(ctx),
     ...createSiteRepo(ctx),
     ...createCommerceRepo(ctx),
+    ...createCouponRepo(ctx),
     ...createCommunityRepo(ctx),
     ...createCommunityFilesRepo(ctx),
     ...createChatRepo(ctx),

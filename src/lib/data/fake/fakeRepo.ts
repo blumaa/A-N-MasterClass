@@ -9,6 +9,7 @@ import type { Db } from './db';
 import { createFakeCoachingRepo } from './fakeCoachingRepo';
 import { createFakeChatRepo, DEFAULT_GROUP_TITLE } from './fakeChatRepo';
 import { createFakeCommerceRepo } from './fakeCommerceRepo';
+import { createFakeCouponRepo } from './fakeCouponRepo';
 import { createFakeCommunityRepo } from './fakeCommunityRepo';
 import { createFakeCommunityFiles } from './fakeCommunityFiles';
 import { createFakeEventsRepo } from './fakeEventsRepo';
@@ -83,6 +84,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakeSiteRepo(db, id),
     ...chat,
     ...createFakeCommerceRepo(db, id),
+    ...createFakeCouponRepo(db, id),
     ...createFakeCommunityRepo(db, id),
     ...createFakeCommunityFiles(db, id),
     ...createFakeEventsRepo(db, id),
