@@ -125,7 +125,7 @@ video_position(profile_id, part_id, last_position_s)
 - Change vs KSG: **comments polymorphic from day one** (`target_type post | step`) → lesson comments like Kajabi. Moderation via `has_capability` + `channel_moderators` instead of `is_admin()` (G15). Notification types redefined (`channel_post`, `step_comment`, `reply`, `mention`, `reaction`, `dm`, `event_reminder`, `granted`).
 
 Phase 6 as built (Launch 1):
-- Migration `20261110090600_community.sql` + `supabase/tests/060-community.test.sql` written, not yet run (DB setup later).
+- Migration `20261110090600_community.sql` + `supabase/tests/060-community.test.sql` written, applied to ksb 2026-11-11.
 - New community starts with a `General` channel. Deleting the last channel is refused in the app, not by trigger (a trigger would block the cascade when the community is deleted).
 - Notifications: comment notifies post author + mentioned; reply notifies parent author; step comment notifies everyone with `comments.moderate`; first reaction notifies author. Only directory members of the community receive. Mentions in step comments are not notified, and step comments have no mention autocomplete.
 - One reply level (Kajabi). Polymorphic targets have no FK; delete triggers on posts/steps/comments remove orphans.
@@ -169,7 +169,7 @@ Phase 7 as built (Launch 1):
 **Launch 2** — chat channels, DMs, access groups.
 
 Launch 2 as built:
-- Migration `20261110090700_community_groups_chat_dms.sql` + `supabase/tests/070-groups-chat-dms.test.sql` written, not yet run. `channels.visibility` replaced by `kind` (feed | chat), `privacy` (public | private) and `read_only`.
+- Migration `20261110090700_community_groups_chat_dms.sql` + `supabase/tests/070-groups-chat-dms.test.sql` written, applied to ksb 2026-11-11. `channels.visibility` replaced by `kind` (feed | chat), `privacy` (public | private) and `read_only`.
 - Every community gets a default `Members` group (trigger). A grant or offer item without a group joins it. The default group cannot be deleted; a group in use cannot be deleted (FK restrict).
 - Grant uniqueness widened to one active grant per (product, profile, group): a member may hold several groups of one community. `fulfil_order` now carries `offer_products.access_group_id`; drip counts from the earliest grant.
 - Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
@@ -180,7 +180,7 @@ Launch 2 as built:
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 
 Launch 3 as built:
-- Migration `20261110090800_community_gamification_meetups.sql` + `supabase/tests/080-gamification-meetups.test.sql` written, not yet run.
+- Migration `20261110090800_community_gamification_meetups.sql` + `supabase/tests/080-gamification-meetups.test.sql` written, applied to ksb 2026-11-11.
 - Points: comment on a post 3, reaction given 1 / received 1 (once per member per post, never on own post), DM 1, challenge entry 100. Values editable 0..1000 per community, 0 = off for that action; fixed when earned. Ledger written by triggers only, rows removed with their source, so totals never go negative.
 - Leaderboard: 7 days / 30 days / all time; the week resets Monday 08:00 UTC, the month on the 1st 08:00 UTC. Shown to members, staff only, or off; members also need a group with the leaderboard on.
 - Challenges: window in UTC, one entry per member inside the window, withdraw while open. Entries visible to the author and staff only; staff export CSV. Upcoming challenges hidden unless "show before start".
@@ -191,7 +191,7 @@ Launch 3 as built:
 **Launch 4** — coaching + own scheduler + Google Calendar.
 
 Launch 4 as built:
-- Migration `20261110090900_coaching.sql` + `supabase/tests/090-coaching.test.sql` written, not yet run.
+- Migration `20261110090900_coaching.sql` + `supabase/tests/090-coaching.test.sql` written, applied to ksb 2026-11-11.
 - Coaching product = program settings: 1:1 (clients book) or group (coach schedules), 15..360 min, sessions included per grant, default https join link copied onto new sessions.
 - One schedule per space: IANA zone, buffers before/after, minimum notice, window 1..200 days, cancel cutoff. Weekly windows + date overrides (window or day off) in the coach's zone. Kajabi default hours (weekdays 9 to 5) until the coach saves settings or adds a window.
 - Slots: 15-minute grid in the coach's zone (DST-safe), minus scheduled sessions + buffers + Google free/busy. Calendar unreachable = no slots and booking refused (fail closed). The session being moved does not block its own time.
@@ -201,7 +201,7 @@ Launch 4 as built:
 - Not yet: confirmation/reminder emails (email provider pending), per-client time zone display (coach zone shown with label), Google app verification (testing mode refresh tokens expire after 7 days).
 
 Launch 5 as built:
-- Migration `20261110091000_podcasts_downloads.sql` + `supabase/tests/100-podcasts-downloads.test.sql` written, not yet run.
+- Migration `20261110091000_podcasts_downloads.sql` + `supabase/tests/100-podcasts-downloads.test.sql` written, applied to ksb 2026-11-11.
 - Podcast = settings (author, explicit, episodic/serial) + episodes (mp3 only, 1 byte..250 MB, season, type full/bonus/trailer, show notes, publish_at null = draft, future = scheduled). Holders see published episodes only; staff see all.
 - Private feed per listener: token from `podcast_feed_token` (created on first ask), `reset_podcast_feed` replaces it. Feed + audio routes under `/feeds/podcast/[token]` take no session; `podcast_feed` (service role only) answers only while the listener's grant is active.
 - Download = list of files; holders read the list. Every file and audio request goes through a server route that returns a 302 to a short signed URL (`signedRedirect`, `cache-control: no-store`).
@@ -210,6 +210,23 @@ Launch 5 as built:
 - Not yet: file upload UI (paths entered by hand in Studio), Supabase file store adapter (`getFileStore` throws for supabase), "Download all" zip, download parts in program steps through the same signed route.
 
 **Launch 5** — podcast + download products.
+**Launch 6 — finish the deferred gaps** (no outside service needed; decided 2026-11-12). External setup (email provider, PayPal app, platform domain, paid plans) waits until this is done. Order:
+1. Supabase file store adapter (`getFileStore`) + Studio upload UI for download files and podcast audio.
+2. Download parts in program steps through the signed route.
+3. Moderation: `channel_moderators` + reports queue.
+4. Photo uploads in posts; attachments in chat.
+5. Supabase Realtime in place of polling (invalidate only).
+6. Web push notifications (VAPID, KSG stack).
+7. Typing indicators in chat.
+8. Recurring meetups.
+9. Coaching slots in the client's own time zone.
+10. "Download all" zip.
+11. Quizzes (`parts.kind = quiz`, `quiz_passed` unlock) + certificates (G26).
+12. Coupons, order bumps, upsells (G23).
+13. Subscriptions + payment plans (G5), built against the PayPal fake.
+
+Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
+
 **Later** — drip release emails (`pg_cron`), quizzes, coupons, order bumps, upsells (G23), subscriptions/payment plans, certificates, embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.
 
 ## Costs (warn, verify on official pricing pages before signup)
