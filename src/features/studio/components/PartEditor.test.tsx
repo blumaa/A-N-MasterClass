@@ -82,3 +82,11 @@ describe('PartEditor quiz block', () => {
     expect(screen.queryByRole('button', { name: 'Delete question' })).toBeNull();
   });
 });
+
+describe('PartEditor head', () => {
+  it('names the block kind in words', () => {
+    render(<PartEditor programId="prog-1" part={part({ kind: 'video' })} first last />);
+    expect(screen.getByText('Video')).toBeInTheDocument();
+    expect(screen.queryByText('video')).toBeNull();
+  });
+});

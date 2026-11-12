@@ -8,6 +8,7 @@ import type { EditorQuestion } from '../api/curriculum';
 import { CommandForm } from './CommandForm';
 import { MoveButtons } from './MoveButtons';
 import { QuizEditor } from './QuizEditor';
+import { PART_KIND_LABELS } from '../partKinds';
 import styles from './Curriculum.module.css';
 
 function KindFields({ part, programId }: { part: Part; programId: string }) {
@@ -52,7 +53,7 @@ export function PartEditor({ programId, part, first, last, questions = [] }: Pro
       <CardBody>
         <Stack gap="tight">
           <div className={styles.head}>
-            <Badge tone="neutral">{part.kind}</Badge>
+            <Badge tone="neutral">{PART_KIND_LABELS[part.kind]}</Badge>
             <MoveButtons table="parts" id={part.id} first={first} last={last} />
           </div>
           <CommandForm fields={{ op: 'updatePart', partId: part.id }} submit="Save block">

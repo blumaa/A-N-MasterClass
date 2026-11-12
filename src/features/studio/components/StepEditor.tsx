@@ -1,7 +1,9 @@
 // Studio > Lesson: title, description, status, content blocks.
-import { Field, Heading, Input, Select, Stack, Textarea } from '@/components/ui/mds';
+import { Field, Heading, Input, Stack, Textarea } from '@/components/ui/mds';
 import { ButtonLink } from '@/components/ui/links';
+import { ChoiceSelect } from '@/components/fields/fields';
 import { PART_KINDS } from '@/lib/data/types';
+import { PART_KIND_LABELS } from '../partKinds';
 import type { CurriculumStep, EditorQuestion } from '../api/curriculum';
 import { studioProgramHref } from '../paths';
 import { CommandForm } from './CommandForm';
@@ -52,15 +54,7 @@ export function StepEditor({ programId, programSlug, step, previewHref, quizzes 
         />
       ))}
       <CommandForm inline fields={{ op: 'createPart', stepId: step.id }} submit="Add block" variant="primary">
-        <Field label="Block type">
-          <Select name="kind" defaultValue="text">
-            {PART_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <ChoiceSelect name="kind" label="Block type" value="text" options={PART_KINDS} labels={PART_KIND_LABELS} />
       </CommandForm>
 
       <CommandForm
