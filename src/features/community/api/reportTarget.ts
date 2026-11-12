@@ -3,9 +3,9 @@
 // Mirrors report_target_channel() and can_read_report_target() in SQL.
 import type { Repo } from '@/lib/data/repo';
 import type { ReportTarget } from '@/lib/data/types';
-import type { FileStore } from '@/lib/storage/fileStore';
+import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import type { ChannelAccess } from './access';
-import { postFilePaths, removeFiles } from './files';
+import { postFilePaths } from './files';
 
 export type ReportContent = {
   type: ReportTarget;

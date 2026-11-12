@@ -3238,6 +3238,10 @@ export type Database = {
         }
       }
       default_group: { Args: { target_community: string }; Returns: string }
+      erase_member_space: {
+        Args: { target_profile: string; target_space: string }
+        Returns: Json
+      }
       fulfil_order: {
         Args: {
           buyer: string
@@ -3337,6 +3341,10 @@ export type Database = {
         Returns: number
       }
       member_groups: { Args: { target_community: string }; Returns: string[] }
+      member_space_data: {
+        Args: { target_profile: string; target_space: string }
+        Returns: Json
+      }
       move_row: {
         Args: { direction: string; target_id: string; target_table: string }
         Returns: undefined
@@ -3482,6 +3490,7 @@ export type Database = {
         Args: { event_id: string; target_session: string }
         Returns: undefined
       }
+      space_product_ids: { Args: { target_space: string }; Returns: string[] }
       space_role: { Args: { target_space: string }; Returns: string }
       split_meetup: {
         Args: { split_at: number; target_meetup: string }

@@ -20,14 +20,32 @@ export function AppLink({
   );
 }
 
+/** Button-styled link. `download` = file from a route handler: a plain <a download>, since
+ *  client navigation cannot open a file. */
 export function ButtonLink({
   href,
   children,
   variant = 'primary',
+  size,
   onMedia,
-}: Common & { variant?: 'primary' | 'secondary' | 'ghost'; onMedia?: boolean }) {
+  download,
+}: Common & {
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  onMedia?: boolean;
+  download?: boolean;
+}) {
+  // MDS types Button as a <button>; with `href` it renders an <a> and forwards the rest.
+  const file = download ? { download: true } : {};
   return (
-    <Button as={NextLink} href={href} variant={variant} onMedia={onMedia}>
+    <Button
+      as={download ? undefined : NextLink}
+      href={href}
+      variant={variant}
+      size={size}
+      onMedia={onMedia}
+      {...file}
+    >
       {children}
     </Button>
   );

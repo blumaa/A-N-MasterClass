@@ -187,6 +187,11 @@ export type SessionWhere = { spaceId: string; productId?: string; clientId?: str
 export type NewSpace = { slug: string; name: string; isTest: boolean };
 export type SpacePatch = Partial<Pick<Space, 'name' | 'status'>>;
 
+/** One member's data in one space (G25 export): JSON keys as in member_space_data. */
+export type MemberSpaceData = Record<string, unknown>;
+/** Result of erasing a member from a space: Storage objects whose rows went, and whether no space is left. */
+export type ErasedMember = { files: { site: string[]; community: string[] }; lastSpace: boolean };
+
 export type Direction = 'up' | 'down';
 export type Reorderable = 'modules' | 'steps' | 'parts' | 'channels';
 
@@ -208,6 +213,12 @@ export interface Repo {
   ensureSpaceProfile(row: NewSpaceProfile): Promise<void>;
   /** Update an existing row. Throws ConstraintError(FILE_OUTSIDE_FOLDER) for an avatar outside the member's folder. */
   saveSpaceProfile(row: SpaceProfile): Promise<SpaceProfile>;
+  /** Everything the member wrote or holds in the space (G25 export). */
+  memberSpaceData(spaceId: string, profileId: string): Promise<MemberSpaceData>;
+  /** Removes the member from the space; orders and subscriptions stay without the profile. Owner throws. */
+  eraseMemberSpace(spaceId: string, profileId: string): Promise<ErasedMember>;
+  /** OWES: Supabase auth.admin.deleteUser (profile row cascades). */
+  deleteAccount(profileId: string): Promise<void>;
 
   // platform admin (G1): spaces, owners, domains
   /** Every space, ordered by name. */

@@ -7,11 +7,10 @@ import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { AccessGroupPatch, ChannelPatch, CommunitySettingsPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
 import type { AccessGroup, Channel, ChannelKind, ChannelPrivacy, CommunitySettings, Product, Role } from '@/lib/data/types';
-import type { FileStore } from '@/lib/storage/fileStore';
+import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import { reachesAsStaff } from './access';
 import { spaceNames } from '@/lib/data/names';
 import { directory, type DirectoryEntry } from './feed';
-import { removeFiles } from './files';
 import { authorOf } from './present';
 
 /** Name of the channel every new community starts with. */

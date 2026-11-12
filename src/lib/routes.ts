@@ -6,5 +6,7 @@ export const devSignInHref = '/dev/login';
 export const accountHref = '/account';
 export const setPasswordHref = '/account/password';
 export const accountSubscriptionsHref = '/account/subscriptions';
+/** Member data export (G25): JSON download of the viewer's data in this space. */
+export const accountDataHref = '/account/data.json';
 /** One-time claim link (G4): signs the owner of the token in on its space. */
 export const claimPath = (token: string): string => `/claim/${encodeURIComponent(token)}`;

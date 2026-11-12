@@ -51,7 +51,7 @@ export function CustomersTables({ view, locale }: { view: CustomersView; locale:
           <Heading level={2} variant="subtitle">
             Contacts
           </Heading>
-          <ButtonLink href={contactsCsvHref} variant="secondary">
+          <ButtonLink href={contactsCsvHref} variant="secondary" size="sm" download>
             Export CSV
           </ButtonLink>
         </Inline>

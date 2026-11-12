@@ -11,10 +11,9 @@ import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import type { Attachment, Block, DmThread, Product } from '@/lib/data/types';
 import { communityFileProblem } from '@/lib/storage/communityFiles';
-import type { FileStore } from '@/lib/storage/fileStore';
+import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import { channelScope, communityAccess, type CommunityAccess } from './access';
 import { directory } from './feed';
-import { removeFiles } from './files';
 
 export type ChatCommand =
   | { op: 'sendMessage'; channelId: string; body: string; attachment?: Attachment }

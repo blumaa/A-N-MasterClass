@@ -17,6 +17,7 @@ import { createFakeCommunityFiles } from './fakeCommunityFiles';
 import { createFakeEventsRepo } from './fakeEventsRepo';
 import { createFakeMediaRepo } from './fakeMediaRepo';
 import { createFakeModerationRepo } from './fakeModerationRepo';
+import { createFakeMemberData } from './fakeMemberData';
 import { withPoints } from './fakePoints';
 import { createFakePushRepo } from './fakePushRepo';
 import { createFakeQuizRepo, removeQuizParts } from './fakeQuizRepo';
@@ -97,6 +98,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakePushRepo(db),
     ...createFakeQuizRepo(db, id),
     ...createFakeCertificateRepo(db, id),
+    ...createFakeMemberData(db),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     spaceSlugByHost: async (host) => {

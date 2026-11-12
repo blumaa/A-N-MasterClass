@@ -1,14 +1,15 @@
-// Member's own account in this space: profile form plus links to password and subscriptions.
+// Member's own account in this space: profile form, links to password and subscriptions, data export and delete (G25).
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { AppLink } from '@/components/ui/links';
 import { Heading, Stack } from '@/components/ui/mds';
-import { saveProfileAction } from '@/features/account/actions';
+import { deleteAccountAction, saveProfileAction } from '@/features/account/actions';
 import { myProfile } from '@/features/account/api/profile';
 import { ProfileForm } from '@/features/account/components/ProfileForm';
+import { YourData } from '@/features/account/components/YourData';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
-import { accountSubscriptionsHref, setPasswordHref, signInHref } from '@/lib/routes';
+import { accountDataHref, accountSubscriptionsHref, setPasswordHref, signInHref } from '@/lib/routes';
 import { siteImageSrc } from '@/lib/storage/siteImageSrc';
 
 export const metadata: Metadata = { title: 'Account', robots: { index: false } };
@@ -29,6 +30,12 @@ export default async function AccountPage({ params }: PageProps<'/[space]/accoun
         <AppLink href={setPasswordHref}>Change password</AppLink>
         <AppLink href={accountSubscriptionsHref}>Subscriptions</AppLink>
       </Stack>
+      <YourData
+        exportHref={accountDataHref}
+        deleteAction={deleteAccountAction}
+        spaceName={viewer.space.name}
+        canDelete={viewer.role !== 'owner'}
+      />
     </Stack>
   );
 }

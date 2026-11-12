@@ -8,11 +8,11 @@ import type { Repo } from '@/lib/data/repo';
 import { REACTION_EMOJIS, type Comment, type Post, type Product, type ReactionEmoji } from '@/lib/data/types';
 import { mentionIdsFromBody } from '@/lib/mentions/parse';
 import { POST_PHOTOS_MAX } from '@/lib/storage/communityFiles';
-import type { FileStore } from '@/lib/storage/fileStore';
+import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import { inFolder } from '@/lib/storage/uploadPath';
 import { channelScope as findChannel, type ChannelAccess } from './access';
 import { directory } from './feed';
-import { channelFolderOf, postFilePaths, removeFiles } from './files';
+import { channelFolderOf, postFilePaths } from './files';
 import { buildNotifications, type Candidate, type NotificationBase } from './notify';
 
 /** Whether the viewer may open a step (programs feature decides; the app injects it). */
