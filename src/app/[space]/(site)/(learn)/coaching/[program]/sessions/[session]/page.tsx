@@ -8,6 +8,7 @@ import { ClientSessionDetail } from '@/features/coaching/components/ClientSessio
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
 import { googleClient } from '@/lib/google/server';
+import { currentViewerZone } from '@/lib/time/currentViewerZone';
 
 export const metadata: Metadata = { title: 'Coaching session' };
 
@@ -23,14 +24,18 @@ export default async function CoachingSessionPage({ params }: PageProps<'/[space
     coachSettingsOf(repo, viewer.space.id),
   ]);
   if (!session || !product || product.id !== session.productId) notFound();
-  const reschedule = session.changeable
-    ? await rescheduleSlots(repo, viewer, calendarPortFor(repo, googleClient()), id, now)
-    : { slots: [], calendarDown: false };
+  const [reschedule, viewerZone] = await Promise.all([
+    session.changeable
+      ? rescheduleSlots(repo, viewer, calendarPortFor(repo, googleClient()), id, now)
+      : { slots: [], calendarDown: false },
+    currentViewerZone(settings.timeZone),
+  ]);
   return (
       <ClientSessionDetail
         product={product}
         session={session}
-        timeZone={settings.timeZone}
+        viewerZone={viewerZone}
+        coachZone={settings.timeZone}
         cutoffHours={settings.cancelCutoffHours}
         reschedule={reschedule}
       />

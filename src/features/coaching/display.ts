@@ -1,4 +1,5 @@
 // Pure display helpers for coaching screens (en until the i18n layer takes over, G24).
+import { formatInZone } from '@/lib/format/date';
 
 export const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 
@@ -22,7 +23,7 @@ const formatsFor = (timeZone: string) => {
   return f;
 };
 
-/** Open slots grouped by local day in the coach's zone (slots arrive sorted). */
+/** Open slots grouped by local day in the given zone (slots arrive sorted). */
 export function slotDays(slots: readonly Date[], timeZone: string): SlotDay[] {
   const { day, time } = formatsFor(timeZone);
   const days: SlotDay[] = [];
@@ -34,4 +35,15 @@ export function slotDays(slots: readonly Date[], timeZone: string): SlotDay[] {
     else days.push({ label, slots: [entry] });
   }
   return days;
+}
+
+/** Client-facing time: the client's zone first, the coach's as secondary when it reads differently. */
+export type ZonedText = { local: string; coach: string | null };
+
+/** One time, or a range when given start and end. */
+export function zonedText(times: readonly Date[], viewerZone: string, coachZone: string): ZonedText {
+  const text = (zone: string) => times.map((d) => formatInZone(d, zone)).join(' – ');
+  const local = text(viewerZone);
+  const coach = text(coachZone);
+  return { local, coach: coach === local ? null : coach };
 }

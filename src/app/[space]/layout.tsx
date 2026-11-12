@@ -1,10 +1,12 @@
-// Space shell: runtime theme, header (site nav, library, studio for staff, notifications, sign in/out),
-// footer with site links + legal pages (G11, G25). A draft space shows only its name to visitors
-// who cannot see it yet; its pages are gated in (site)/layout.tsx, login and claim stay open.
+// Space shell: runtime theme, viewer time zone cookie (client-facing times), header (site nav,
+// library, studio for staff, notifications, sign in/out), footer with site links + legal pages
+// (G11, G25). A draft space shows only its name to visitors who cannot see it yet; its pages are
+// gated in (site)/layout.tsx, login and claim stay open.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppLink } from "@/components/ui/links";
 import { Container, Text } from "@/components/ui/mds";
+import { ViewerZoneScript } from "@/components/ViewerZoneScript/ViewerZoneScript";
 import { spaceTheme } from "@/features/branding/api/branding";
 import { ThemeStyle } from "@/features/branding/components/ThemeStyle";
 import { themeCss } from "@/features/branding/theme";
@@ -57,6 +59,7 @@ export default async function SpaceLayout({
   return (
     <>
       <ThemeStyle css={themeCss(theme, "space")} />
+      <ViewerZoneScript />
       {pushKey ? (
         <PushHeal publicKey={pushKey} profileId={viewer.profile?.id ?? null} />
       ) : null}

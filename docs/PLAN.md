@@ -196,8 +196,8 @@ Launch 4 as built:
 - Slots: 15-minute grid in the coach's zone (DST-safe), minus scheduled sessions + buffers + Google free/busy. Calendar unreachable = no slots and booking refused (fail closed). The session being moved does not block its own time.
 - DB: exclusion constraint (btree_gist) on space + time range for scheduled sessions; client booking via `book_coaching_session` (locks the program row, checks grant, balance, length); client changes via `change_coaching_session` (own session, before the cutoff). Notes staff only.
 - Google Calendar: OAuth (offline; scopes `openid`, `email`, `calendar.freebusy`, `calendar.events.owned`, SSOT `GOOGLE_SCOPES` in `src/lib/google/calendar.ts`), state cookie checked on callback, refresh token in Vault (`save_calendar_connection`, service role only, removed with the connection). DB row is the truth: sync after the write; failure = "Not synced" in Studio with "Sync again". `invalid_grant` = calendar down until reconnected.
-- Client: library tile, coaching page (balance, slots in the coach's zone, agenda), session page (join link, `.ics`, reschedule/cancel until cutoff). Studio: Coaching nav (products.edit), group sessions, program settings, hours, overrides, calendar (settings.manage), session page with notes, reschedule, cancel.
-- Not yet: confirmation/reminder emails (email provider pending), per-client time zone display (coach zone shown with label), Google app verification (testing mode refresh tokens expire after 7 days).
+- Client: library tile, coaching page (balance, slots in the client's zone since Launch 6 item 9, agenda), session page (join link, `.ics`, reschedule/cancel until cutoff). Studio: Coaching nav (products.edit), group sessions, program settings, hours, overrides, calendar (settings.manage), session page with notes, reschedule, cancel.
+- Not yet: confirmation/reminder emails (email provider pending), Google app verification (testing mode refresh tokens expire after 7 days).
 
 Launch 5 as built:
 - Migration `20261110091000_podcasts_downloads.sql` + `supabase/tests/100-podcasts-downloads.test.sql` written, applied to ksb 2026-11-11.
@@ -309,6 +309,14 @@ Launch 6 item 8 as built:
 - Listings bounded: members see 3 past + 10 upcoming per series, Studio 5 + 20. Series end search capped at 100000 occurrences.
 - Studio: repeat fields on the meetup form; `studio/communities/[id]/events/[meetup]` lists sessions to edit or cancel with a scope picker (redirects to the events list when gone). The series form does not clear per-occurrence edits.
 - Decisions: no per-occurrence location (join link is per series); replay is per occurrence (series replay = occurrence 0); a "following" split of a monthly last-weekday series keeps the ordinal of the split date, so a split on a 4th Thursday that was also the last can drift.
+
+Launch 6 item 9 as built:
+- G0: help.kajabi.com does not say whether the Coaching Scheduler shows slots in the client's zone; it documents coach availability in the coach's zone, and Meetups converted to each member's device zone. https://help.kajabi.com/en/articles/17174388-connect-the-kajabi-scheduler-to-a-coaching-program, https://help.kajabi.com/articles/products/community/are-meetups-shown-in-my-timezone (checked 2026-11-12). Followed the Meetups behaviour. No stored client zone (nothing in Kajabi docs says it stores one).
+- Zone source: `ViewerZoneScript` in the space layout stores the browser `Intl` zone in cookie `tz` on every full page load (Next guide "Preventing flash before hydration", InlineScript pattern). Coaching client pages read it with `currentViewerZone` (`src/lib/time`), validated as an IANA zone, fallback = coach zone. Times are formatted on the server: no hydration mismatch, no flash.
+- Shown in the client's zone: open slots (grouped by the client's day), session list, session page, reschedule slots. Coach's zone stays as secondary text (field hint, "Coach: ...", "Coach's time: ...") when it reads differently. `.ics` stays UTC, so calendar apps show device time.
+- Booking still posts the UTC instant; server checks unchanged. Studio stays in the coach zone.
+- Limit: the very first request on a host has no cookie yet and shows the coach zone (labelled). A changed device zone applies from the next full page load.
+- Not yet: meetups in the member's zone (still the meetup's own zone, labelled).
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

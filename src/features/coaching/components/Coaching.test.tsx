@@ -42,25 +42,35 @@ const data = (over: Partial<Data> = {}): Data => ({
 
 describe('ClientCoaching', () => {
   it('offers open slots in the coach zone with the balance', () => {
-    render(<ClientCoaching data={data()} />);
+    render(<ClientCoaching data={data()} viewerZone="Europe/Berlin" />);
     expect(screen.getByText(/3 of 3 sessions left/)).toBeInTheDocument();
     expect(screen.getByLabelText('Time (Europe/Berlin)')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: /09:00/ })).toHaveValue(WED_9.toISOString());
     expect(screen.getByRole('button', { name: 'Book' })).toBeInTheDocument();
+    expect(screen.queryByText(/coach works in/)).toBeNull();
+  });
+
+  it("shows slots and sessions in the client's zone, the coach's zone as secondary", () => {
+    render(<ClientCoaching data={data({ upcoming: [session()] })} viewerZone="Asia/Tokyo" />);
+    // 09:00 Berlin = 17:00 Tokyo; the posted value stays the UTC instant.
+    expect(screen.getByLabelText('Time (Asia/Tokyo)')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Wed, Nov 11, 17:00' })).toHaveValue(WED_9.toISOString());
+    expect(screen.getByText('Shown in your time zone. The coach works in Europe/Berlin.')).toBeInTheDocument();
+    expect(screen.getByText('Nov 11, 2026, 5:00 PM GMT+9 · Coach: Nov 11, 2026, 9:00 AM GMT+1')).toBeInTheDocument();
   });
 
   it('fails closed while the calendar is down, and tells non-holders they lack access', () => {
-    const { unmount } = render(<ClientCoaching data={data({ calendarDown: true, slots: [] })} />);
+    const { unmount } = render(<ClientCoaching data={data({ calendarDown: true, slots: [] })} viewerZone="Europe/Berlin" />);
     expect(screen.getByRole('status')).toHaveTextContent(/cannot be checked/);
     expect(screen.queryByRole('button', { name: 'Book' })).toBeNull();
     unmount();
-    render(<ClientCoaching data={data({ hasAccess: false, remaining: 0, slots: [] })} />);
+    render(<ClientCoaching data={data({ hasAccess: false, remaining: 0, slots: [] })} viewerZone="Europe/Berlin" />);
     expect(screen.getByText(/do not have access/)).toBeInTheDocument();
   });
 });
 
 describe('ClientSessionDetail', () => {
-  const props = { product, timeZone: 'Europe/Berlin', cutoffHours: 24, reschedule: { slots: [WED_9], calendarDown: false } };
+  const props = { product, coachZone: 'Europe/Berlin', viewerZone: 'Europe/Berlin', cutoffHours: 24, reschedule: { slots: [WED_9], calendarDown: false } };
 
   it('links join + calendar file and offers move/cancel while changeable', () => {
     render(<ClientSessionDetail {...props} session={session()} />);
@@ -68,6 +78,13 @@ describe('ClientSessionDetail', () => {
     expect(screen.getByRole('link', { name: 'Add to calendar' })).toHaveAttribute('href', '/coaching/private-coaching/sessions/s1/session.ics');
     expect(screen.getByRole('button', { name: 'Move session' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel session' })).toBeInTheDocument();
+  });
+
+  it("shows the time in the client's zone with the coach's below, and reschedule slots alike", () => {
+    render(<ClientSessionDetail {...props} viewerZone="Asia/Tokyo" session={session()} />);
+    expect(screen.getByText('Nov 11, 2026, 5:00 PM GMT+9 – Nov 11, 2026, 6:00 PM GMT+9')).toBeInTheDocument();
+    expect(screen.getByText("Coach's time: Nov 11, 2026, 9:00 AM GMT+1 – Nov 11, 2026, 10:00 AM GMT+1")).toBeInTheDocument();
+    expect(screen.getByLabelText('Time (Asia/Tokyo)')).toBeInTheDocument();
   });
 
   it('explains the cutoff once the session can no longer change', () => {

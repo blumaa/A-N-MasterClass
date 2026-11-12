@@ -7,6 +7,7 @@ import { ClientCoaching } from '@/features/coaching/components/ClientCoaching';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
 import { googleClient } from '@/lib/google/server';
+import { currentViewerZone } from '@/lib/time/currentViewerZone';
 
 type Props = PageProps<'/[space]/coaching/[program]'>;
 
@@ -26,7 +27,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CoachingPage({ params }: Props) {
   const data = await load(params);
   if (!data) notFound();
+  const viewerZone = await currentViewerZone(data.settings.timeZone);
   return (
-      <ClientCoaching data={data} />
+      <ClientCoaching data={data} viewerZone={viewerZone} />
   );
 }

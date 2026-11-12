@@ -1,9 +1,9 @@
 // One coaching session for the client: time, join link, add to calendar, and move or cancel
-// while still before the coach's cutoff.
+// while still before the coach's cutoff. Times in the client's zone, the coach's as secondary.
 import { AppLink, ButtonLink } from '@/components/ui/links';
 import { Badge, Heading, Inline, Stack, Text } from '@/components/ui/mds';
-import { formatInZone } from '@/lib/format/date';
 import type { ClientSession } from '../api/booking';
+import { zonedText } from '../display';
 import { coachingHref, sessionIcsHref } from '../paths';
 import { BookingForm } from './forms';
 import { SlotSelect } from './SlotSelect';
@@ -11,12 +11,14 @@ import { SlotSelect } from './SlotSelect';
 type Props = {
   product: { slug: string; title: string };
   session: ClientSession;
-  timeZone: string;
+  /** The client's zone (viewer zone cookie, else the coach's). */
+  viewerZone: string;
+  coachZone: string;
   cutoffHours: number;
   reschedule: { slots: Date[]; calendarDown: boolean };
 };
 
-function Change({ session: s, timeZone, cutoffHours, reschedule }: Omit<Props, 'product'>) {
+function Change({ session: s, viewerZone, coachZone, cutoffHours, reschedule }: Omit<Props, 'product'>) {
   if (!s.changeable) {
     return s.status === 'scheduled' && s.clientId ? (
       <Text tone="muted">{`Sessions can be changed until ${cutoffHours} hours before they start.`}</Text>
@@ -33,7 +35,7 @@ function Change({ session: s, timeZone, cutoffHours, reschedule }: Omit<Props, '
         </Text>
       ) : reschedule.slots.length > 0 ? (
         <BookingForm fields={{ op: 'reschedule', sessionId: s.id }} submit="Move session">
-          <SlotSelect slots={reschedule.slots} timeZone={timeZone} />
+          <SlotSelect slots={reschedule.slots} timeZone={viewerZone} coachZone={coachZone} />
         </BookingForm>
       ) : null}
       <BookingForm inline variant="danger" submit="Cancel session" confirm="Cancel this session?" fields={{ op: 'cancel', sessionId: s.id }} />
@@ -42,8 +44,9 @@ function Change({ session: s, timeZone, cutoffHours, reschedule }: Omit<Props, '
 }
 
 export function ClientSessionDetail(props: Props) {
-  const { product, session: s, timeZone } = props;
+  const { product, session: s, viewerZone, coachZone } = props;
   const scheduled = s.status === 'scheduled';
+  const time = zonedText([s.startsAt, s.endsAt], viewerZone, coachZone);
   return (
     <Stack gap="loose">
       <AppLink href={coachingHref(product.slug)}>{`← ${product.title}`}</AppLink>
@@ -51,7 +54,8 @@ export function ClientSessionDetail(props: Props) {
         <Heading level={1} variant="title">
           {s.title}
         </Heading>
-        <Text>{`${formatInZone(s.startsAt, timeZone)} – ${formatInZone(s.endsAt, timeZone)}`}</Text>
+        <Text>{time.local}</Text>
+        {time.coach ? <Text tone="muted">{`Coach's time: ${time.coach}`}</Text> : null}
         {scheduled ? null : <Badge tone="neutral">Cancelled</Badge>}
         {s.agenda ? <Text>{`Agenda: ${s.agenda}`}</Text> : null}
       </Stack>
