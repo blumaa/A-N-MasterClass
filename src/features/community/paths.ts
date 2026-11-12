@@ -26,3 +26,5 @@ export const leaderboardHref = (community: string, period?: LeaderboardPeriod): 
   `/community/${community}/leaderboard${period && period !== 'all' ? `?period=${period}` : ''}`;
 export const studioEventsHref = (community: string): string => `${studioCommunityHref(community)}/events`;
 export const studioReportsHref = (community: string): string => `${studioCommunityHref(community)}/reports`;
+/** Studio page of one meetup's occurrences. */
+export const studioMeetupHref = (community: string, meetup: string): string => `${studioEventsHref(community)}/${meetup}`;

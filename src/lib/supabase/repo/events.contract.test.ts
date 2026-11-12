@@ -1,7 +1,8 @@
 // Events Supabase repo against the linked project (service client; RLS is covered by the SQL suites).
 // Points are awarded by SQL triggers, so entries are created through the repo and totals read back.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ConstraintError } from '@/lib/data/errors';
+import { ConstraintError, OCCURRENCE_MISSING } from '@/lib/data/errors';
+import type { MeetupOccurrence, Repeat } from '@/lib/data/types';
 import { createCoreRepo } from './core';
 import { createEventsRepo, type EventsRepo } from './events';
 import { contractEnabled, createContractSpace, type ContractSpace } from './testing/contractSpace';
@@ -41,6 +42,7 @@ describe.skipIf(!contractEnabled)('events repo (Supabase contract)', () => {
     timeZone: 'Europe/Amsterdam',
     startsAt: at(1),
     endsAt: at(2),
+    repeat: null,
     createdAt: new Date(),
     ...over,
   });
@@ -234,18 +236,71 @@ describe.skipIf(!contractEnabled)('events repo (Supabase contract)', () => {
     it('RSVP is idempotent both ways (first timestamp kept); delete cascades', async () => {
       const m = await repo.createMeetup(newMeetup({ title: 'Rsvp' }));
       const t1 = new Date(Date.now() - 5000);
-      await repo.setRsvp(m.id, alice, true, t1);
-      await repo.setRsvp(m.id, alice, true, new Date());
-      await repo.setRsvp(m.id, bob, true, new Date());
+      await repo.setRsvp(m.id, 0, alice, true, t1);
+      await repo.setRsvp(m.id, 0, alice, true, new Date());
+      await repo.setRsvp(m.id, 0, bob, true, new Date());
       const rsvps = await repo.meetupRsvps(m.id);
       expect(rsvps).toHaveLength(2);
       expect(rsvps.find((r) => r.profileId === alice)?.createdAt.getTime()).toBe(t1.getTime());
-      await repo.setRsvp(m.id, bob, false, new Date());
-      await repo.setRsvp(m.id, bob, false, new Date());
+      await repo.setRsvp(m.id, 0, bob, false, new Date());
+      await repo.setRsvp(m.id, 0, bob, false, new Date());
       expect((await repo.meetupRsvps(m.id)).map((r) => r.profileId)).toEqual([alice]);
       await repo.deleteMeetup(m.id);
       expect(await repo.meetup(m.id)).toBeNull();
       expect(await repo.meetupRsvps(m.id)).toEqual([]);
+    });
+  });
+
+  describe('recurring meetups', () => {
+    const weekly = (r: Partial<Repeat> = {}): Repeat => ({ freq: 'weekly', every: 1, days: [], count: 5, until: null, ...r });
+    const edit = (meetupId: string, n: number, over: Partial<MeetupOccurrence> = {}): MeetupOccurrence => ({
+      meetupId, occurrence: n, cancelled: false, title: null, description: null, startsAt: null, endsAt: null, replayVimeoId: null, ...over,
+    });
+
+    it('round-trips repeat rules, refuses bad ones, clears with null', async () => {
+      const m = await repo.createMeetup(newMeetup({ repeat: weekly({ days: [1, 3] }) }));
+      expect(m.repeat).toEqual(weekly({ days: [1, 3] }));
+      const until = await repo.updateMeetup(m.id, { repeat: weekly({ freq: 'monthly', count: null, until: '2027-06-30' }) });
+      expect(until.repeat).toEqual(weekly({ freq: 'monthly', count: null, until: '2027-06-30' }));
+      expect((await repo.updateMeetup(m.id, { repeat: null })).repeat).toBeNull();
+      const bad = (r: Partial<Repeat>) => expect(repo.createMeetup(newMeetup({ repeat: weekly(r) }))).rejects.toBeInstanceOf(ConstraintError);
+      await bad({ every: 0 });
+      await bad({ count: 1000 });
+      await bad({ until: '2027-01-01' });
+      await bad({ freq: 'daily', days: [2] });
+    });
+
+    it('edits and cancels one occurrence; cancel and a shorter series drop RSVPs', async () => {
+      const m = await repo.createMeetup(newMeetup({ repeat: weekly() }));
+      await expect(repo.setMeetupOccurrence(edit(m.id, 5, { title: 'x' }))).rejects.toThrow(new ConstraintError(OCCURRENCE_MISSING));
+      await expect(repo.setMeetupOccurrence(edit(m.id, 1, { startsAt: at(8) }))).rejects.toBeInstanceOf(ConstraintError);
+      const moved = edit(m.id, 1, { title: 'Moved', startsAt: at(8), endsAt: at(9), replayVimeoId: '42' });
+      await repo.setMeetupOccurrence(moved);
+      await repo.setRsvp(m.id, 2, alice, true, new Date());
+      await repo.setRsvp(m.id, 4, alice, true, new Date());
+      await repo.setMeetupOccurrence(edit(m.id, 2, { cancelled: true }));
+      expect(await repo.meetupOccurrences(m.id)).toEqual([moved, edit(m.id, 2, { cancelled: true })]);
+      expect((await repo.meetupRsvps(m.id)).map((r) => r.occurrence)).toEqual([4]);
+      await repo.updateMeetup(m.id, { repeat: weekly({ count: 2 }) });
+      expect(await repo.meetupRsvps(m.id)).toEqual([]);
+      expect((await repo.meetupOccurrences(m.id)).map((o) => o.occurrence)).toEqual([1]);
+    });
+
+    it('splits a series as staff: the new one takes over, renumbered', async () => {
+      const owner = await fx.newUser('owner');
+      const ins = await fx.admin.from('space_members').insert({ space_id: fx.spaceId, profile_id: owner, role: 'owner' });
+      if (ins.error) throw ins.error;
+      const client = await fx.signIn('owner', owner);
+      const asOwner = createEventsRepo({ db: async () => client, admin: () => fx.admin });
+      // UTC: no DST shift between occurrences.
+      const m = await repo.createMeetup(newMeetup({ timeZone: 'UTC', repeat: weekly({ freq: 'daily' }) }));
+      await repo.setRsvp(m.id, 3, alice, true, new Date());
+      await expect(asOwner.splitMeetup(m.id, 9)).rejects.toThrow(new ConstraintError(OCCURRENCE_MISSING));
+      const next = await asOwner.splitMeetup(m.id, 2);
+      expect(next.startsAt).toEqual(new Date(m.startsAt.getTime() + 2 * DAY));
+      expect(next.repeat).toEqual(weekly({ freq: 'daily', count: 3 }));
+      expect((await repo.meetup(m.id))?.repeat?.count).toBe(2);
+      expect((await repo.meetupRsvps(next.id)).map((r) => r.occurrence)).toEqual([1]);
     });
   });
 });

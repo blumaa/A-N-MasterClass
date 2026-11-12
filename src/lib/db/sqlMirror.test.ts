@@ -24,6 +24,9 @@ import {
   PODCAST_ORDERS,
   POINT_REASONS,
   POINT_VALUE_MAX,
+  REPEAT_COUNT_MAX,
+  REPEAT_EVERY_MAX,
+  REPEAT_FREQS,
 } from '@/lib/data/types';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { SECTION_KINDS } from '@/lib/site/sections';
@@ -211,5 +214,16 @@ describe('SQL mirrors: podcasts', () => {
 
   it('post photos trigger cap equals POST_PHOTOS_MAX', () => {
     expect(sql).toContain(`where p.post_id = new.post_id) >= ${POST_PHOTOS_MAX} then`);
+  });
+});
+
+describe('SQL mirrors: meetups', () => {
+  it('meetups repeat_freq check equals REPEAT_FREQS', () => {
+    expect(list(/meetups_repeat_freq check \(repeat_freq in \(([^)]+)\)\)/)).toEqual([...REPEAT_FREQS]);
+  });
+
+  it('repeat limits equal REPEAT_EVERY_MAX and REPEAT_COUNT_MAX', () => {
+    expect(sql).toContain(`repeat_every between 1 and ${REPEAT_EVERY_MAX}`);
+    expect(sql).toContain(`repeat_count between 1 and ${REPEAT_COUNT_MAX}`);
   });
 });

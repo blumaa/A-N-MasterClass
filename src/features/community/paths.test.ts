@@ -18,6 +18,7 @@ import {
   studioCommunitiesHref,
   studioCommunityHref,
   studioEventsHref,
+  studioMeetupHref,
   studioReportsHref,
 } from './paths';
 
@@ -42,6 +43,7 @@ it('builds challenge, meetup and leaderboard paths', () => {
   expect(leaderboardHref('circle')).toBe('/community/circle/leaderboard');
   expect(leaderboardHref('circle', 'week')).toBe('/community/circle/leaderboard?period=week');
   expect(studioEventsHref('c-1')).toBe('/studio/communities/c-1/events');
+  expect(studioMeetupHref('c-1', 'm')).toBe('/studio/communities/c-1/events/m');
   expect(studioReportsHref('c-1')).toBe('/studio/communities/c-1/reports');
 });
 

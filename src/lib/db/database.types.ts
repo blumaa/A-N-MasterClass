@@ -940,20 +940,64 @@ export type Database = {
           },
         ]
       }
+      meetup_occurrences: {
+        Row: {
+          cancelled: boolean
+          description: string | null
+          ends_at: string | null
+          meetup_id: string
+          occurrence: number
+          replay_vimeo_id: string | null
+          starts_at: string | null
+          title: string | null
+        }
+        Insert: {
+          cancelled?: boolean
+          description?: string | null
+          ends_at?: string | null
+          meetup_id: string
+          occurrence: number
+          replay_vimeo_id?: string | null
+          starts_at?: string | null
+          title?: string | null
+        }
+        Update: {
+          cancelled?: boolean
+          description?: string | null
+          ends_at?: string | null
+          meetup_id?: string
+          occurrence?: number
+          replay_vimeo_id?: string | null
+          starts_at?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetup_occurrences_meetup_id_fkey"
+            columns: ["meetup_id"]
+            isOneToOne: false
+            referencedRelation: "meetups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetup_rsvps: {
         Row: {
           created_at: string
           meetup_id: string
+          occurrence: number
           profile_id: string
         }
         Insert: {
           created_at?: string
           meetup_id: string
+          occurrence?: number
           profile_id: string
         }
         Update: {
           created_at?: string
           meetup_id?: string
+          occurrence?: number
           profile_id?: string
         }
         Relationships: [
@@ -983,6 +1027,11 @@ export type Database = {
           ends_at: string
           id: string
           location: string
+          repeat_count: number | null
+          repeat_days: number[]
+          repeat_every: number
+          repeat_freq: string | null
+          repeat_until: string | null
           replay_vimeo_id: string | null
           starts_at: string
           time_zone: string
@@ -997,6 +1046,11 @@ export type Database = {
           ends_at: string
           id?: string
           location: string
+          repeat_count?: number | null
+          repeat_days?: number[]
+          repeat_every?: number
+          repeat_freq?: string | null
+          repeat_until?: string | null
           replay_vimeo_id?: string | null
           starts_at: string
           time_zone?: string
@@ -1011,6 +1065,11 @@ export type Database = {
           ends_at?: string
           id?: string
           location?: string
+          repeat_count?: number | null
+          repeat_days?: number[]
+          repeat_every?: number
+          repeat_freq?: string | null
+          repeat_until?: string | null
           replay_vimeo_id?: string | null
           starts_at?: string
           time_zone?: string
@@ -2720,8 +2779,22 @@ export type Database = {
       live_post_topics: { Args: { target_post: string }; Returns: string[] }
       live_send: { Args: { topic: string }; Returns: undefined }
       live_topics: { Args: { r: Json; tbl: string }; Returns: string[] }
-      meetup_join_url: { Args: { target_meetup: string }; Returns: string }
-      meetup_rsvp_count: { Args: { target_meetup: string }; Returns: number }
+      meetup_join_url: {
+        Args: { target_meetup: string; target_occurrence?: number }
+        Returns: string
+      }
+      meetup_occurrence_start: {
+        Args: { m: Database["public"]["Tables"]["meetups"]["Row"]; n: number }
+        Returns: string
+      }
+      meetup_occurrence_window: {
+        Args: { target_meetup: string; target_occurrence: number }
+        Returns: unknown
+      }
+      meetup_rsvp_count: {
+        Args: { target_meetup: string; target_occurrence?: number }
+        Returns: number
+      }
       member_groups: { Args: { target_community: string }; Returns: string[] }
       move_row: {
         Args: { direction: string; target_id: string; target_table: string }
@@ -2845,8 +2918,13 @@ export type Database = {
         Returns: undefined
       }
       space_role: { Args: { target_space: string }; Returns: string }
+      split_meetup: {
+        Args: { split_at: number; target_meetup: string }
+        Returns: string
+      }
       step_space: { Args: { target_step: string }; Returns: string }
       thread_folder: { Args: { target_thread: string }; Returns: string }
+      zoned_to_utc: { Args: { local: string; zone: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

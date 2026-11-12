@@ -25,3 +25,7 @@ export const ATTACHMENT_INCOMPLETE = 'attachment needs a name, type and size';
 
 // Push subscription text, shared by the fake repo and constraintMessages.
 export const INVALID_PUSH_SUBSCRIPTION = 'invalid push subscription';
+
+// Recurring meetup texts, shared by the fake repo and constraintMessages.
+export const INVALID_REPEAT = 'invalid repeat';
+export const OCCURRENCE_MISSING = 'no such occurrence';

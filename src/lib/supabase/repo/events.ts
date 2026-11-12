@@ -1,10 +1,18 @@
-// Supabase Repo: points totals, challenges + entries, meetups + RSVPs.
+// Supabase Repo: points totals, challenges + entries, meetups + occurrence edits + RSVPs.
 // Semantics mirror src/lib/data/fake/fakeEventsRepo.ts; constraints come from the SQL schema.
 // The points ledger is written by SQL triggers on the source rows; this repo only reads it.
 import type { Repo } from '@/lib/data/repo';
 import type { Meetup } from '@/lib/data/types';
 import { check, defined, unwrap, unwrapMaybe, type RepoCtx } from './context';
-import { toChallenge, toChallengeEntry, toMeetup, toMeetupRsvp, type MeetupRow } from './mapEvents';
+import {
+  repeatColumns,
+  toChallenge,
+  toChallengeEntry,
+  toMeetup,
+  toMeetupOccurrence,
+  toMeetupRsvp,
+  type MeetupRow,
+} from './mapEvents';
 
 export type EventsRepo = Pick<
   Repo,
@@ -22,13 +30,17 @@ export type EventsRepo = Pick<
   | 'createMeetup'
   | 'updateMeetup'
   | 'deleteMeetup'
+  | 'meetupOccurrences'
+  | 'setMeetupOccurrence'
+  | 'splitMeetup'
   | 'meetupRsvps'
   | 'setRsvp'
 >;
 
 // Everything on meetups except location (column grant hides it from clients).
+// One literal: supabase-js parses it for row types (a `+` concat widens it to string).
 const MEETUP_COLUMNS =
-  'id, community_id, access_group_id, channel_id, title, description, time_zone, starts_at, ends_at, replay_vimeo_id, created_at';
+  'id, community_id, access_group_id, channel_id, title, description, time_zone, starts_at, ends_at, replay_vimeo_id, created_at, repeat_freq, repeat_every, repeat_days, repeat_count, repeat_until';
 const PAGE = 1000;
 
 export function createEventsRepo({ db, admin }: RepoCtx): EventsRepo {
@@ -177,6 +189,7 @@ export function createEventsRepo({ db, admin }: RepoCtx): EventsRepo {
             time_zone: input.timeZone,
             starts_at: input.startsAt.toISOString(),
             ends_at: input.endsAt.toISOString(),
+            ...repeatColumns(input.repeat),
           })
           .select('id')
           .single(),
@@ -197,6 +210,7 @@ export function createEventsRepo({ db, admin }: RepoCtx): EventsRepo {
               starts_at: patch.startsAt?.toISOString(),
               ends_at: patch.endsAt?.toISOString(),
               replay_vimeo_id: patch.replayVimeoId,
+              ...(patch.repeat === undefined ? {} : repeatColumns(patch.repeat)),
             }),
           )
           .eq('id', id)
@@ -208,22 +222,57 @@ export function createEventsRepo({ db, admin }: RepoCtx): EventsRepo {
     async deleteMeetup(id) {
       check(await (await db()).from('meetups').delete().eq('id', id));
     },
-    async meetupRsvps(meetupId) {
-      return unwrap(await (await db()).from('meetup_rsvps').select('*').eq('meetup_id', meetupId)).map(toMeetupRsvp);
+    async meetupOccurrences(meetupId) {
+      return unwrap(
+        await (await db()).from('meetup_occurrences').select('*').eq('meetup_id', meetupId).order('occurrence'),
+      ).map(toMeetupOccurrence);
     },
-    async setRsvp(meetupId, profileId, on, now) {
+    async setMeetupOccurrence(row) {
+      check(
+        await (await db()).from('meetup_occurrences').upsert(
+          {
+            meetup_id: row.meetupId,
+            occurrence: row.occurrence,
+            cancelled: row.cancelled,
+            title: row.title,
+            description: row.description,
+            starts_at: row.startsAt?.toISOString() ?? null,
+            ends_at: row.endsAt?.toISOString() ?? null,
+            replay_vimeo_id: row.replayVimeoId,
+          },
+          { onConflict: 'meetup_id,occurrence' },
+        ),
+      );
+    },
+    async splitMeetup(meetupId, at) {
+      const id = unwrap(await (await db()).rpc('split_meetup', { target_meetup: meetupId, split_at: at }));
+      return mustMeetup(id);
+    },
+    async meetupRsvps(meetupId) {
+      return unwrap(
+        await (await db()).from('meetup_rsvps').select('*').eq('meetup_id', meetupId).order('occurrence'),
+      ).map(toMeetupRsvp);
+    },
+    async setRsvp(meetupId, occurrence, profileId, on, now) {
       const c = await db();
       if (on) {
         check(
           await c
             .from('meetup_rsvps')
             .upsert(
-              { meetup_id: meetupId, profile_id: profileId, created_at: now.toISOString() },
-              { onConflict: 'meetup_id,profile_id', ignoreDuplicates: true },
+              { meetup_id: meetupId, occurrence, profile_id: profileId, created_at: now.toISOString() },
+              { onConflict: 'meetup_id,occurrence,profile_id', ignoreDuplicates: true },
             ),
         );
       } else {
-        check(await c.from('meetup_rsvps').delete().eq('meetup_id', meetupId).eq('profile_id', profileId));
+        check(
+          await c
+            .from('meetup_rsvps')
+            .delete()
+            .eq('meetup_id', meetupId)
+            .eq('occurrence', occurrence)
+            .eq('profile_id', profileId),
+        );
       }
     },
   };

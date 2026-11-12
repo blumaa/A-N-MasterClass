@@ -20,7 +20,10 @@ const meetup = (over: Partial<MeetupItem> = {}): MeetupItem => ({
   startsAt: NOW,
   endsAt: new Date(NOW.getTime() + 3_600_000),
   replayVimeoId: null,
+  repeat: null,
   createdAt: NOW,
+  key: 'm1',
+  occurrence: 0,
   state: 'upcoming',
   joinUrl: null,
   rsvpCount: 2,
@@ -36,6 +39,14 @@ describe('MeetupDetail', () => {
     expect(screen.getByText(/join link appears 15 minutes before/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'RSVP' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Add to calendar' })).toHaveAttribute('href', '/community/circle/meetups/m1/event.ics');
+  });
+
+  it('links one occurrence of a repeating meetup and RSVPs to it', () => {
+    const repeat = { freq: 'weekly' as const, every: 1, days: [], count: null, until: null };
+    const { container } = render(<MeetupDetail community="circle" meetup={meetup({ repeat, key: 'm1_3', occurrence: 3 })} action={noop} signedIn />);
+    expect(screen.getByText('Repeats: Weekly on Tue')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add to calendar' })).toHaveAttribute('href', '/community/circle/meetups/m1_3/event.ics');
+    expect(container.querySelector('input[name="occurrence"]')).toHaveValue('3');
   });
 
   it('shows the join link when joinable and no RSVP for guests', () => {

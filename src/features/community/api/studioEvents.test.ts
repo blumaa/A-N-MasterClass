@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import { editEvents, studioEvents, type EventsCommand } from './studioEvents';
+import { editEvents, studioEvents, studioMeetup, type EventsCommand } from './studioEvents';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 const HOUR = 3_600_000;
@@ -38,6 +38,7 @@ const MEETUP = {
   timeZone: 'Europe/Berlin',
   startsAt: at(24),
   endsAt: at(25),
+  repeat: null,
 } as const;
 const idOf = (r: Awaited<ReturnType<typeof run>>): string => {
   if (!r.ok || !r.id) throw new Error(`expected id, got ${JSON.stringify(r)}`);
@@ -74,11 +75,29 @@ describe('editEvents', () => {
   });
 });
 
+describe('occurrence ops', () => {
+  it('edits and cancels occurrences of a meetup the viewer can edit', async () => {
+    const id = idOf(await run(OWNER, { ...MEETUP, repeat: { freq: 'daily', every: 1, days: [], count: 3, until: null } }));
+    const edit = { op: 'editOccurrence', meetupId: id, occurrence: 1, scope: 'this', patch: { title: 'Two' } } as const;
+    expect(await run(OWNER, edit)).toEqual({ ok: true, id });
+    expect(await run(OWNER, { op: 'cancelOccurrence', meetupId: id, occurrence: 2, scope: 'this' })).toEqual({ ok: true, id });
+    expect(await run(OWNER, { ...edit, occurrence: 2 })).toMatchObject({ ok: false, error: 'invalid' });
+    expect(await run(SEED_IDS.assistant, edit)).toEqual({ ok: false, error: 'not_found' });
+    const view = await studioMeetup(repo, await as(OWNER), id, NOW);
+    expect(view?.upcoming.map((o) => [o.title, o.cancelled])).toEqual([
+      ['Q&A', false],
+      ['Two', false],
+      ['Q&A', true],
+    ]);
+    expect(await studioMeetup(repo, await as(SEED_IDS.student), id, NOW)).toBeNull();
+  });
+});
+
 describe('studioEvents', () => {
   it('lists groups, channels, challenges with entry counts and meetups with RSVP counts', async () => {
     const c = idOf(await run(OWNER, CHALLENGE));
     const m = idOf(await run(OWNER, MEETUP));
-    await repo.setRsvp(m, SEED_IDS.student, true, NOW);
+    await repo.setRsvp(m, 0, SEED_IDS.student, true, NOW);
     const view = await studioEvents(repo, await as(OWNER), SEED_IDS.community);
     expect(view?.groups.map((g) => g.id)).toContain(SEED_IDS.members);
     expect(view?.channels.length).toBeGreaterThan(0);

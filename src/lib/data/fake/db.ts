@@ -16,6 +16,7 @@ import type {
   Challenge,
   ChallengeEntry,
   Meetup,
+  MeetupOccurrence,
   MeetupRsvp,
   PointsEntry,
   Channel,
@@ -101,6 +102,7 @@ export type Db = {
   challenges: Challenge[];
   challengeEntries: ChallengeEntry[];
   meetups: Meetup[];
+  meetupOccurrences: MeetupOccurrence[];
   meetupRsvps: MeetupRsvp[];
   coachingPrograms: CoachingProgram[];
   coachSettings: CoachSettings[];
@@ -161,6 +163,7 @@ export const emptyDb = (): Db => ({
   challenges: [],
   challengeEntries: [],
   meetups: [],
+  meetupOccurrences: [],
   meetupRsvps: [],
   coachingPrograms: [],
   coachSettings: [],

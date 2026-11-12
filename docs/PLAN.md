@@ -185,7 +185,7 @@ Launch 3 as built:
 - Challenges: window in UTC, one entry per member inside the window, withdraw while open. Entries visible to the author and staff only; staff export CSV. Upcoming challenges hidden unless "show before start".
 - Meetups: times shown in the event's zone. Join link hidden from clients (column privilege), read via `meetup_join_url()`: staff always, members from 15 minutes before the start until the end. RSVP until the end. `.ics` links to the meetup page, not the join link. Replay = Vimeo id, shown after the end.
 - Studio: points settings on the community page; challenges + meetups on `studio/communities/[id]/events`. Group toggles: challenges, meetups, leaderboard.
-- Not yet: meetup reminder emails (email provider pending), recurring meetups.
+- Not yet: meetup reminder emails (email provider pending).
 
 **Launch 4** — coaching + own scheduler + Google Calendar.
 
@@ -297,6 +297,18 @@ Launch 6 item 7 as built:
 - `check:realtime` now also fails when a client sends the `stale` event.
 - Caveat: payloads are not verified. A member who may post could send another member's id. Low harm (a wrong "typing" line); fix would need a server relay.
 - G0: help.kajabi.com documents no typing indicator in Community chat or DMs (checked 2026-11-12). Kept as planned (PLAN item 7): extra over Kajabi.
+
+Launch 6 item 8 as built:
+- G0: Kajabi meetups repeat (daily / weekly on days / monthly, every N, end never / after N / on date); edit or cancel "this event", "this and following" or "all events". https://help.kajabi.com/en/articles/12695277-create-a-community-meetup, https://help.kajabi.com/en/articles/12695266-host-live-rooms-and-events-in-your-community (checked 2026-11-12).
+- Migration `20261112140000_recurring_meetups.sql` + `supabase/tests/180-recurring-meetups.test.sql` (28 asserts), applied to ksb 2026-11-12.
+- Model: a meetup stores its first occurrence (UTC + IANA zone) plus `repeat_*` rules. Occurrence n is computed in O(1), never stored: `src/lib/calendar/recurrence.ts`, SQL mirror `meetup_occurrence_start`. Dates step in the meetup zone and keep wall-clock time across DST. Monthly = same ordinal weekday; a 5th one means the last. Weekly always includes the start's own weekday.
+- `meetup_occurrences` holds "this event only" edits (title, description, times, replay) and cancels. Cancel drops its RSVPs. RSVPs, join link and RSVP count are per occurrence. A shorter or moved series drops edits and RSVPs of occurrences that no longer exist. RLS rules unchanged (read = `can_read_meetup`, write = `can_edit_community`).
+- Scopes: this = override row; following = `split_meetup` (staff only; new series from that occurrence, edits and RSVPs move, renumbered) then "all" on the new series; all = move the series by the wall-clock change of that occurrence (`movedSeries`) and clear the same fields in every override. One-offs are always "all"; cancelling one deletes it.
+- The edit form posts every field; only fields that differ from the shown occurrence apply. In "this", a value equal to the series clears the override.
+- URL key: meetup id for occurrence 0 (old links work), else `id_n`. `.ics` = one VEVENT per occurrence, UID `<key>@masterclass`, because edits are per occurrence (no RRULE + EXDATE to keep in sync).
+- Listings bounded: members see 3 past + 10 upcoming per series, Studio 5 + 20. Series end search capped at 100000 occurrences.
+- Studio: repeat fields on the meetup form; `studio/communities/[id]/events/[meetup]` lists sessions to edit or cancel with a scope picker (redirects to the events list when gone). The series form does not clear per-occurrence edits.
+- Decisions: no per-occurrence location (join link is per series); replay is per occurrence (series replay = occurrence 0); a "following" split of a monthly last-weekday series keeps the ordinal of the split date, so a split on a 4th Thursday that was also the last can drift.
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

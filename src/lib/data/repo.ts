@@ -13,6 +13,7 @@ import type {
   ChallengeEntry,
   GroupFeature,
   Meetup,
+  MeetupOccurrence,
   MeetupRsvp,
   PointTotal,
   Block,
@@ -101,7 +102,7 @@ export type NewChallenge = Omit<Challenge, 'id'>;
 export type ChallengePatch = Partial<Pick<Challenge, 'title' | 'description' | 'prize' | 'startsAt' | 'endsAt' | 'showBeforeStart'>>;
 export type NewMeetup = Omit<Meetup, 'id' | 'replayVimeoId'>;
 export type MeetupPatch = Partial<
-  Pick<Meetup, 'channelId' | 'title' | 'description' | 'location' | 'timeZone' | 'startsAt' | 'endsAt' | 'replayVimeoId'>
+  Pick<Meetup, 'channelId' | 'title' | 'description' | 'location' | 'timeZone' | 'startsAt' | 'endsAt' | 'replayVimeoId' | 'repeat'>
 >;
 /** Kind and group are fixed once created: posts or messages and private members depend on them. */
 export type NewChannel = Pick<Channel, 'communityId' | 'accessGroupId' | 'title' | 'kind' | 'privacy' | 'readOnly'>;
@@ -402,10 +403,23 @@ export interface Repo {
   /** Title non-blank, https location, endsAt > startsAt, group and channel of the same community. */
   createMeetup(input: NewMeetup): Promise<Meetup>;
   updateMeetup(id: string, patch: MeetupPatch): Promise<Meetup>;
-  /** Cascades to RSVPs. */
+  /**
+   * Cascades to RSVPs and occurrence edits. A schedule change drops edits and RSVPs of
+   * occurrences the series no longer has (trigger meetups_trim).
+   */
   deleteMeetup(id: string): Promise<void>;
+  /** "This event only" edits and cancels of a series. */
+  meetupOccurrences(meetupId: string): Promise<MeetupOccurrence[]>;
+  /** Upsert one. The occurrence must exist; cancelling drops its RSVPs. */
+  setMeetupOccurrence(row: MeetupOccurrence): Promise<void>;
+  /**
+   * "This and following": a new series from occurrence `at` (>= 1) with the same rules takes over
+   * the edits and RSVPs from there on (renumbered from 0); the old series ends before `at`.
+   */
+  splitMeetup(meetupId: string, at: number): Promise<Meetup>;
+  /** Every occurrence's RSVPs. */
   meetupRsvps(meetupId: string): Promise<MeetupRsvp[]>;
-  setRsvp(meetupId: string, profileId: string, on: boolean, now: Date): Promise<void>;
+  setRsvp(meetupId: string, occurrence: number, profileId: string, on: boolean, now: Date): Promise<void>;
 
   // coaching (G18, G19)
   coachingProgram(productId: string): Promise<CoachingProgram | null>;

@@ -1,9 +1,10 @@
-// Member side of meetups (G14): upcoming + past lists and one meetup with RSVP, the join link
+// Member side of meetups (G14): upcoming + past lists and one meetup occurrence with RSVP, the join link
 // (shown by the API only while joinable), the replay after it ends and an "Add to calendar" file.
 import { ActionForm, type FormAction } from '@/components/ActionForm/ActionForm';
 import { ButtonLink, LinkRow } from '@/components/ui/links';
 import { Badge, EmptyState, Heading, Inline, ListGroup, Stack, Text } from '@/components/ui/mds';
 import { VimeoEmbed } from '@/components/VimeoEmbed/VimeoEmbed';
+import { describeRepeat } from '@/lib/calendar/describeRepeat';
 import { formatInZone } from '@/lib/format/date';
 import { vimeoPlayerUrl } from '@/lib/video/vimeo';
 import { JOIN_OPENS_MINUTES, type MeetupItem, type MeetupList as Lists, type MeetupState } from '../api/meetups';
@@ -23,8 +24,8 @@ function Rows({ community, label, items }: { community: string; label: string; i
     <ListGroup aria-label={label}>
       {items.map((m) => (
         <LinkRow
-          key={m.id}
-          href={meetupHref(community, m.id)}
+          key={m.key}
+          href={meetupHref(community, m.key)}
           title={m.title}
           description={`${when(m)} · ${goingLabel(m.rsvpCount)}${m.going ? ' · You are going' : ''}`}
           trailing={<Badge tone={STATE[m.state].tone}>{STATE[m.state].label}</Badge>}
@@ -57,7 +58,7 @@ export function MeetupList({ community, meetups }: { community: string; meetups:
 type DetailProps = { community: string; meetup: MeetupItem; action: FormAction; signedIn: boolean };
 
 export function MeetupDetail({ community, meetup: m, action, signedIn }: DetailProps) {
-  const id = { meetupId: m.id };
+  const repeats = describeRepeat(m);
   return (
     <Stack gap="loose">
       <Stack gap="tight">
@@ -70,6 +71,7 @@ export function MeetupDetail({ community, meetup: m, action, signedIn }: DetailP
         <Text tone="muted">
           {when(m)} · {goingLabel(m.rsvpCount)}
         </Text>
+        {repeats ? <Text tone="muted">Repeats: {repeats}</Text> : null}
         {m.description ? <Text>{m.description}</Text> : null}
       </Stack>
       {m.state === 'past' ? null : (
@@ -83,12 +85,12 @@ export function MeetupDetail({ community, meetup: m, action, signedIn }: DetailP
             <ActionForm
               action={action}
               inline
-              fields={{ op: 'rsvp', ...id, on: String(!m.going) }}
+              fields={{ op: 'rsvp', meetupId: m.id, occurrence: String(m.occurrence), on: String(!m.going) }}
               submit={m.going ? 'Cancel RSVP' : 'RSVP'}
               variant={m.going ? 'ghost' : 'secondary'}
             />
           ) : null}
-          <ButtonLink href={meetupIcsHref(community, m.id)} variant="ghost">
+          <ButtonLink href={meetupIcsHref(community, m.key)} variant="ghost">
             Add to calendar
           </ButtonLink>
         </Inline>

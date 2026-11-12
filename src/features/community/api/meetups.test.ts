@@ -3,10 +3,20 @@ import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import type { NewMeetup } from '@/lib/data/repo';
-import type { Product } from '@/lib/data/types';
+import type { MeetupOccurrence, Product } from '@/lib/data/types';
 import { communityAccess } from './access';
-import { meetupCommand, meetupIcs, meetupItem, meetupList } from './meetups';
+import { meetupCommand, meetupIcs, meetupItem, meetupList, UPCOMING_PER_SERIES } from './meetups';
 
+const noEdit = (meetupId: string, occurrence: number): MeetupOccurrence => ({
+  meetupId,
+  occurrence,
+  cancelled: false,
+  title: null,
+  description: null,
+  startsAt: null,
+  endsAt: null,
+  replayVimeoId: null,
+});
 const NOW = new Date('2026-11-10T12:00:00Z');
 const MIN = 60_000;
 const at = (m: number) => new Date(NOW.getTime() + m * MIN);
@@ -30,6 +40,7 @@ const meetup = (extra: Partial<NewMeetup> = {}) =>
     startsAt: at(60),
     endsAt: at(120),
     createdAt: NOW,
+    repeat: null,
     ...extra,
   });
 const ctx = async (who: string, now = NOW) => {
@@ -89,17 +100,69 @@ describe('meetupItem', () => {
   });
 });
 
+describe('repeating meetups', () => {
+  // Weekly from tomorrow 19:00 Berlin (NOW is Tuesday 2026-11-10 13:00 Berlin).
+  const weekly = (extra: Partial<NewMeetup> = {}) =>
+    meetup({
+      startsAt: new Date('2026-11-04T18:00Z'),
+      endsAt: new Date('2026-11-04T19:00Z'),
+      repeat: { freq: 'weekly', every: 1, days: [], count: null, until: null },
+      ...extra,
+    });
+
+  it('lists a bounded window of occurrences with their own keys, edits applied, cancels hidden', async () => {
+    const m = await weekly();
+    await repo.setMeetupOccurrence({ ...noEdit(m.id, 2), title: 'Special' });
+    await repo.setMeetupOccurrence({ ...noEdit(m.id, 3), cancelled: true });
+    const r = (await list(SEED_IDS.student))!;
+    expect(r.past.map((o) => [o.key, o.title])).toEqual([[m.id, 'Live Q&A']]);
+    expect(r.upcoming).toHaveLength(UPCOMING_PER_SERIES - 1);
+    expect(r.upcoming.slice(0, 2).map((o) => [o.key, o.title, o.startsAt.toISOString()])).toEqual([
+      [`${m.id}_1`, 'Live Q&A', '2026-11-11T18:00:00.000Z'],
+      [`${m.id}_2`, 'Special', '2026-11-18T18:00:00.000Z'],
+    ]);
+    expect(r.upcoming.map((o) => o.key)).not.toContain(`${m.id}_3`);
+  });
+
+  it('opens one occurrence by key with its own RSVPs and calendar entry', async () => {
+    const m = await weekly();
+    const student = (await resolveViewer(repo, 'alexander', SEED_IDS.student))!;
+    await meetupCommand(repo, student, { op: 'rsvp', meetupId: m.id, occurrence: 2, on: true }, NOW);
+    expect(await item(SEED_IDS.student, `${m.id}_2`)).toMatchObject({ occurrence: 2, going: true, rsvpCount: 1 });
+    expect(await item(SEED_IDS.student, `${m.id}_1`)).toMatchObject({ going: false, rsvpCount: 0 });
+    expect(await item(SEED_IDS.student, `${m.id}_x`)).toBeNull();
+    await repo.setMeetupOccurrence({ ...noEdit(m.id, 1), cancelled: true });
+    expect(await item(SEED_IDS.student, `${m.id}_1`)).toBeNull();
+    const { access } = await ctx(SEED_IDS.student);
+    const ics = await meetupIcs(repo, community, access, `${m.id}_2`, 'https://a.example/m/1', NOW);
+    expect(ics).toContain(`UID:${m.id}_2@masterclass`);
+    expect(ics).toContain('DTSTART:20261118T180000Z');
+  });
+
+  it('refuses an RSVP to a cancelled occurrence', async () => {
+    const m = await weekly();
+    await repo.setMeetupOccurrence({ ...noEdit(m.id, 1), cancelled: true });
+    const student = (await resolveViewer(repo, 'alexander', SEED_IDS.student))!;
+    expect(await meetupCommand(repo, student, { op: 'rsvp', meetupId: m.id, occurrence: 1, on: true }, NOW)).toMatchObject({
+      ok: false,
+      error: 'not_found',
+    });
+  });
+});
+
 describe('meetupCommand', () => {
   it('toggles the RSVP until the meetup ends', async () => {
     const m = await meetup();
     const student = (await resolveViewer(repo, 'alexander', SEED_IDS.student))!;
-    expect(await meetupCommand(repo, student, { op: 'rsvp', meetupId: m.id, on: true }, NOW)).toEqual({ ok: true });
+    const rsvp = (on: boolean, occurrence = 0) => ({ op: 'rsvp' as const, meetupId: m.id, occurrence, on });
+    expect(await meetupCommand(repo, student, rsvp(true), NOW)).toEqual({ ok: true });
     expect(await item(SEED_IDS.student, m.id)).toMatchObject({ going: true, rsvpCount: 1 });
-    expect(await meetupCommand(repo, student, { op: 'rsvp', meetupId: m.id, on: false }, at(121))).toMatchObject({
+    expect(await meetupCommand(repo, student, rsvp(true, 1), NOW)).toMatchObject({ ok: false, error: 'not_found' });
+    expect(await meetupCommand(repo, student, rsvp(false), at(121))).toMatchObject({
       ok: false,
       error: 'invalid',
     });
-    expect(await meetupCommand(repo, student, { op: 'rsvp', meetupId: 'nope', on: true }, NOW)).toEqual({
+    expect(await meetupCommand(repo, student, { op: 'rsvp', meetupId: 'nope', occurrence: 0, on: true }, NOW)).toEqual({
       ok: false,
       error: 'not_found',
     });

@@ -405,9 +405,41 @@ export type Meetup = {
   startsAt: Date;
   endsAt: Date;
   replayVimeoId: string | null;
+  /** null = one-off. Occurrence 0 is startsAt..endsAt; later ones are computed (lib/calendar/recurrence). */
+  repeat: Repeat | null;
   createdAt: Date;
 };
-export type MeetupRsvp = { meetupId: string; profileId: string; createdAt: Date };
+
+export const REPEAT_FREQS = ['daily', 'weekly', 'monthly'] as const;
+export type RepeatFreq = (typeof REPEAT_FREQS)[number];
+export const REPEAT_EVERY_MAX = 99;
+export const REPEAT_COUNT_MAX = 999;
+/**
+ * Kajabi meetup repeat, in the meetup's own zone (so 19:00 stays 19:00 across DST).
+ * weekly: `days` = ISO weekdays (1 = Monday); the start's weekday always counts.
+ * monthly: same ordinal weekday as the start (3rd Thursday; a 5th one means the last).
+ * Ends after `count` occurrences or on the local date `until` (inclusive); never both.
+ */
+export type Repeat = {
+  freq: RepeatFreq;
+  every: number;
+  days: number[];
+  count: number | null;
+  until: string | null;
+};
+/** Per-occurrence change ("this event only") or cancel; null fields = the series value. */
+export type MeetupOccurrence = {
+  meetupId: string;
+  occurrence: number;
+  cancelled: boolean;
+  title: string | null;
+  description: string | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  replayVimeoId: string | null;
+};
+/** RSVP to one occurrence (0 for a one-off meetup). */
+export type MeetupRsvp = { meetupId: string; occurrence: number; profileId: string; createdAt: Date };
 
 /** space_member_communities: assistant/support staff ticked for this community (G15). */
 export type CommunityStaff = { communityId: string; profileId: string };

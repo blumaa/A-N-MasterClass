@@ -1,11 +1,12 @@
 // Studio side of challenges and meetups: list them per community with entry/RSVP counts and
 // create, edit or delete them. Same gate as the rest of Studio: products.edit + a community
-// the viewer reaches as staff.
+// the viewer reaches as staff. Occurrences of a repeating meetup: ./meetupSessions.
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { ChallengePatch, MeetupPatch, NewChallenge, NewMeetup, Repo } from '@/lib/data/repo';
 import type { AccessGroup, Challenge, Channel, Meetup } from '@/lib/data/types';
+import { meetupSessions, runOccurrenceCommand, type OccurrenceCommand, type StudioSession } from './meetupSessions';
 import { editable } from './studio';
 
 export type StudioEvents = {
@@ -37,13 +38,24 @@ export async function studioEvents(repo: Repo, viewer: Viewer, communityId: stri
   };
 }
 
+export type StudioMeetup = { meetup: Meetup; past: StudioSession[]; upcoming: StudioSession[] };
+
+/** One meetup with its occurrences, for the Studio sessions page. */
+export async function studioMeetup(repo: Repo, viewer: Viewer, meetupId: string, now: Date): Promise<StudioMeetup | null> {
+  if (!viewerCan(viewer, 'products.edit')) return null;
+  const meetup = await repo.meetup(meetupId);
+  if (!meetup || !(await editable(repo, viewer, meetup.communityId))) return null;
+  return { meetup, ...(await meetupSessions(repo, meetup, now)) };
+}
+
 export type EventsCommand =
   | ({ op: 'createChallenge' } & Omit<NewChallenge, 'createdAt'>)
   | { op: 'updateChallenge'; challengeId: string; patch: ChallengePatch }
   | { op: 'deleteChallenge'; challengeId: string }
   | ({ op: 'createMeetup' } & Omit<NewMeetup, 'createdAt'>)
   | { op: 'updateMeetup'; meetupId: string; patch: MeetupPatch }
-  | { op: 'deleteMeetup'; meetupId: string };
+  | { op: 'deleteMeetup'; meetupId: string }
+  | OccurrenceCommand;
 
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
 const NOT_FOUND: CommandResult = { ok: false, error: 'not_found' };
@@ -59,6 +71,8 @@ async function targetOf(repo: Repo, c: EventsCommand): Promise<string | null> {
       return (await repo.challenge(c.challengeId))?.communityId ?? null;
     case 'updateMeetup':
     case 'deleteMeetup':
+    case 'editOccurrence':
+    case 'cancelOccurrence':
       return (await repo.meetup(c.meetupId))?.communityId ?? null;
   }
 }
@@ -81,6 +95,9 @@ async function run(repo: Repo, c: EventsCommand, now: Date): Promise<string | un
       return void (await repo.updateMeetup(c.meetupId, c.patch));
     case 'deleteMeetup':
       return void (await repo.deleteMeetup(c.meetupId));
+    case 'editOccurrence':
+    case 'cancelOccurrence':
+      return runOccurrenceCommand(repo, c);
   }
 }
 

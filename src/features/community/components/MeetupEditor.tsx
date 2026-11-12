@@ -1,8 +1,12 @@
 // Studio > community > meetups (G14): scheduled event with an external join link, optional
-// discussion channel, time zone, and a Vimeo replay added afterwards.
+// discussion channel, time zone, repeat, and a Vimeo replay added afterwards. Single events of a
+// series are edited on the meetup's own page (MeetupSessions).
 import { Field, Heading, Input, Stack, Text, Textarea } from '@/components/ui/mds';
 import type { AccessGroup, Channel, Meetup } from '@/lib/data/types';
+import { ButtonLink } from '@/components/ui/links';
+import { studioMeetupHref } from '../paths';
 import { EventsForm } from './EventsForm';
+import { RepeatFields } from './RepeatFields';
 import { RowSelect } from '@/components/fields/fields';
 import { TimeFields } from '@/components/fields/TimeFields';
 import styles from './community.module.css';
@@ -23,6 +27,7 @@ function Details({ m, channels }: { m?: Meetup; channels: readonly Channel[] }) 
       </Field>
       <RowSelect name="channelId" label="Discussion channel" value={m?.channelId ?? ''} options={channels} none="None" />
       <TimeFields timeZone={m?.timeZone ?? DEFAULT_ZONE} startsAt={m?.startsAt} endsAt={m?.endsAt} />
+      <RepeatFields repeat={m?.repeat} />
     </>
   );
 }
@@ -40,7 +45,10 @@ export function MeetupEditor({ communityId, groups, channels, meetups }: Props) 
       <ul aria-label="Meetups" className={styles.rows}>
         {meetups.map((m) => (
           <li key={m.id} className={styles.channelRow}>
-            <Text variant="note">{m.rsvpCount === 1 ? '1 going' : `${m.rsvpCount} going`}</Text>
+            {m.repeat ? null : <Text variant="note">{m.rsvpCount === 1 ? '1 going' : `${m.rsvpCount} going`}</Text>}
+            <ButtonLink href={studioMeetupHref(communityId, m.id)} variant="ghost">
+              {m.repeat ? 'Events in this series' : 'Edit or cancel'}
+            </ButtonLink>
             <EventsForm fields={{ op: 'updateMeetup', meetupId: m.id }} submit="Save">
               <Details m={m} channels={channels} />
               <Field label="Replay (Vimeo link or id)">

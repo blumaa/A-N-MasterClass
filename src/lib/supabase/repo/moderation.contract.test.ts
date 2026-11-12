@@ -1,12 +1,9 @@
 // Moderation Supabase repo against the linked project. Service client for data (RLS is covered by
 // 130-moderation.test.sql). report_reporters reads auth.uid(), so that check signs in as the owner.
 import { randomUUID } from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { supabasePublic } from '@/config/supabase';
 import { ALREADY_REPORTED, ConstraintError, REPORT_TARGET_MISSING } from '@/lib/data/errors';
 import type { NewReport } from '@/lib/data/repo';
-import type { Database } from '@/lib/db/database.types';
 import { createChatRepo } from './chat';
 import { createCommunityRepo, type CommunityRepo } from './community';
 import { createCoreRepo } from './core';
@@ -95,13 +92,7 @@ describe.skipIf(!contractEnabled)('moderation repo (Supabase contract)', () => {
 
   it('reportReporters: empty without a caller, filled for the signed-in owner', async () => {
     expect(await repo.reportReporters(communityId)).toEqual({});
-    const password = randomUUID();
-    const upd = await fx.admin.auth.admin.updateUserById(owner, { password });
-    if (upd.error) throw upd.error;
-    const { url, publishableKey } = supabasePublic();
-    const client = createClient<Database>(url, publishableKey, { auth: { persistSession: false } });
-    const signed = await client.auth.signInWithPassword({ email: fx.email('owner'), password });
-    if (signed.error) throw signed.error;
+    const client = await fx.signIn('owner', owner);
     const asOwner = createModerationRepo({ db: async () => client, admin: () => fx.admin });
     const rows = await asOwner.reports(communityId);
     expect(rows).toHaveLength(2);

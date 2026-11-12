@@ -103,3 +103,12 @@
   max-height: 20rem;
   border-radius: var(--mds-radius-control);
 }
+
+.weekdays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mds-space-3);
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
