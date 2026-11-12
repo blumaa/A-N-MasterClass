@@ -130,7 +130,7 @@ Phase 6 as built (Launch 1):
 - Notifications: comment notifies post author + mentioned; reply notifies parent author; step comment notifies everyone with `comments.moderate`; first reaction notifies author. Only directory members of the community receive. Mentions in step comments are not notified, and step comments have no mention autocomplete.
 - One reply level (Kajabi). Polymorphic targets have no FK; delete triggers on posts/steps/comments remove orphans.
 - `ALWAYS_REACH` (owner, admin) lives in `lib/auth/capabilities.ts`, mirrored by `reaches_community()`.
-- Not yet: push notifications, photo uploads. Chat/DMs/access groups = Launch 2. Channel moderators + reports = Launch 6 item 3.
+- Not yet: push notifications. Chat/DMs/access groups = Launch 2. Channel moderators + reports = Launch 6 item 3.
 
 ## Studio (instructor admin)
 
@@ -175,7 +175,7 @@ Launch 2 as built:
 - Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
 - DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
 - Live updates: polling (`LiveRefresh`, `router.refresh` on an interval while visible). Supabase Realtime later.
-- Not yet: push, typing indicators, attachments in chat.
+- Not yet: push, typing indicators.
 
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 
@@ -253,6 +253,17 @@ Launch 6 item 3 as built:
 - Reporter hidden: column grant drops `reporter_id`; `report_reporters(community)` RPC for staff with `community.moderate` only.
 - G0 diff: Kajabi moderators are channel-scoped teammates with hide/restore/lock/approve, Review Feed, View Logs; mobile has user reports without detail. Here (G15) moderators are trusted students, reports target content, no lock/approval queue/logs yet.
 - Not yet: restore from the queue, post lock, approval queue, audit log, report a user, notify moderators of new reports.
+
+Launch 6 item 4 as built:
+- Migrations `20261112100000_community_files.sql` + `20261112100100_messages_attachment_not_null.sql`, `supabase/tests/140-community-files.test.sql`, applied to ksb 2026-11-12.
+- Private bucket `community` (25 MB, type allow-list), apart from Studio `resources`. Folders: `<space>/<community>/<channel>/` (feed photos, chat files), `<space>/<community>/dm/<thread>/` (DM files). DB triggers keep each row inside its own folder.
+- Post photos: feed composer takes up to 10 (`post_photos`, trigger caps 10). Browser resizes to long edge 2048, JPEG 0.85 (copied from KSG, G27); GIFs pass through. Images only, 10 MB each. Post page: author adds photos while they may post; author or moderator removes one. Body still required.
+- Chat (channels + DMs): one file per line, image or common file type, up to 25 MB, not resized. A line may be a file alone. Images inline, other files as a link with size.
+- Upload ticket (`communityUploadAction`): channel needs rules.post, DM needs canReply; feed channels take photos, chat and DMs take attachments; type + size checked; path signed inside the folder. Command checks the folder again.
+- Signed routes: `community/[community]/posts/[post]/photos/[photo]` and `community/[community]/attachments/[message]` re-check read access (hidden post only for its moderators, DM only for participants) and the community slug. Non-images download under their name.
+- Objects removed after the DB write: delete post, delete chat line, remove photo, report Remove, Studio delete channel (`channel_files` RPC, staff only).
+- G0 diff: Kajabi allows 40 MB photos and video in posts; here photos are resized and posts take no video.
+- Not yet: cleanup when a community, space or profile is deleted; orphaned uploads (picked, never sent); photo captions/reorder; thumbnails (full photo shown cropped in the grid); uploads do nothing with `DATA_SOURCE=fake`.
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

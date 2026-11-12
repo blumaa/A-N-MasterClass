@@ -7,6 +7,7 @@ import { MemberList } from './MemberList';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
+vi.mock('../uploadActions', () => ({ communityUploadAction: vi.fn() }));
 
 const action = vi.fn();
 const AT = new Date('2026-11-10T12:00:00Z');

@@ -26,6 +26,7 @@ export function ChannelChat({ page, action, signedIn }: Props) {
           label={`Message ${channel.title}`}
           placeholder="Write a message…"
           rows={2}
+          files={{ kind: 'attachment', target: 'channel', id: channel.id, max: 1 }}
         />
       ) : channel.readOnly ? (
         <Text tone="muted">Only staff send in this channel.</Text>

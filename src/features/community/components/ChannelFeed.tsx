@@ -1,6 +1,7 @@
 // One channel: composer (when the viewer may post) above the posts, pinned first (repo order).
 import type { FormAction } from '@/components/ActionForm/ActionForm';
 import { EmptyState, Heading, Stack, Text } from '@/components/ui/mds';
+import { POST_PHOTOS_MAX } from '@/lib/storage/communityFiles';
 import type { CommunityPage } from '../api/feed';
 import { postHref } from '../paths';
 import { Composer } from './Composer';
@@ -24,6 +25,7 @@ export function ChannelFeed({ page, action, signedIn }: Props) {
           label={`Write in ${channel.title}`}
           placeholder="Share something…"
           rows={4}
+          files={{ kind: 'photo', target: 'channel', id: channel.id, max: POST_PHOTOS_MAX }}
         />
       ) : channel.readOnly ? (
         <Text tone="muted">Only staff post in this channel.</Text>

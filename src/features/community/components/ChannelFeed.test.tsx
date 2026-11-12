@@ -9,6 +9,7 @@ type Open = Extract<CommunityPage, { kind: 'open' }>;
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
+vi.mock('../uploadActions', () => ({ communityUploadAction: vi.fn() }));
 
 const community: Product = {
   id: 'c1',
@@ -53,6 +54,27 @@ describe('ChannelFeed', () => {
     render(<ChannelFeed page={page({ rules: { read: true, post: true, moderatePosts: false, moderateComments: false } })} action={action} signedIn />);
     expect(screen.getByLabelText('Write in News')).toBeTruthy();
     expect(screen.getByText('No posts yet')).toBeTruthy();
+    expect(screen.getByText('Add photos')).toBeTruthy();
+  });
+
+  it('shows post photos in the feed, without removal there', () => {
+    const post = {
+      id: 'p1',
+      channelId: 'ch1',
+      body: 'look',
+      author: { id: 'u1', name: 'Robin' },
+      createdAt: new Date('2026-11-10T12:00:00Z'),
+      pinned: false,
+      hidden: false,
+      reactions: [],
+      commentCount: 0,
+      canDelete: true,
+      mine: true,
+      photos: [{ id: 'ph1', href: '/community/circle/posts/p1/photos/ph1' }],
+    };
+    render(<ChannelFeed page={page({ posts: [post] })} action={action} signedIn />);
+    expect(screen.getByRole('img', { name: 'Photo 1 of 1' })).toHaveAttribute('src', post.photos[0].href);
+    expect(screen.queryByText('Remove photo')).toBeNull();
   });
 
   it('offers Report on posts by others to signed-in viewers', () => {
@@ -103,6 +125,13 @@ describe('ChannelChat', () => {
     expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2);
     expect(screen.getAllByText('Report')).toHaveLength(1);
     expect(screen.getByLabelText('Message Lounge')).toBeTruthy();
+    expect(screen.getByText('Attach a file')).toBeTruthy();
+  });
+
+  it('shows a file-only line as its attachment', () => {
+    const file = { name: 'Notes.pdf', type: 'application/pdf', size: 1200, image: false, href: '/community/circle/attachments/m1' };
+    render(<ChannelChat page={page({ channel: chat, messages: [{ ...line, body: '', attachment: file }] })} action={action} signedIn />);
+    expect(screen.getByRole('link', { name: 'Notes.pdf' })).toHaveAttribute('href', file.href);
   });
 
   it('read-only chat: no send box', () => {

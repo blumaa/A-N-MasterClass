@@ -36,6 +36,7 @@ export function DmThread({ communityId, page, action }: Props) {
           label={`Message ${other.name}`}
           placeholder="Write a message…"
           rows={2}
+          files={{ kind: 'attachment', target: 'thread', id: threadId, max: 1 }}
         />
       ) : (
         <Text tone="muted">You cannot send messages in this conversation.</Text>

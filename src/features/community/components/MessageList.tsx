@@ -5,6 +5,7 @@ import { EmptyState, Inline, Stack, Text } from '@/components/ui/mds';
 import { formatDateTime } from '@/lib/format/date';
 import type { MessageItem } from '../api/present';
 import { MentionBody } from './MentionBody';
+import { MessageAttachment } from './MessageAttachment';
 import { ReportForm } from './ReportForm';
 import styles from './community.module.css';
 
@@ -36,7 +37,8 @@ export function MessageList({ messages, action, report = false }: Props) {
                 {report && !m.mine ? <ReportForm targetType="message" targetId={m.id} /> : null}
               </Inline>
             </Inline>
-            <MentionBody body={m.body} />
+            {m.body ? <MentionBody body={m.body} /> : null}
+            {m.attachment ? <MessageAttachment file={m.attachment} /> : null}
           </Stack>
         </li>
       ))}

@@ -44,6 +44,7 @@ export default async function PostRoute({ params }: Props) {
           moderate={rules.moderatePosts}
           signedIn={signedIn}
           afterDelete={communityHref(community.slug)}
+          addPhotos={post.mine && rules.post}
         />
         <CommentThread
           action={communityAction}

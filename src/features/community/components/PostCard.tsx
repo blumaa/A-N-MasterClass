@@ -4,8 +4,11 @@ import { ActionForm } from '@/components/ActionForm/ActionForm';
 import { AppLink } from '@/components/ui/links';
 import { Badge, Card, CardBody, Inline, Stack, Text } from '@/components/ui/mds';
 import { formatDate } from '@/lib/format/date';
+import { POST_PHOTOS_MAX } from '@/lib/storage/communityFiles';
 import type { PostItem } from '../api/feed';
 import { MentionBody } from './MentionBody';
+import { PhotoAdder } from './PhotoAdder';
+import { PostPhotos } from './PostPhotos';
 import { ReactionBar } from './ReactionBar';
 import { ReportForm } from './ReportForm';
 
@@ -18,12 +21,15 @@ type Props = {
   signedIn: boolean;
   /** Where to go after deleting (the post page itself would 404). */
   afterDelete?: string;
+  /** Post page, author who may still post: room to add photos. */
+  addPhotos?: boolean;
 };
 
 const commentsLabel = (n: number): string => (n === 1 ? '1 comment' : `${n} comments`);
 
-export function PostCard({ post, action, href, moderate, signedIn, afterDelete }: Props) {
+export function PostCard({ post, action, href, moderate, signedIn, afterDelete, addPhotos = false }: Props) {
   const id = { postId: post.id };
+  const room = POST_PHOTOS_MAX - post.photos.length;
   return (
     <Card>
       <CardBody>
@@ -39,6 +45,8 @@ export function PostCard({ post, action, href, moderate, signedIn, afterDelete }
             </Inline>
           </Inline>
           <MentionBody body={post.body} />
+          <PostPhotos postId={post.id} photos={post.photos} action={action} remove={href === null && post.canDelete} />
+          {addPhotos && room > 0 ? <PhotoAdder action={action} postId={post.id} channelId={post.channelId} room={room} /> : null}
           <ReactionBar action={action} targetType="post" targetId={post.id} reactions={post.reactions} enabled={signedIn} />
           <Inline gap="tight">
             {href ? <AppLink href={href}>{commentsLabel(post.commentCount)}</AppLink> : null}

@@ -69,3 +69,37 @@
 .report[open] {
   flex-basis: 100%;
 }
+
+.files {
+  display: grid;
+  gap: var(--mds-space-2);
+}
+
+.photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--mds-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo {
+  display: grid;
+  gap: var(--mds-space-1);
+}
+
+.photoImage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--mds-radius-control);
+}
+
+.attachmentImage {
+  display: block;
+  max-width: min(100%, 20rem);
+  max-height: 20rem;
+  border-radius: var(--mds-radius-control);
+}
