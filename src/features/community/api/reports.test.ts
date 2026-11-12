@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { reportCommand, reportQueue, studioReportQueue, type ReportCommand } from './reports';
 
 const NOW = new Date('2026-11-12T12:00:00Z');
@@ -13,7 +14,7 @@ let comment: string;
 
 const viewer = async (who: string | null, space = 'alexander') => (await resolveViewer(repo, space, who))!;
 const run = async (who: string | null, cmd: ReportCommand, space = 'alexander') =>
-  reportCommand(repo, await viewer(who, space), cmd, NOW);
+  reportCommand(repo, createFakeFileStore(), await viewer(who, space), cmd, NOW);
 const report = (who: string, targetType: 'post' | 'comment' | 'message', targetId: string, reason: string | null = null) =>
   run(who, { op: 'report', targetType, targetId, reason });
 const community = async () => (await repo.product(SEED_IDS.community))!;

@@ -17,6 +17,15 @@ describe('formReader', () => {
     expect(() => r.oneOf('kind', ['a'])).toThrow('Unknown kind: b.');
   });
 
+  it('all: every non-blank string value of a repeated field', () => {
+    const f = new FormData();
+    f.append('photo', ' a ');
+    f.append('photo', '');
+    f.append('photo', 'b');
+    expect(formReader(f).all('photo')).toEqual(['a', 'b']);
+    expect(formReader(f).all('nope')).toEqual([]);
+  });
+
   it('optional: absent untouched, blank null', () => {
     const r = formReader(form({ blank: '', set: 'v' }));
     expect(optional(r, 'gone', String)).toEqual({});

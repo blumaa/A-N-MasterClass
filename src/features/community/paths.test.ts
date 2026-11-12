@@ -13,6 +13,8 @@ import {
   reportsHref,
   notificationsHref,
   postHref,
+  postPhotoHref,
+  attachmentHref,
   studioCommunitiesHref,
   studioCommunityHref,
   studioEventsHref,
@@ -41,4 +43,9 @@ it('builds challenge, meetup and leaderboard paths', () => {
   expect(leaderboardHref('circle', 'week')).toBe('/community/circle/leaderboard?period=week');
   expect(studioEventsHref('c-1')).toBe('/studio/communities/c-1/events');
   expect(studioReportsHref('c-1')).toBe('/studio/communities/c-1/reports');
+});
+
+it('builds signed file paths', () => {
+  expect(postPhotoHref('circle', 'p-1', 'ph-1')).toBe('/community/circle/posts/p-1/photos/ph-1');
+  expect(attachmentHref('circle', 'm-1')).toBe('/community/circle/attachments/m-1');
 });

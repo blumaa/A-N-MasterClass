@@ -2,6 +2,7 @@
 // DMs, blocks), report forms and Studio forms (communities, channels, groups, settings, staff
 // ticks, moderators) each post `op` plus their fields. Shared readers live in lib/forms/commands.
 import type { Direction } from '@/lib/data/repo';
+import type { Attachment } from '@/lib/data/types';
 import {
   CHANNEL_KINDS,
   CHANNEL_PRIVACIES,
@@ -37,8 +38,37 @@ function pointValues(r: Reader): { pointValues?: Partial<Record<PointReason, num
   return entries.length === 0 ? {} : { pointValues: Object.fromEntries(entries) };
 }
 
+/** Post photo paths (repeated `photo` fields); omitted when none. */
+function photos(r: Reader): { photos?: string[] } {
+  const paths = r.all('photo');
+  return paths.length === 0 ? {} : { photos: paths };
+}
+
+/** Upload paths for a photo edit: at least one. */
+function somePhotos(r: Reader): string[] {
+  const paths = r.all('photo');
+  if (paths.length === 0) throw new FormError('Add a photo first.');
+  return paths;
+}
+
+/** The uploaded file of a chat line, if any. */
+function attachment(r: Reader): Attachment | undefined {
+  if (!r.raw('attachmentPath')) return undefined;
+  const size = Number(r.required('attachmentSize'));
+  if (!Number.isInteger(size) || size <= 0) throw new FormError('The file size is not valid.');
+  return { path: r.required('attachmentPath'), name: r.required('attachmentName'), type: r.required('attachmentType'), size };
+}
+
+/** A chat line: text, a file or both. */
+function line(r: Reader): { body: string; attachment?: Attachment } {
+  const file = attachment(r);
+  return file ? { body: r.raw('body') ?? '', attachment: file } : { body: body(r) };
+}
+
 const MEMBER: Record<CommunityCommand['op'], (r: Reader) => CommunityCommand> = {
-  createPost: (r) => ({ op: 'createPost', channelId: r.required('channelId'), body: body(r) }),
+  createPost: (r) => ({ op: 'createPost', channelId: r.required('channelId'), body: body(r), ...photos(r) }),
+  addPostPhotos: (r) => ({ op: 'addPostPhotos', postId: r.required('postId'), photos: somePhotos(r) }),
+  removePostPhoto: (r) => ({ op: 'removePostPhoto', postId: r.required('postId'), photoId: r.required('photoId') }),
   deletePost: (r) => ({ op: 'deletePost', postId: r.required('postId') }),
   hidePost: (r) => ({ op: 'hidePost', postId: r.required('postId'), hidden: flag(r, 'hidden') }),
   pinPost: (r) => ({ op: 'pinPost', postId: r.required('postId'), pinned: flag(r, 'pinned') }),
@@ -59,10 +89,10 @@ const MEMBER: Record<CommunityCommand['op'], (r: Reader) => CommunityCommand> = 
 };
 
 const CHAT: Record<ChatCommand['op'], (r: Reader) => ChatCommand> = {
-  sendMessage: (r) => ({ op: 'sendMessage', channelId: r.required('channelId'), body: body(r) }),
+  sendMessage: (r) => ({ op: 'sendMessage', channelId: r.required('channelId'), ...line(r) }),
   deleteMessage: (r) => ({ op: 'deleteMessage', messageId: r.required('messageId') }),
   startDm: (r) => ({ op: 'startDm', communityId: r.required('communityId'), recipientId: r.required('recipientId') }),
-  sendDm: (r) => ({ op: 'sendDm', threadId: r.required('threadId'), body: body(r) }),
+  sendDm: (r) => ({ op: 'sendDm', threadId: r.required('threadId'), ...line(r) }),
   block: (r) => ({ op: 'block', communityId: r.required('communityId'), profileId: r.required('profileId'), on: flag(r, 'on') }),
 };
 

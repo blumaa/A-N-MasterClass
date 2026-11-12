@@ -68,6 +68,7 @@ describe('ChannelFeed', () => {
       commentCount: 0,
       canDelete: false,
       mine: false,
+      photos: [],
     };
     const posts = [post, { ...post, id: 'p2', mine: true }];
     const { rerender } = render(<ChannelFeed page={page({ posts })} action={action} signedIn />);
@@ -92,6 +93,7 @@ describe('ChannelChat', () => {
     createdAt: new Date('2026-11-10T12:00:00Z'),
     canDelete: true,
     mine: false,
+    attachment: null,
   };
 
   it('lists messages with delete and report where allowed, and a send box', () => {

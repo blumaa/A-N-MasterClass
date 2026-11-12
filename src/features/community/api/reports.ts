@@ -9,6 +9,7 @@ import { spaceNames } from '@/lib/data/names';
 import type { Repo } from '@/lib/data/repo';
 import type { Product, Report, ReportStatus, ReportTarget } from '@/lib/data/types';
 import { getPlainText } from '@/lib/mentions/markup';
+import type { FileStore } from '@/lib/storage/fileStore';
 import { channelHref, postHref } from '../paths';
 import { channelScope, communityAccess, moderatedChannels } from './access';
 import { authorOf } from './present';
@@ -23,7 +24,7 @@ const OK: CommandResult = { ok: true };
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
 const NOT_FOUND: CommandResult = { ok: false, error: 'not_found' };
 
-type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date };
+type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date };
 
 async function report(ctx: Ctx, cmd: Extract<ReportCommand, { op: 'report' }>): Promise<CommandResult> {
   const content = await reportContent(ctx.repo, cmd.targetType, cmd.targetId);
@@ -49,7 +50,7 @@ async function resolve(ctx: Ctx, cmd: Extract<ReportCommand, { op: 'resolveRepor
   const content = await reportContent(ctx.repo, row.targetType, row.targetId);
   if (content) {
     if (!removesContent(scope.rules, content)) return FORBIDDEN;
-    await removeContent(ctx.repo, content);
+    await removeContent(ctx.repo, ctx.files, content);
   }
   // Every open report on the same content closes with it.
   const same = (await ctx.repo.reports(row.communityId)).filter(
@@ -62,9 +63,9 @@ async function resolve(ctx: Ctx, cmd: Extract<ReportCommand, { op: 'resolveRepor
   return OK;
 }
 
-export async function reportCommand(repo: Repo, viewer: Viewer, cmd: ReportCommand, now: Date): Promise<CommandResult> {
+export async function reportCommand(repo: Repo, files: FileStore, viewer: Viewer, cmd: ReportCommand, now: Date): Promise<CommandResult> {
   if (!viewer.profile) return FORBIDDEN;
-  const ctx = { repo, viewer, me: viewer.profile.id, now };
+  const ctx = { repo, files, viewer, me: viewer.profile.id, now };
   try {
     return cmd.op === 'report' ? await report(ctx, cmd) : await resolve(ctx, cmd);
   } catch (e) {

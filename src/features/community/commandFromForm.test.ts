@@ -7,6 +7,28 @@ const form = (fields: Record<string, string>): FormData => {
   return f;
 };
 
+const FILE = { attachmentPath: 's/c/ch/u-a.pdf', attachmentName: 'A.pdf', attachmentType: 'application/pdf', attachmentSize: '12' };
+
+describe('chat attachments', () => {
+  it('a line takes a file, with or without text', () => {
+    expect(chatCommandFromForm(form({ op: 'sendMessage', channelId: 'ch', body: '', ...FILE }))).toEqual({
+      ok: true,
+      command: { op: 'sendMessage', channelId: 'ch', body: '', attachment: { path: 's/c/ch/u-a.pdf', name: 'A.pdf', type: 'application/pdf', size: 12 } },
+    });
+    expect(chatCommandFromForm(form({ op: 'sendDm', threadId: 't', body: 'see', ...FILE }))).toMatchObject({
+      command: { body: 'see', attachment: { size: 12 } },
+    });
+  });
+
+  it('a line without a file still needs text; a bad size is refused', () => {
+    expect(chatCommandFromForm(form({ op: 'sendMessage', channelId: 'ch', body: '' }))).toEqual({ ok: false, message: 'Write something first.' });
+    expect(chatCommandFromForm(form({ op: 'sendMessage', channelId: 'ch', body: '', ...FILE, attachmentSize: 'x' }))).toEqual({
+      ok: false,
+      message: 'The file size is not valid.',
+    });
+  });
+});
+
 describe('communityCommandFromForm', () => {
   it('reads a post body as given (mention markup kept)', () => {
     expect(communityCommandFromForm(form({ op: 'createPost', channelId: 'ch', body: 'hi @[Sam](p1)' }))).toEqual({
@@ -19,6 +41,23 @@ describe('communityCommandFromForm', () => {
     expect(communityCommandFromForm(form({ op: 'createPost', channelId: 'ch', body: '  ' }))).toEqual({
       ok: false,
       message: 'Write something first.',
+    });
+  });
+
+  it('reads post photos, and photo edits', () => {
+    const f = form({ op: 'createPost', channelId: 'ch', body: 'hi' });
+    f.append('photo', 'a.jpg');
+    f.append('photo', 'b.jpg');
+    expect(communityCommandFromForm(f)).toEqual({
+      ok: true,
+      command: { op: 'createPost', channelId: 'ch', body: 'hi', photos: ['a.jpg', 'b.jpg'] },
+    });
+    const add = form({ op: 'addPostPhotos', postId: 'p', photo: 'c.jpg' });
+    expect(communityCommandFromForm(add)).toEqual({ ok: true, command: { op: 'addPostPhotos', postId: 'p', photos: ['c.jpg'] } });
+    expect(communityCommandFromForm(form({ op: 'addPostPhotos', postId: 'p' }))).toEqual({ ok: false, message: 'Add a photo first.' });
+    expect(communityCommandFromForm(form({ op: 'removePostPhoto', postId: 'p', photoId: 'ph' }))).toEqual({
+      ok: true,
+      command: { op: 'removePostPhoto', postId: 'p', photoId: 'ph' },
     });
   });
 

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
@@ -24,9 +25,9 @@ const nav = async (who: string) => {
 describe('communityNav', () => {
   it('shows Messages with unread count while DMs are on, and the group features', async () => {
     const student = (await resolveViewer(repo, 'alexander', SEED_IDS.student))!;
-    const r = await chatCommand(repo, student, { op: 'startDm', communityId: SEED_IDS.community, recipientId: SEED_IDS.alexanderOwner }, NOW);
+    const r = await chatCommand(repo, createFakeFileStore(), student, { op: 'startDm', communityId: SEED_IDS.community, recipientId: SEED_IDS.alexanderOwner }, NOW);
     if (!r.ok || !r.id) throw new Error('no thread');
-    await chatCommand(repo, student, { op: 'sendDm', threadId: r.id, body: 'hello' }, NOW);
+    await chatCommand(repo, createFakeFileStore(), student, { op: 'sendDm', threadId: r.id, body: 'hello' }, NOW);
     expect(await nav(SEED_IDS.alexanderOwner)).toEqual({
       directory: true,
       dms: { unread: 1 },

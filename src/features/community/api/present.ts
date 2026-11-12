@@ -1,6 +1,8 @@
 // Row -> view shaping shared by feed, post page and step comments. Pure.
 import type { Comment, Message, Reaction, ReactionEmoji } from '@/lib/data/types';
 import { REACTION_EMOJIS } from '@/lib/data/types';
+import { isImageType } from '@/lib/storage/communityFiles';
+import { attachmentHref } from '../paths';
 
 export type Author = { id: string; name: string };
 export type ReactionCount = { emoji: ReactionEmoji; count: number; mine: boolean };
@@ -19,8 +21,19 @@ export type CommentItem = {
 };
 export type CommentNode = CommentItem & { replies: CommentItem[] };
 
+/** A chat line's file; `href` is the signed route, `image` shows it inline. */
+export type AttachmentItem = { name: string; type: string; size: number; image: boolean; href: string };
+
 /** A chat line in a chat channel or a DM thread. */
-export type MessageItem = { id: string; body: string; author: Author; createdAt: Date; canDelete: boolean; mine: boolean };
+export type MessageItem = {
+  id: string;
+  body: string;
+  author: Author;
+  createdAt: Date;
+  canDelete: boolean;
+  mine: boolean;
+  attachment: AttachmentItem | null;
+};
 
 /** Chat and DM views load the latest messages only, oldest first. */
 export const CHAT_LIMIT = 100;
@@ -73,8 +86,14 @@ export function buildThread(
     .map((top) => ({ ...item(top), replies: visible.filter((c) => c.parentId === top.id).map(item) }));
 }
 
-/** Author or moderator deletes a chat line. */
-export const messageItems = (rows: readonly Message[], names: Names, me: string | null, moderate: boolean): MessageItem[] =>
+/** Author or moderator deletes a chat line. `community` is the slug for file links. */
+export const messageItems = (
+  rows: readonly Message[],
+  names: Names,
+  me: string | null,
+  moderate: boolean,
+  community: string,
+): MessageItem[] =>
   rows.map((m) => ({
     id: m.id,
     body: m.body,
@@ -82,4 +101,11 @@ export const messageItems = (rows: readonly Message[], names: Names, me: string 
     createdAt: m.createdAt,
     canDelete: moderate || m.authorId === me,
     mine: m.authorId === me,
+    attachment: m.attachment && {
+      name: m.attachment.name,
+      type: m.attachment.type,
+      size: m.attachment.size,
+      image: isImageType(m.attachment.type),
+      href: attachmentHref(community, m.id),
+    },
   }));

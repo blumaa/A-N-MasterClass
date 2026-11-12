@@ -7,15 +7,21 @@ import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import { REACTION_EMOJIS, type Comment, type Post, type Product, type ReactionEmoji } from '@/lib/data/types';
 import { mentionIdsFromBody } from '@/lib/mentions/parse';
+import { POST_PHOTOS_MAX } from '@/lib/storage/communityFiles';
+import type { FileStore } from '@/lib/storage/fileStore';
+import { inFolder } from '@/lib/storage/uploadPath';
 import { channelScope as findChannel, type ChannelAccess } from './access';
 import { directory } from './feed';
+import { channelFolderOf, postFilePaths, removeFiles } from './files';
 import { buildNotifications, type Candidate, type NotificationBase } from './notify';
 
 /** Whether the viewer may open a step (programs feature decides; the app injects it). */
 export type StepGate = (stepId: string) => Promise<boolean>;
 
 export type CommunityCommand =
-  | { op: 'createPost'; channelId: string; body: string }
+  | { op: 'createPost'; channelId: string; body: string; photos?: string[] }
+  | { op: 'addPostPhotos'; postId: string; photos: string[] }
+  | { op: 'removePostPhoto'; postId: string; photoId: string }
   | { op: 'deletePost'; postId: string }
   | { op: 'hidePost'; postId: string; hidden: boolean }
   | { op: 'pinPost'; postId: string; pinned: boolean }
@@ -28,7 +34,7 @@ const OK: CommandResult = { ok: true };
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
 const NOT_FOUND: CommandResult = { ok: false, error: 'not_found' };
 
-type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date; gate: StepGate };
+type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date; gate: StepGate };
 
 /** Where a comment lives: a post of a community, or a step of a program. */
 type Scope =
@@ -94,6 +100,34 @@ async function stepModerators(ctx: Ctx): Promise<Candidate[]> {
     .map((m) => ({ recipientId: m.profileId, type: 'step_comment' }));
 }
 
+/** Photo paths must be uploaded into the post's channel folder (the DB checks again). */
+function photoProblem(community: Product, channelId: string, photos: readonly string[], had = 0): CommandResult | null {
+  if (had + photos.length > POST_PHOTOS_MAX) return { ok: false, error: 'invalid', message: `A post takes up to ${POST_PHOTOS_MAX} photos.` };
+  const folder = channelFolderOf(community, channelId);
+  if (photos.some((p) => !inFolder(p, folder))) return { ok: false, error: 'invalid', message: 'This photo does not belong to the post.' };
+  return null;
+}
+
+async function editPhotos(ctx: Ctx, cmd: Extract<CommunityCommand, { op: 'addPostPhotos' | 'removePostPhoto' }>): Promise<CommandResult> {
+  const found = await postScope(ctx, cmd.postId);
+  if (!found.ok) return found.result;
+  const { post, community, rules } = found.value;
+  const current = await ctx.repo.postPhotos([post.id]);
+  if (cmd.op === 'addPostPhotos') {
+    if (post.authorId !== ctx.me || !rules.post) return FORBIDDEN;
+    const problem = photoProblem(community, post.channelId, cmd.photos, current.length);
+    if (problem) return problem;
+    await ctx.repo.addPostPhotos(post.id, cmd.photos);
+    return OK;
+  }
+  const photo = current.find((p) => p.id === cmd.photoId);
+  if (!photo) return NOT_FOUND;
+  if (post.authorId !== ctx.me && !rules.moderatePosts) return FORBIDDEN;
+  await ctx.repo.deletePostPhoto(photo.id);
+  await removeFiles(ctx.files, [photo.path]);
+  return OK;
+}
+
 const isEmoji = (value: string): value is ReactionEmoji => (REACTION_EMOJIS as readonly string[]).includes(value);
 
 async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
@@ -104,10 +138,17 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
       if (!found) return NOT_FOUND;
       if (found.channel.kind !== 'feed') return { ok: false, error: 'invalid', message: 'Chat channels take messages.' };
       if (!found.rules.post) return FORBIDDEN;
+      const photos = cmd.photos ?? [];
+      const problem = photoProblem(found.community, found.channel.id, photos);
+      if (problem) return problem;
       const post = await repo.createPost({ channelId: cmd.channelId, authorId: ctx.me, body: cmd.body, createdAt: ctx.now });
+      if (photos.length > 0) await repo.addPostPhotos(post.id, photos);
       await notify(ctx, { kind: 'post', post, community: found.community, rules: found.rules }, mentions(cmd.body));
       return { ok: true, id: post.id };
     }
+    case 'addPostPhotos':
+    case 'removePostPhoto':
+      return editPhotos(ctx, cmd);
     case 'deletePost':
     case 'hidePost':
     case 'pinPost': {
@@ -116,7 +157,9 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
       const { post, rules } = found.value;
       if (cmd.op === 'deletePost') {
         if (!rules.moderatePosts && post.authorId !== ctx.me) return FORBIDDEN;
+        const paths = await postFilePaths(repo, [post.id]);
         await repo.deletePost(post.id);
+        await removeFiles(ctx.files, paths);
         return OK;
       }
       if (!rules.moderatePosts) return FORBIDDEN;
@@ -189,6 +232,7 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
 
 export async function communityCommand(
   repo: Repo,
+  files: FileStore,
   viewer: Viewer,
   cmd: CommunityCommand,
   now: Date,
@@ -196,7 +240,7 @@ export async function communityCommand(
 ): Promise<CommandResult> {
   if (!viewer.profile) return FORBIDDEN;
   try {
-    return await run({ repo, viewer, me: viewer.profile.id, now, gate }, cmd);
+    return await run({ repo, files, viewer, me: viewer.profile.id, now, gate }, cmd);
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

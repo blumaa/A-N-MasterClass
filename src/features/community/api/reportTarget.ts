@@ -3,7 +3,9 @@
 // Mirrors report_target_channel() and can_read_report_target() in SQL.
 import type { Repo } from '@/lib/data/repo';
 import type { ReportTarget } from '@/lib/data/types';
+import type { FileStore } from '@/lib/storage/fileStore';
 import type { ChannelAccess } from './access';
+import { postFilePaths, removeFiles } from './files';
 
 export type ReportContent = {
   type: ReportTarget;
@@ -48,8 +50,15 @@ export const readsContent = (rules: ChannelAccess, c: ReportContent): boolean =>
 export const removesContent = (rules: ChannelAccess, c: ReportContent): boolean =>
   c.type === 'comment' ? rules.moderateComments : rules.moderatePosts;
 
-export async function removeContent(repo: Repo, c: ReportContent): Promise<void> {
-  if (c.type === 'post') await repo.deletePost(c.id);
-  else if (c.type === 'comment') await repo.deleteComment(c.id);
-  else await repo.deleteMessage(c.id);
+/** Deletes the content, then its files (post photos, chat attachment). */
+export async function removeContent(repo: Repo, files: FileStore, c: ReportContent): Promise<void> {
+  if (c.type === 'comment') return repo.deleteComment(c.id);
+  if (c.type === 'post') {
+    const paths = await postFilePaths(repo, [c.id]);
+    await repo.deletePost(c.id);
+    return removeFiles(files, paths);
+  }
+  const attachment = (await repo.message(c.id))?.attachment;
+  await repo.deleteMessage(c.id);
+  await removeFiles(files, attachment ? [attachment.path] : []);
 }

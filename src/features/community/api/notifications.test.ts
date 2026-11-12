@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
@@ -17,16 +18,14 @@ beforeEach(() => {
 const as = async (profileId: string | null): Promise<Viewer> => (await resolveViewer(repo, 'alexander', profileId))!;
 
 async function studentPostWithOwnerComment(): Promise<string> {
-  const r = await communityCommand(
-    repo,
+  const r = await communityCommand(repo, createFakeFileStore(),
     await as(SEED_IDS.student),
     { op: 'createPost', channelId: SEED_IDS.general, body: 'hello' },
     NOW,
     open,
   );
   if (!r.ok || !r.id) throw new Error('post failed');
-  await communityCommand(
-    repo,
+  await communityCommand(repo, createFakeFileStore(),
     await as(SEED_IDS.alexanderOwner),
     { op: 'createComment', target: { type: 'post', id: r.id }, parentId: null, body: 'hi' },
     NOW,
@@ -55,8 +54,7 @@ describe('notificationFeed', () => {
   });
 
   it('links step comments to the lesson by program slug', async () => {
-    await communityCommand(
-      repo,
+    await communityCommand(repo, createFakeFileStore(),
       await as(SEED_IDS.student),
       { op: 'createComment', target: { type: 'step', id: 'step-intro' }, parentId: null, body: 'q' },
       NOW,

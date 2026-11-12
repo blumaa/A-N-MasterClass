@@ -9,6 +9,7 @@ import { stepOpen } from '@/features/programs/api/step';
 import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
+import { getFileStore } from '@/lib/storage/getFileStore';
 
 export type CommunityState = { message: string } | null;
 
@@ -22,7 +23,7 @@ export async function communityAction(_prev: CommunityState, form: FormData): Pr
 
   const repo = getRepo();
   const now = new Date();
-  const result = await communityCommand(repo, viewer, parsed.command, now, (stepId) => stepOpen(repo, viewer, stepId, now));
+  const result = await communityCommand(repo, getFileStore('community'), viewer, parsed.command, now, (stepId) => stepOpen(repo, viewer, stepId, now));
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };
   // Deleting the post you are reading: go back to its community.
   const back = form.get('redirectTo');

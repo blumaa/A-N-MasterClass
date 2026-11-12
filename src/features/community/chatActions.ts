@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
+import { getFileStore } from '@/lib/storage/getFileStore';
 import { chatCommand } from './api/chat';
 import { chatCommandFromForm } from './commandFromForm';
 import { dmHref } from './paths';
@@ -21,7 +22,7 @@ export async function chatAction(_prev: ChatState, form: FormData): Promise<Chat
 
   const repo = getRepo();
   const { command } = parsed;
-  const result = await chatCommand(repo, viewer, command, new Date());
+  const result = await chatCommand(repo, getFileStore('community'), viewer, command, new Date());
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };
   if (command.op === 'startDm' && result.id) {
     // Slug from the stored community, never from the form.

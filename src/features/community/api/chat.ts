@@ -9,22 +9,25 @@ import type { Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
-import type { Block, DmThread, Product } from '@/lib/data/types';
+import type { Attachment, Block, DmThread, Product } from '@/lib/data/types';
+import { communityFileProblem } from '@/lib/storage/communityFiles';
+import type { FileStore } from '@/lib/storage/fileStore';
 import { channelScope, communityAccess, type CommunityAccess } from './access';
 import { directory } from './feed';
+import { removeFiles } from './files';
 
 export type ChatCommand =
-  | { op: 'sendMessage'; channelId: string; body: string }
+  | { op: 'sendMessage'; channelId: string; body: string; attachment?: Attachment }
   | { op: 'deleteMessage'; messageId: string }
   | { op: 'startDm'; communityId: string; recipientId: string }
-  | { op: 'sendDm'; threadId: string; body: string }
+  | { op: 'sendDm'; threadId: string; body: string; attachment?: Attachment }
   | { op: 'block'; communityId: string; profileId: string; on: boolean };
 
 const OK: CommandResult = { ok: true };
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
 const NOT_FOUND: CommandResult = { ok: false, error: 'not_found' };
 
-type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date };
+type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date };
 
 /** Everything the DM rules need about one viewer in one community. */
 export type DmContext = {
@@ -82,10 +85,12 @@ async function communityById(ctx: Ctx, communityId: string): Promise<DmContext |
 }
 
 /** The thread and its DM context, if the viewer takes part in it. */
-async function threadScope(ctx: Ctx, threadId: string) {
-  const thread = await ctx.repo.dmThread(threadId);
-  if (!thread || (thread.aId !== ctx.me && thread.bId !== ctx.me)) return null;
-  const dm = await communityById(ctx, thread.communityId);
+export async function threadScope(repo: Repo, viewer: Viewer, threadId: string, now: Date): Promise<{ thread: DmThread; dm: DmContext } | null> {
+  const me = viewer.profile?.id;
+  const thread = await repo.dmThread(threadId);
+  if (!me || !thread || (thread.aId !== me && thread.bId !== me)) return null;
+  const community = await repo.product(thread.communityId);
+  const dm = community ? await dmContext(repo, viewer, community, now) : null;
   return dm ? { thread, dm } : null;
 }
 
@@ -98,11 +103,18 @@ async function deleteMessage(ctx: Ctx, messageId: string): Promise<CommandResult
     if (!found.rules.read) return FORBIDDEN;
     if (message.authorId !== ctx.me && !found.rules.moderatePosts) return FORBIDDEN;
   } else {
-    if (!message.threadId || !(await threadScope(ctx, message.threadId))) return NOT_FOUND;
+    if (!message.threadId || !(await threadScope(ctx.repo, ctx.viewer, message.threadId, ctx.now))) return NOT_FOUND;
     if (message.authorId !== ctx.me) return FORBIDDEN;
   }
   await ctx.repo.deleteMessage(message.id);
+  await removeFiles(ctx.files, message.attachment ? [message.attachment.path] : []);
   return OK;
+}
+
+/** Type and size of an attached file; the repo checks its folder. */
+function attachmentProblem(a: Attachment | undefined): CommandResult | null {
+  const problem = a ? communityFileProblem('attachment', a.type, a.size) : null;
+  return problem ? { ok: false, error: 'invalid', message: problem } : null;
 }
 
 async function run(ctx: Ctx, cmd: ChatCommand): Promise<CommandResult> {
@@ -113,7 +125,16 @@ async function run(ctx: Ctx, cmd: ChatCommand): Promise<CommandResult> {
       if (!found) return NOT_FOUND;
       if (found.channel.kind !== 'chat') return { ok: false, error: 'invalid', message: 'Feed channels take posts.' };
       if (!found.rules.post) return FORBIDDEN;
-      const message = await repo.createMessage({ channelId: found.channel.id, threadId: null, authorId: me, body: cmd.body, createdAt: now });
+      const problem = attachmentProblem(cmd.attachment);
+      if (problem) return problem;
+      const message = await repo.createMessage({
+        channelId: found.channel.id,
+        threadId: null,
+        authorId: me,
+        body: cmd.body,
+        attachment: cmd.attachment,
+        createdAt: now,
+      });
       return { ok: true, id: message.id };
     }
     case 'deleteMessage':
@@ -127,10 +148,19 @@ async function run(ctx: Ctx, cmd: ChatCommand): Promise<CommandResult> {
       return { ok: true, id: (await repo.createDmThread(dm.community.id, me, cmd.recipientId)).id };
     }
     case 'sendDm': {
-      const found = await threadScope(ctx, cmd.threadId);
+      const found = await threadScope(repo, ctx.viewer, cmd.threadId, now);
       if (!found) return NOT_FOUND;
       if (!canReply(found.dm, me, otherOf(found.thread, me))) return FORBIDDEN;
-      const message = await repo.createMessage({ channelId: null, threadId: found.thread.id, authorId: me, body: cmd.body, createdAt: now });
+      const problem = attachmentProblem(cmd.attachment);
+      if (problem) return problem;
+      const message = await repo.createMessage({
+        channelId: null,
+        threadId: found.thread.id,
+        authorId: me,
+        body: cmd.body,
+        attachment: cmd.attachment,
+        createdAt: now,
+      });
       await repo.markDmRead(found.thread.id, me, now);
       return { ok: true, id: message.id };
     }
@@ -144,10 +174,10 @@ async function run(ctx: Ctx, cmd: ChatCommand): Promise<CommandResult> {
   }
 }
 
-export async function chatCommand(repo: Repo, viewer: Viewer, cmd: ChatCommand, now: Date): Promise<CommandResult> {
+export async function chatCommand(repo: Repo, files: FileStore, viewer: Viewer, cmd: ChatCommand, now: Date): Promise<CommandResult> {
   if (!viewer.profile) return FORBIDDEN;
   try {
-    return await run({ repo, viewer, me: viewer.profile.id, now }, cmd);
+    return await run({ repo, files, viewer, me: viewer.profile.id, now }, cmd);
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

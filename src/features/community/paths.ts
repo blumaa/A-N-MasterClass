@@ -3,6 +3,10 @@ import type { LeaderboardPeriod } from './api/points';
 export const communityHref = (community: string): string => `/community/${community}`;
 export const channelHref = (community: string, channel: string): string => `/community/${community}/channels/${channel}`;
 export const postHref = (community: string, post: string): string => `/community/${community}/posts/${post}`;
+/** Signed-file routes: check read access, then redirect to a short-lived URL. */
+export const postPhotoHref = (community: string, post: string, photo: string): string =>
+  `${postHref(community, post)}/photos/${photo}`;
+export const attachmentHref = (community: string, message: string): string => `/community/${community}/attachments/${message}`;
 export const reportsHref = (community: string): string => `/community/${community}/reports`;
 export const membersHref = (community: string): string => `/community/${community}/members`;
 export const notificationsHref = '/notifications';

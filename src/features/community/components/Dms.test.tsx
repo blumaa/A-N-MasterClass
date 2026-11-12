@@ -33,7 +33,7 @@ describe('DmThread', () => {
   const page = (over: Partial<DmThreadPage> = {}): DmThreadPage => ({
     threadId: 't1',
     other: { id: 'p1', name: 'Robin' },
-    messages: [{ id: 'm1', body: 'hi there', author: { id: 'p1', name: 'Robin' }, createdAt: AT, canDelete: false, mine: false }],
+    messages: [{ id: 'm1', body: 'hi there', author: { id: 'p1', name: 'Robin' }, createdAt: AT, canDelete: false, mine: false, attachment: null }],
     canSend: true,
     blocking: false,
     ...over,

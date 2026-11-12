@@ -80,7 +80,7 @@ export async function dmThreadPage(
   if (!dm) return null;
   const other = otherOf(thread, me);
   const [messages, names] = await Promise.all([
-    chatLines(repo, viewer, { threadId }, false),
+    chatLines(repo, viewer, community, { threadId }, false),
     spaceNames(repo, viewer.space.id),
     repo.markDmRead(threadId, me, now),
   ]);

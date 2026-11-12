@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
@@ -18,10 +19,9 @@ beforeEach(async () => {
 
 const viewer = (who: string) => resolveViewer(repo, 'alexander', who).then((v) => v!);
 const send = async (who: string, threadId: string, body: string, at = NOW) =>
-  chatCommand(repo, await viewer(who), { op: 'sendDm', threadId, body }, at);
+  chatCommand(repo, createFakeFileStore(), await viewer(who), { op: 'sendDm', threadId, body }, at);
 const thread = async () => {
-  const r = await chatCommand(
-    repo,
+  const r = await chatCommand(repo, createFakeFileStore(),
     await viewer(SEED_IDS.student),
     { op: 'startDm', communityId: SEED_IDS.community, recipientId: SEED_IDS.alexanderOwner },
     NOW,
@@ -62,7 +62,7 @@ describe('dmInbox / dmThreadPage', () => {
     const id = await thread();
     expect(await dmThreadPage(repo, await viewer(SEED_IDS.assistant), community, id, NOW)).toBeNull();
     const student = await viewer(SEED_IDS.student);
-    await chatCommand(repo, student, { op: 'block', communityId: SEED_IDS.community, profileId: SEED_IDS.alexanderOwner, on: true }, NOW);
+    await chatCommand(repo, createFakeFileStore(), student, { op: 'block', communityId: SEED_IDS.community, profileId: SEED_IDS.alexanderOwner, on: true }, NOW);
     expect(await dmThreadPage(repo, student, community, id, NOW)).toMatchObject({ canSend: false, blocking: true });
     expect(await dmThreadPage(repo, await viewer(SEED_IDS.alexanderOwner), community, id, NOW)).toMatchObject({
       canSend: false,

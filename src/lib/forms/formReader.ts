@@ -16,7 +16,10 @@ export function formReader(form: FormData) {
     if (!(allowed as readonly string[]).includes(v)) throw new FormError(`Unknown ${name}: ${v}.`);
     return v as T;
   };
-  return { raw, required, oneOf };
+  /** Every non-blank string value of a repeated field, trimmed. */
+  const all = (name: string): string[] =>
+    form.getAll(name).flatMap((v) => (typeof v === 'string' && v.trim() ? [v.trim()] : []));
+  return { raw, required, oneOf, all };
 }
 
 export type FormReader = ReturnType<typeof formReader>;

@@ -6,6 +6,7 @@ import { spaceNames } from '@/lib/data/names';
 import type { Repo } from '@/lib/data/repo';
 import type { Channel, Post, Product } from '@/lib/data/types';
 import type { MentionOption } from '@/lib/mentions/markup';
+import { postPhotoHref } from '../paths';
 import { channelAccess, communityAccess, readableChannels, type ChannelAccess, type CommunityAccess } from './access';
 import {
   authorOf,
@@ -32,6 +33,8 @@ export type PostItem = {
   canDelete: boolean;
   /** Written by the viewer (others may report it). */
   mine: boolean;
+  /** In order; `href` is the signed route. */
+  photos: { id: string; href: string }[];
 };
 
 export type DirectoryEntry = { id: string; name: string; staff: boolean };
@@ -75,13 +78,20 @@ export async function loadCommunity(repo: Repo, viewer: Viewer, slug: string, no
   return { community, access };
 }
 
-async function postItems(repo: Repo, viewer: Viewer, posts: readonly Post[], rules: ChannelAccess): Promise<PostItem[]> {
+async function postItems(
+  repo: Repo,
+  viewer: Viewer,
+  community: Product,
+  posts: readonly Post[],
+  rules: ChannelAccess,
+): Promise<PostItem[]> {
   const visible = rules.moderatePosts ? posts : posts.filter((p) => p.hiddenAt === null);
   const ids = visible.map((p) => p.id);
-  const [who, reactions, comments] = await Promise.all([
+  const [who, reactions, comments, photos] = await Promise.all([
     spaceNames(repo, viewer.space.id),
     repo.reactions('post', ids),
     repo.comments('post', ids),
+    repo.postPhotos(ids),
   ]);
   const me = viewer.profile?.id ?? null;
   return visible.map((p) => ({
@@ -96,6 +106,9 @@ async function postItems(repo: Repo, viewer: Viewer, posts: readonly Post[], rul
     commentCount: comments.filter((c) => c.targetId === p.id && (rules.moderateComments || c.hiddenAt === null)).length,
     canDelete: rules.moderatePosts || p.authorId === me,
     mine: p.authorId === me,
+    photos: photos
+      .filter((ph) => ph.postId === p.id)
+      .map((ph) => ({ id: ph.id, href: postPhotoHref(community.slug, p.id, ph.id) })),
   }));
 }
 
@@ -119,8 +132,8 @@ export async function communityPage(
   const isChat = channel.kind === 'chat';
   const rules = await channelAccess(repo, access, channel, me);
   const [posts, messages, members] = await Promise.all([
-    isChat ? [] : repo.posts(channel.id).then((rows) => postItems(repo, viewer, rows, rules)),
-    isChat ? chatLines(repo, viewer, { channelId: channel.id }, rules.moderatePosts) : [],
+    isChat ? [] : repo.posts(channel.id).then((rows) => postItems(repo, viewer, community, rows, rules)),
+    isChat ? chatLines(repo, viewer, community, { channelId: channel.id }, rules.moderatePosts) : [],
     directory(repo, community, now),
   ]);
   return {
@@ -140,11 +153,12 @@ export async function communityPage(
 export async function chatLines(
   repo: Repo,
   viewer: Viewer,
+  community: Product,
   where: { channelId: string } | { threadId: string },
   moderate: boolean,
 ): Promise<MessageItem[]> {
   const [rows, names] = await Promise.all([repo.messages(where, CHAT_LIMIT), spaceNames(repo, viewer.space.id)]);
-  return messageItems(rows, names, viewer.profile?.id ?? null, moderate);
+  return messageItems(rows, names, viewer.profile?.id ?? null, moderate, community.slug);
 }
 
 export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId: string, now: Date): Promise<PostPage | null> {
@@ -161,7 +175,7 @@ export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId:
     .comments('post', [row.id])
     .then(async (cs) => ({ cs, reactions: await repo.reactions('comment', cs.map((c) => c.id)) }));
   const [[post], { cs: comments, reactions }, who, members, channels] = await Promise.all([
-    postItems(repo, viewer, [row], rules),
+    postItems(repo, viewer, community, [row], rules),
     commentsWithReactions,
     spaceNames(repo, viewer.space.id),
     directory(repo, community, now),

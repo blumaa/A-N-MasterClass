@@ -7,9 +7,11 @@ import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { AccessGroupPatch, ChannelPatch, CommunitySettingsPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
 import type { AccessGroup, Channel, ChannelKind, ChannelPrivacy, CommunitySettings, Product, Role } from '@/lib/data/types';
+import type { FileStore } from '@/lib/storage/fileStore';
 import { reachesAsStaff } from './access';
 import { spaceNames } from '@/lib/data/names';
 import { directory, type DirectoryEntry } from './feed';
+import { removeFiles } from './files';
 import { authorOf } from './present';
 
 /** Name of the channel every new community starts with. */
@@ -186,9 +188,9 @@ async function setChannelModerator(repo: Repo, c: Extract<StudioCommunityCommand
   await repo.setChannelModerator(c.channelId, c.profileId, c.on);
 }
 
-type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date };
+type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date };
 
-async function run({ repo, viewer, me, now }: Ctx, c: StudioCommunityCommand): Promise<string | undefined> {
+async function run({ repo, files, viewer, me, now }: Ctx, c: StudioCommunityCommand): Promise<string | undefined> {
   switch (c.op) {
     case 'createCommunity': {
       const community = await repo.createProduct({
@@ -230,7 +232,10 @@ async function run({ repo, viewer, me, now }: Ctx, c: StudioCommunityCommand): P
       if (channel && (await repo.channels(channel.communityId)).length <= 1) {
         throw new ConstraintError('a community needs at least one channel');
       }
-      return void (await repo.deleteChannel(c.channelId));
+      // Rows cascade, objects do not: list them first (staff only), remove after the delete.
+      const paths = await repo.channelFiles(c.channelId);
+      await repo.deleteChannel(c.channelId);
+      return void (await removeFiles(files, paths));
     }
     case 'moveChannel':
       return void (await repo.move('channels', c.channelId, c.direction));
@@ -257,6 +262,7 @@ async function run({ repo, viewer, me, now }: Ctx, c: StudioCommunityCommand): P
 
 export async function editCommunity(
   repo: Repo,
+  files: FileStore,
   viewer: Viewer,
   c: StudioCommunityCommand,
   now: Date,
@@ -270,7 +276,7 @@ export async function editCommunity(
     if (!communityId || !(await editable(repo, viewer, communityId))) return NOT_FOUND;
   }
   try {
-    return { ok: true, id: await run({ repo, viewer, me: viewer.profile.id, now }, c) };
+    return { ok: true, id: await run({ repo, files, viewer, me: viewer.profile.id, now }, c) };
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

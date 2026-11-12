@@ -3,6 +3,7 @@ import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { DEFAULT_COMMUNITY_SETTINGS } from '@/lib/data/types';
+import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { chatCommand, type ChatCommand } from './chat';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -13,7 +14,7 @@ beforeEach(() => {
 });
 
 const run = async (who: string | null, cmd: ChatCommand, space = 'alexander') =>
-  chatCommand(repo, (await resolveViewer(repo, space, who))!, cmd, NOW);
+  chatCommand(repo, createFakeFileStore(), (await resolveViewer(repo, space, who))!, cmd, NOW);
 const createdId = (r: Awaited<ReturnType<typeof run>>): string => {
   if (!r.ok || !r.id) throw new Error(`expected created id, got ${JSON.stringify(r)}`);
   return r.id;

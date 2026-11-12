@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
+import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { communityCommand, type CommunityCommand, type StepGate } from './commands';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
@@ -16,7 +17,7 @@ beforeEach(() => {
 const as = async (profileId: string | null, space = 'alexander'): Promise<Viewer> =>
   (await resolveViewer(repo, space, profileId))!;
 const run = async (who: string | null, cmd: CommunityCommand, gate: StepGate = open, space = 'alexander') =>
-  communityCommand(repo, await as(who, space), cmd, NOW, gate);
+  communityCommand(repo, createFakeFileStore(), await as(who, space), cmd, NOW, gate);
 const createdId = (r: Awaited<ReturnType<typeof run>>): string => {
   if (!r.ok || !r.id) throw new Error(`expected created id, got ${JSON.stringify(r)}`);
   return r.id;
