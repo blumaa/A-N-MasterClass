@@ -7,9 +7,14 @@ import { Button, Link, ListItem, SideNavItem } from '@mond-design-system/react';
 
 type Common = { href: string; children: ReactNode };
 
-export function AppLink({ href, children, variant }: Common & { variant?: 'inline' | 'standalone' | 'plain' }) {
+export function AppLink({
+  href,
+  children,
+  variant,
+  current,
+}: Common & { variant?: 'inline' | 'standalone' | 'plain'; current?: boolean }) {
   return (
-    <Link as={NextLink} href={href} variant={variant}>
+    <Link as={NextLink} href={href} variant={variant} aria-current={current ? 'page' : undefined}>
       {children}
     </Link>
   );

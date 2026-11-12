@@ -12,13 +12,16 @@ type Props = { outline: Outline; currentStepId?: string; now: Date };
 
 export function ProgramOutline({ outline, currentStepId, now }: Props) {
   const { program, modules, completed, total } = outline;
+  const pct = percent(completed, total);
+  const summary = `${completed} of ${total} lessons complete`;
   return (
     <nav aria-label={`${program.title} outline`} className={styles.outline}>
-      <ProgressBar
-        value={percent(completed, total)}
-        label="Program progress"
-        valueText={`${completed} of ${total} lessons complete`}
-      />
+      <Stack gap="tight">
+        <ProgressBar value={pct} label="Program progress" valueText={summary} />
+        <Text variant="note" tone="muted">
+          {`${summary} · ${pct}%`}
+        </Text>
+      </Stack>
       {outline.certificateReady ? (
         <Link variant="standalone" href={certificateHref(program.slug)}>
           Download certificate
@@ -30,20 +33,26 @@ export function ProgramOutline({ outline, currentStepId, now }: Props) {
           return (
             <li key={mod.id}>
               <Stack gap="tight">
-                <div className={styles.moduleHead}>
+                <div>
                   <Heading level={3} variant="label">
                     {mod.title}
                   </Heading>
-                  {lock ? <Badge tone="neutral">{lock}</Badge> : null}
+                  {lock ? (
+                    <Text variant="note" tone="muted">
+                      {lock}
+                    </Text>
+                  ) : null}
                 </div>
                 <ol className={styles.list}>
                   {mod.steps.map((step) => (
-                    <li key={step.id} className={styles.step} aria-current={step.id === currentStepId ? 'page' : undefined}>
+                    <li key={step.id} className={styles.step}>
                       <span className={styles.mark} aria-label={step.done ? 'Complete' : 'Not complete'}>
                         {step.done ? '✓' : '○'}
                       </span>
                       {step.access.kind === 'open' ? (
-                        <AppLink href={stepHref(program.slug, step.id)}>{step.title}</AppLink>
+                        <AppLink href={stepHref(program.slug, step.id)} variant="plain" current={step.id === currentStepId}>
+                          {step.title}
+                        </AppLink>
                       ) : (
                         <Text as="span" tone="muted">
                           {step.title}

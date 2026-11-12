@@ -52,14 +52,14 @@ export function StepParts({ parts, programSlug, quizzes = {} }: Props) {
   return (
     <Stack gap="loose">
       {parts.map((part) => (
-        <section key={part.id} aria-label={part.title ?? undefined}>
+        <Stack as="section" gap="tight" key={part.id} aria-label={part.title ?? undefined}>
           {part.title && part.kind !== 'download' ? (
             <Heading level={3} variant="subtitle">
               {part.title}
             </Heading>
           ) : null}
           <PartBlock part={part} programSlug={programSlug} quizzes={quizzes} />
-        </section>
+        </Stack>
       ))}
     </Stack>
   );

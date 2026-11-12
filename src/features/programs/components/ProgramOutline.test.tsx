@@ -36,7 +36,18 @@ it('links open steps, marks done ones and labels drip modules', () => {
   expect(screen.queryByRole('link', { name: 'Together' })).toBeNull();
   expect(screen.getByText('Opens in 3 days')).toBeInTheDocument();
   expect(screen.getAllByLabelText('Complete')).toHaveLength(1);
-  expect(screen.getByText('Safety').closest('li')).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('link', { name: 'Safety' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('link', { name: 'Intro' })).not.toHaveAttribute('aria-current');
+});
+
+it('shows progress in words, not only as a bar', () => {
+  render(<ProgramOutline outline={outline} now={NOW} />);
+  expect(screen.getByText('1 of 3 lessons complete · 33%')).toBeVisible();
+});
+
+it('states a lock reason as a note, not a badge', () => {
+  render(<ProgramOutline outline={outline} now={NOW} />);
+  expect(screen.getByText('Opens in 3 days').closest('.mds-Badge__badge')).toBeNull();
 });
 
 it('offers the certificate download only when it is earned (G26)', () => {
