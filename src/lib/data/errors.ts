@@ -22,3 +22,6 @@ export const FILE_OUTSIDE_FOLDER = 'file is outside its folder';
 export const FILE_IN_USE = 'file already used';
 export const TOO_MANY_PHOTOS = 'too many photos on this post';
 export const ATTACHMENT_INCOMPLETE = 'attachment needs a name, type and size';
+
+// Push subscription text, shared by the fake repo and constraintMessages.
+export const INVALID_PUSH_SUBSCRIPTION = 'invalid push subscription';

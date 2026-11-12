@@ -4,7 +4,7 @@ import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { communityCommand, type StepGate } from './commands';
-import { markAllRead, notificationFeed, stepThread, unreadCount } from './notifications';
+import { describeNotifications, markAllRead, notificationFeed, stepThread, unreadCount } from './notifications';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 const open: StepGate = async () => true;
@@ -71,6 +71,24 @@ describe('notificationFeed', () => {
     const guest = await as(null);
     expect(await notificationFeed(repo, guest)).toEqual([]);
     expect(await unreadCount(repo, guest)).toBe(0);
+  });
+});
+
+describe('describeNotifications', () => {
+  it('gives new rows the same text and link as the feed (push uses it)', async () => {
+    const postId = await studentPostWithOwnerComment();
+    const rows = [
+      { recipientId: SEED_IDS.student, actorId: SEED_IDS.alexanderOwner, type: 'comment' as const, postId, stepId: null },
+      { recipientId: SEED_IDS.alexanderOwner, actorId: SEED_IDS.student, type: 'step_comment' as const, postId: null, stepId: 'step-intro' },
+    ];
+    expect(await describeNotifications(repo, SEED_IDS.alexander, rows)).toEqual([
+      { recipientId: SEED_IDS.student, text: 'Alexander commented on your post', link: { kind: 'post', community: 'community', postId } },
+      {
+        recipientId: SEED_IDS.alexanderOwner,
+        text: 'Robin (student) commented on Introduction',
+        link: { kind: 'step', program: 'shibari-101', stepId: 'step-intro' },
+      },
+    ]);
   });
 });
 

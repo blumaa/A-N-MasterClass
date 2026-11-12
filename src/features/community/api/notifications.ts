@@ -44,26 +44,37 @@ async function stepTarget(repo: Repo, stepId: string): Promise<Target | null> {
   return step && program ? { link: { kind: 'step', program: program.slug, stepId }, title: step.title } : null;
 }
 
-const targetOf = (repo: Repo, n: Notification): Promise<Target | null> =>
+type Describable = Pick<Notification, 'recipientId' | 'actorId' | 'type' | 'postId' | 'stepId'>;
+
+const targetOf = (repo: Repo, n: Describable): Promise<Target | null> =>
   n.postId ? postTarget(repo, n.postId) : n.stepId ? stepTarget(repo, n.stepId) : Promise.resolve(null);
 
-export async function notificationFeed(repo: Repo, viewer: Viewer): Promise<NotificationItem[]> {
-  if (!viewer.profile) return [];
-  const [rows, names] = await Promise.all([
-    repo.notifications(viewer.space.id, viewer.profile.id, FEED_LIMIT),
-    spaceNames(repo, viewer.space.id),
-  ]);
-  const targets = await Promise.all(rows.map((n) => targetOf(repo, n)));
+export type NotificationText = { recipientId: string; text: string; link: NotificationLink | null };
+
+/** Text and link of each notification. SSOT for the feed and web push. */
+export async function describeNotifications(repo: Repo, spaceId: string, rows: readonly Describable[]): Promise<NotificationText[]> {
+  const [names, targets] = await Promise.all([spaceNames(repo, spaceId), Promise.all(rows.map((n) => targetOf(repo, n)))]);
   return rows.map((n, i) => {
     const target = targets[i] ?? null;
     return {
-      id: n.id,
+      recipientId: n.recipientId,
       text: `${authorOf(names, n.actorId).name} ${PHRASES[n.type](target?.title ?? 'a lesson')}`,
       link: target?.link ?? null,
-      createdAt: n.createdAt,
-      unread: n.readAt === null,
     };
   });
+}
+
+export async function notificationFeed(repo: Repo, viewer: Viewer): Promise<NotificationItem[]> {
+  if (!viewer.profile) return [];
+  const rows = await repo.notifications(viewer.space.id, viewer.profile.id, FEED_LIMIT);
+  const texts = await describeNotifications(repo, viewer.space.id, rows);
+  return rows.map((n, i) => ({
+    id: n.id,
+    text: texts[i]!.text,
+    link: texts[i]!.link,
+    createdAt: n.createdAt,
+    unread: n.readAt === null,
+  }));
 }
 
 export async function unreadCount(repo: Repo, viewer: Viewer): Promise<number> {

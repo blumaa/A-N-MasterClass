@@ -8,6 +8,7 @@ import {
   FILE_IN_USE,
   FILE_OUTSIDE_FOLDER,
   HOST_TAKEN,
+  INVALID_PUSH_SUBSCRIPTION,
   ONE_PRIMARY_DOMAIN,
   REPORT_TARGET_MISSING,
   SESSION_OVERLAP,
@@ -74,6 +75,10 @@ const BY_NAME: Readonly<Record<string, string>> = {
   messages_attachment_path_key: FILE_IN_USE,
   post_photos_max: TOO_MANY_PHOTOS,
   messages_attachment: ATTACHMENT_INCOMPLETE,
+  push_subscriptions_endpoint_https: INVALID_PUSH_SUBSCRIPTION,
+  push_subscriptions_p256dh: INVALID_PUSH_SUBSCRIPTION,
+  push_subscriptions_auth: INVALID_PUSH_SUBSCRIPTION,
+  push_subscriptions_user_agent: INVALID_PUSH_SUBSCRIPTION,
 };
 
 const TITLE_CHECK = /_title(_check)?$/;

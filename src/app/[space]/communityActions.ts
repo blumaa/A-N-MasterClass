@@ -10,6 +10,7 @@ import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
 import { getFileStore } from '@/lib/storage/getFileStore';
+import { pushingRepo } from './pushingRepo';
 
 export type CommunityState = { message: string } | null;
 
@@ -21,7 +22,8 @@ export async function communityAction(_prev: CommunityState, form: FormData): Pr
   const viewer = await actionViewer();
   if (!viewer?.profile) return { message: 'Sign in to take part.' };
 
-  const repo = getRepo();
+  // Notifications this write creates also go out as web push, after the response.
+  const repo = pushingRepo(getRepo(), viewer.space);
   const now = new Date();
   const result = await communityCommand(repo, getFileStore('community'), viewer, parsed.command, now, (stepId) => stepOpen(repo, viewer, stepId, now));
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };

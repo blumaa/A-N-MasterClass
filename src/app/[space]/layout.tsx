@@ -19,8 +19,10 @@ import { currentViewer } from "@/lib/auth/currentViewer";
 import { sessionsEnabled } from "@/lib/auth/session";
 import { canSeeSpace, viewerCan } from "@/lib/auth/viewer";
 import { getRepo } from "@/lib/data/getRepo";
+import { pushPublicKey } from "@/lib/push/getPushSender";
 import { signInHref } from "@/lib/routes";
 import styles from "./layout.module.css";
+import { PushHeal } from "./PushHeal";
 
 export async function generateMetadata({
   params,
@@ -46,6 +48,7 @@ export default async function SpaceLayout({
   const sessions = sessionsEnabled();
   const repo = getRepo();
   const visible = canSeeSpace(viewer);
+  const pushKey = viewer.profile ? pushPublicKey() : null;
   const [theme, chrome, unread] = await Promise.all([
     spaceTheme(repo, viewer.space.id),
     visible ? siteChrome(repo, viewer.space.id) : null,
@@ -54,6 +57,9 @@ export default async function SpaceLayout({
   return (
     <>
       <ThemeStyle css={themeCss(theme, "space")} />
+      {viewer.profile && pushKey ? (
+        <PushHeal key={viewer.profile.id} publicKey={pushKey} />
+      ) : null}
       <header className={styles.header}>
         {chrome ? (
           <AppLink href="/">{viewer.space.name}</AppLink>

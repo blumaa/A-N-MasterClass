@@ -466,6 +466,16 @@ export type Reaction = {
 export const NOTIFICATION_TYPES = ['comment', 'reply', 'step_comment', 'mention', 'reaction'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
+/** One browser's push subscription, on one space (Launch 6 item 6). Keys are the browser's. */
+export type PushSubscription = {
+  spaceId: string;
+  profileId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent: string | null;
+};
+
 export type Notification = {
   id: string;
   spaceId: string;

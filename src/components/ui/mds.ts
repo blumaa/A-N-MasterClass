@@ -24,6 +24,7 @@ export {
   SideNav,
   SideNavGroup,
   Stack,
+  Switch,
   Text,
   Textarea,
   UploadProgress,

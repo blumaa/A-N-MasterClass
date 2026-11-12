@@ -130,7 +130,7 @@ Phase 6 as built (Launch 1):
 - Notifications: comment notifies post author + mentioned; reply notifies parent author; step comment notifies everyone with `comments.moderate`; first reaction notifies author. Only directory members of the community receive. Mentions in step comments are not notified, and step comments have no mention autocomplete.
 - One reply level (Kajabi). Polymorphic targets have no FK; delete triggers on posts/steps/comments remove orphans.
 - `ALWAYS_REACH` (owner, admin) lives in `lib/auth/capabilities.ts`, mirrored by `reaches_community()`.
-- Not yet: push notifications. Chat/DMs/access groups = Launch 2. Channel moderators + reports = Launch 6 item 3.
+- Push notifications: Launch 6 item 6. Chat/DMs/access groups = Launch 2. Channel moderators + reports = Launch 6 item 3.
 
 ## Studio (instructor admin)
 
@@ -175,7 +175,7 @@ Launch 2 as built:
 - Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
 - DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
 - Live updates: polling at first; Supabase Realtime since Launch 6 item 5 (see there).
-- Not yet: push, typing indicators.
+- Not yet: typing indicators.
 
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 
@@ -276,6 +276,16 @@ Launch 6 item 5 as built:
 - Caveats: Realtime caches the join check per connection, so lost access keeps hints flowing until the token refreshes or the page reloads (hints are empty). `realtime.messages` is partitioned by day and the Realtime service makes the partitions while clients are connected; with no partition the send only warns (nobody is listening then). The SQL suite skips the round trip then.
 - Free plan limits: 200 concurrent connections, 100 messages/s, 100 channel joins/s, 2M messages/month. Pro: 500 connections, 5M messages, then $2.50 per million.
 - Not yet: community nav badges (unread DMs) refresh only on pages that listen; block/unblock and channel or membership changes are not live; typing = item 7.
+
+Launch 6 item 6 as built:
+- Migration `20261112120000_push_subscriptions.sql` + `supabase/tests/160-push-subscriptions.test.sql` (14 asserts), applied to ksb 2026-11-12.
+- `push_subscriptions`: one row per browser endpoint, owned by a profile on one space. Members read and delete own rows; they save through `save_push_subscription` (needs a profile on that space; a known endpoint moves to the account that saves it last). Sending reads and deletes with the secret key.
+- Push is one more delivery for in-app notifications. `pushingRepo` (app/[space]) wraps `addNotifications` for community actions: the write lands, then `after()` builds title (space name), body (`describeNotifications` text) and URL (`notificationHref`) and sends. Payload = title, body, url only.
+- Targeting: only rows of the space the notification belongs to. Each space host serves its own worker (`/push-sw.js` route, source in `lib/push/serviceWorker.ts`), so each space has its own endpoint. The worker forces every URL onto its own origin, so a click opens that space's host.
+- 404/410 from the push service deletes the row. Other errors go to `reportError`, never swallowed.
+- Config `src/config/push.ts`: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. All unset = push off (no switch, no worker). Half set throws. `DATA_SOURCE=fake` sends nothing. The public key goes to the browser as a prop, so the build needs no keys.
+- UI: switch on /notifications per device (MDS `Switch`). iPhone/iPad Safari outside the home-screen app gets install steps instead (push needs iOS 16.4+ home-screen app); unsupported and blocked browsers get a note. `PushHeal` in the space layout re-subscribes when the browser or server lost the subscription.
+- Not yet: per-type push settings; sign-out does not remove this browser's subscription (shared devices keep getting the last user's pushes until it is turned off); KSG's iOS tap parking; notification icon (spaces have no icons yet). A new action that writes notifications must use `pushingRepo` too (today all go through `communityActions.ts`).
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

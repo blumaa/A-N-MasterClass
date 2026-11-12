@@ -15,6 +15,7 @@ import { createFakeEventsRepo } from './fakeEventsRepo';
 import { createFakeMediaRepo } from './fakeMediaRepo';
 import { createFakeModerationRepo } from './fakeModerationRepo';
 import { withPoints } from './fakePoints';
+import { createFakePushRepo } from './fakePushRepo';
 import { createFakeSiteRepo } from './fakeSiteRepo';
 
 export type FakeRepo = Repo & { db: Db };
@@ -85,6 +86,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakeCoachingRepo(db, id),
     ...createFakeMediaRepo(db, id),
     ...createFakeModerationRepo(db, id),
+    ...createFakePushRepo(db),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     spaceSlugByHost: async (host) => {

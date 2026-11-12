@@ -43,6 +43,7 @@ import type {
   PostPhoto,
   Product,
   Profile,
+  PushSubscription,
   Reaction,
   Report,
   ReportStatus,
@@ -361,6 +362,20 @@ export interface Repo {
   unreadNotificationCount(spaceId: string, recipientId: string): Promise<number>;
   addNotifications(rows: readonly NewNotification[]): Promise<void>;
   markNotificationsRead(spaceId: string, recipientId: string, now: Date): Promise<void>;
+
+  // web push (Launch 6 item 6)
+  /**
+   * As the caller (SQL: save_push_subscription). Needs a profile on the space; replaces any row
+   * with the same endpoint, whoever owned it. https endpoint; keys 1..200 chars.
+   */
+  savePushSubscription(row: PushSubscription): Promise<void>;
+  deletePushSubscription(profileId: string, endpoint: string): Promise<void>;
+  /** As the caller. Whether this endpoint is still saved for them on this space (dead ones get deleted). */
+  hasPushSubscription(spaceId: string, profileId: string, endpoint: string): Promise<boolean>;
+  /** Service role only. Rows of these profiles on this space. */
+  pushSubscriptions(spaceId: string, profileIds: readonly string[]): Promise<PushSubscription[]>;
+  /** Service role only. Drops dead endpoints (push service said 404/410). */
+  deletePushSubscriptions(endpoints: readonly string[]): Promise<void>;
 
   // gamification (G12): points ledger is written by triggers on the source rows (SQL) or the
   // withPoints wrapper (fake); repo callers only read it.
