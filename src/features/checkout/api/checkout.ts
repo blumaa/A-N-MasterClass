@@ -3,12 +3,13 @@
 import { randomUUID } from 'node:crypto';
 import { WAIVER_VERSION } from '@/lib/commerce/waiver';
 import type { Repo } from '@/lib/data/repo';
-import type { Currency, PaymentEnv } from '@/lib/data/types';
+import type { BillingInterval, Currency, OfferKind, PaymentEnv } from '@/lib/data/types';
 import type { ProviderChoice } from '@/lib/payments/forSpace';
 import type { PaymentProvider } from '@/lib/payments/provider';
 import { isEmail, normalizeEmail } from '@/lib/text/email';
 import { fulfilOrder, type FulfilResult } from './fulfil';
 import { checkoutBump, priceCheckout, type BumpInfo } from './pricing';
+import { startSubscription } from './subscriptions';
 
 export type CheckoutOffer = {
   id: string;
@@ -18,6 +19,11 @@ export type CheckoutOffer = {
   priceCents: number;
   currency: Currency;
   products: string[];
+  /** Price type (G5): one-time, subscription or payment plan, with its billing terms. */
+  kind: OfferKind;
+  billingInterval: BillingInterval | null;
+  trialDays: number | null;
+  installments: number | null;
   /** Order bump offered on this checkout (G23), null = none. */
   bump: BumpInfo | null;
 };
@@ -36,6 +42,8 @@ type NotFound = { ok: false; error: 'not_found' };
 
 export type StartResult =
   | { ok: true; kind: 'provider'; providerOrderId: string }
+  /** Recurring offer: the buyer approves this provider subscription in the popup. */
+  | { ok: true; kind: 'subscription'; providerSubscriptionId: string }
   | { ok: true; kind: 'fulfilled'; fulfilment: FulfilResult }
   | Invalid
   | NotFound;
@@ -60,6 +68,10 @@ export async function checkoutOffer(repo: Repo, spaceId: string, slug: string): 
     priceCents: offer.priceCents,
     currency: offer.currency,
     products: products.flatMap((p) => (p ? [p.title] : [])),
+    kind: offer.kind,
+    billingInterval: offer.billingInterval,
+    trialDays: offer.trialDays,
+    installments: offer.installments,
     bump,
   };
 }
@@ -97,6 +109,7 @@ export async function startCheckout(
     createdAt: now,
   };
 
+  // Recurring offers are never free (offers_recurring_terms), so only one-time orders end here.
   if (quote.totalCents === 0) {
     const row = await repo.createOrder({ ...order, provider: 'free', providerOrderId: `free-${randomUUID()}`, livemode: deps.env === 'live' });
     return { ok: true, kind: 'fulfilled', fulfilment: await fulfilOrder(repo, row, null, now) };
@@ -104,6 +117,11 @@ export async function startCheckout(
 
   const choice = await deps.resolveProvider();
   if (choice.kind === 'not_set_up') return invalid('Payments are not set up for this site yet.');
+  if (offer.kind !== 'one_time') {
+    const buyer = { email, marketingConsent: input.marketingConsent };
+    const providerSubscriptionId = await startSubscription(repo, choice.provider, choice.livemode, spaceId, offer, buyer, now);
+    return { ok: true, kind: 'subscription', providerSubscriptionId };
+  }
   const providerOrderId = await choice.provider.createOrder({
     lines: quote.lines,
     discountCents: quote.discountCents,

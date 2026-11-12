@@ -1,7 +1,7 @@
 -- Subscriptions and payment plans (Launch 6 item 13, G5): offer price-type terms, subscription
 -- constraints, buyer/staff-only reads, no browser writes, idempotent payment recording.
 begin;
-select plan(23);
+select plan(26);
 
 do $$
 declare
@@ -24,6 +24,26 @@ begin
       'sub_buyer@test', 'subscription', 'fake', 'SUB-I-1', 'active', 1500, 'EUR', 'month', 7, null, false, 'v1', now()),
     ('22c00000-0000-4000-8000-000000000002', sp, '22b00000-0000-4000-8000-000000000002', tests.get_supabase_uid('sub_buyer'),
       'sub_buyer@test', 'payment_plan', 'fake', 'SUB-I-2', 'past_due', 5000, 'EUR', 'month', null, 3, false, 'v1', now());
+  -- A cancelled subscription left an expired grant that is still status active.
+  insert into public.products (id, space_id, kind, slug, title, status) values
+    ('22a00000-0000-4000-8000-000000000001', sp, 'program', 'sub-course', 'Course', 'published');
+  insert into public.offers (id, space_id, slug, title, price_cents, currency, status) values
+    ('22b00000-0000-4000-8000-000000000003', sp, 'sub-once', 'Once', 1000, 'EUR', 'published');
+  insert into public.offer_products (offer_id, product_id) values
+    ('22b00000-0000-4000-8000-000000000003', '22a00000-0000-4000-8000-000000000001');
+  insert into public.grants (id, product_id, profile_id, source, subscription_id, expires_at) values
+    ('22e00000-0000-4000-8000-000000000001', '22a00000-0000-4000-8000-000000000001', tests.get_supabase_uid('sub_buyer'),
+      'purchase', '22c00000-0000-4000-8000-000000000001', now() - interval '1 day');
+  insert into public.orders (id, space_id, offer_id, email, provider, provider_order_id, amount_cents, currency, livemode,
+      waiver_version, waiver_accepted_at) values
+    ('22d00000-0000-4000-8000-000000000001', sp, '22b00000-0000-4000-8000-000000000003', 'sub_buyer@test', 'fake', 'SUB-PO-1',
+      1000, 'EUR', false, 'v1', now()),
+    ('22d00000-0000-4000-8000-000000000002', sp, '22b00000-0000-4000-8000-000000000003', 'sub_other@test', 'fake', 'SUB-PO-2',
+      1000, 'EUR', false, 'v1', now());
+  -- A live subscription grant for another buyer: a purchase must replace it.
+  insert into public.grants (id, product_id, profile_id, source, subscription_id) values
+    ('22e00000-0000-4000-8000-000000000002', '22a00000-0000-4000-8000-000000000001', tests.get_supabase_uid('sub_other'),
+      'purchase', '22c00000-0000-4000-8000-000000000001');
 end $$;
 
 -- Offer terms (Kajabi limits).
@@ -82,6 +102,20 @@ select results_eq($$ select status, payments_made from public.subscriptions wher
   $$ values ('completed'::text, 3) $$, 'last payment completes the plan');
 select results_eq($$ select count(*)::int from public.subscription_payments where subscription_id = '22c00000-0000-4000-8000-000000000002' $$,
   $$ values (3) $$, 'one row per sale');
+
+-- Buying again after an expired subscription grant: the old grant is revoked, a new one given.
+select is((public.fulfil_order('22d00000-0000-4000-8000-000000000001', 'SUB-CAP-1', tests.get_supabase_uid('sub_buyer'), 'buyer')).status,
+  'paid', 'order paid');
+select results_eq($$ select id = '22e00000-0000-4000-8000-000000000001', status, order_id is not null from public.grants
+  where product_id = '22a00000-0000-4000-8000-000000000001' and profile_id = tests.get_supabase_uid('sub_buyer') order by 1 $$,
+  $$ values (false, 'active'::text, true), (true, 'revoked'::text, false) $$, 'expired grant revoked, new grant active');
+do $$
+begin
+  perform public.fulfil_order('22d00000-0000-4000-8000-000000000002', 'SUB-CAP-2', tests.get_supabase_uid('sub_other'), 'other');
+end $$;
+select results_eq($$ select id = '22e00000-0000-4000-8000-000000000002', status, subscription_id is null from public.grants
+  where product_id = '22a00000-0000-4000-8000-000000000001' and profile_id = tests.get_supabase_uid('sub_other') order by 1 $$,
+  $$ values (false, 'active'::text, true), (true, 'revoked'::text, false) $$, 'purchase replaces a live subscription grant');
 
 -- RLS.
 select tests.authenticate_as('sub_buyer');

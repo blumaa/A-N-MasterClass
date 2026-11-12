@@ -101,8 +101,10 @@ export function createFakeSubscriptionRepo(db: Db, id: (prefix: string) => strin
       db.subscriptionPayments
         .filter((p) => p.subscriptionId === sid)
         .toSorted((a, b) => a.paidAt.getTime() - b.paidAt.getTime()),
-    async refundSubscriptionPayment(provider, saleId) {
-      const row = db.subscriptionPayments.find((p) => p.provider === provider && p.saleId === saleId);
+    async refundSubscriptionPayment(spaceId, provider, saleId) {
+      const row = db.subscriptionPayments.find(
+        (p) => p.spaceId === spaceId && p.provider === provider && p.saleId === saleId,
+      );
       if (!row) return null;
       row.status = 'refunded';
       return row;

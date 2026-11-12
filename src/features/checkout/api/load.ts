@@ -12,7 +12,7 @@ export type LoadedCheckout = {
   /** Paid offer and no payment provider configured: nothing to pay with. */
   payable: boolean;
   clientId: string | null;
-  /** Show the coupon box: the offer has an active coupon (G23). */
+  /** Show the coupon box: a one-time offer with an active coupon (G23; none on recurring, G5). */
   couponField: boolean;
 };
 
@@ -22,7 +22,11 @@ export const loadCheckout = cache(async (spaceSlug: string, offerSlug: string): 
   const repo = getRepo();
   const offer = await checkoutOffer(repo, viewer.space.id, offerSlug);
   if (!offer) return null;
-  const base = { offer, locale: viewer.space.locale, couponField: await repo.hasActiveCoupon(offer.id, new Date()) };
+  const base = {
+    offer,
+    locale: viewer.space.locale,
+    couponField: offer.kind === 'one_time' && (await repo.hasActiveCoupon(offer.id, new Date())),
+  };
   if (offer.priceCents === 0 && !offer.bump) return { ...base, payable: true, clientId: null };
   const choice = await spaceProvider(viewer.space.id);
   return choice.kind === 'ready' ? { ...base, payable: true, clientId: choice.clientId } : { ...base, payable: false, clientId: null };

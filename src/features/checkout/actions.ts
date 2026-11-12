@@ -14,15 +14,20 @@ import { spaceProvider } from '@/lib/payments/spaceProvider';
 import { completeCheckout, previewCoupon, startCheckout, type CouponPreview } from './api/checkout';
 import { claimAccount } from './api/claim';
 import type { FulfilResult } from './api/fulfil';
+import { activateSubscription, cancelOwnSubscription, type ActivateResult, type CancelOutcome } from './api/subscriptions';
 import { thanksPath } from './paths';
 
-export type StartCheckoutState = { ok: true; providerOrderId: string } | { ok: true; next: string } | { ok: false; message: string };
+export type StartCheckoutState =
+  | { ok: true; providerOrderId: string }
+  | { ok: true; providerSubscriptionId: string }
+  | { ok: true; next: string }
+  | { ok: false; message: string };
 export type CompleteCheckoutState = { ok: true; next: string } | { ok: false; message: string; retry: boolean };
 
 const GONE = 'This offer is no longer available.';
 
 /** New buyer: signed in right away, then asked to set a password (G4). */
-async function afterFulfil(offerSlug: string, result: FulfilResult): Promise<string> {
+async function afterFulfil(offerSlug: string, result: FulfilResult | ActivateResult): Promise<string> {
   if (result.status === 'pending') return thanksPath(offerSlug, 'pending');
   if (!result.newAccount || !sessionsEnabled()) return thanksPath(offerSlug, 'paid');
   await startSession(result.profileId);
@@ -60,6 +65,7 @@ export async function startCheckoutAction(input: {
   );
   if (!result.ok) return { ok: false, message: result.error === 'invalid' ? result.message : GONE };
   if (result.kind === 'provider') return { ok: true, providerOrderId: result.providerOrderId };
+  if (result.kind === 'subscription') return { ok: true, providerSubscriptionId: result.providerSubscriptionId };
   return { ok: true, next: await afterFulfil(offerSlug, result.fulfilment) };
 }
 
@@ -84,6 +90,30 @@ export async function completeCheckoutAction(offerSlug: string, providerOrderId:
     }
     throw error;
   }
+}
+
+/** Buyer approved the subscription in PayPal (G5). The webhook activates it too if this never runs. */
+export async function activateSubscriptionAction(
+  offerSlug: string,
+  providerSubscriptionId: string,
+): Promise<CompleteCheckoutState> {
+  const viewer = await actionViewer();
+  const choice = viewer ? await spaceProvider(viewer.space.id) : null;
+  if (!viewer || choice?.kind !== 'ready') return { ok: false, message: GONE, retry: false };
+  const repo = getServiceRepo();
+  const result = await activateSubscription(repo, choice.provider, viewer.space.id, String(providerSubscriptionId), new Date());
+  if (!result) return { ok: false, message: GONE, retry: false };
+  return { ok: true, next: await afterFulfil(String(offerSlug), result) };
+}
+
+/** Member cancels their own subscription (G5): access stays until the paid period ends. */
+export async function cancelSubscriptionAction(subscriptionId: string): Promise<CancelOutcome> {
+  const viewer = await actionViewer();
+  if (!viewer?.profile) return 'not_found';
+  const choice = await spaceProvider(viewer.space.id);
+  if (choice.kind !== 'ready') return 'not_cancellable';
+  const repo = getServiceRepo();
+  return cancelOwnSubscription(repo, choice.provider, viewer.space.id, viewer.profile.id, String(subscriptionId), new Date());
 }
 
 /** Form post, not a link click: mail scanners that open links never use the token up. */

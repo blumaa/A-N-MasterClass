@@ -3,10 +3,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Card, CardBody, Heading, Stack, Text } from '@/components/ui/mds';
-import { applyCouponAction, completeCheckoutAction, startCheckoutAction } from '@/features/checkout/actions';
+import {
+  activateSubscriptionAction,
+  applyCouponAction,
+  completeCheckoutAction,
+  startCheckoutAction,
+} from '@/features/checkout/actions';
 import { loadCheckout } from '@/features/checkout/api/load';
 import { CheckoutForm } from '@/features/checkout/components/CheckoutForm';
-import { formatMoney } from '@/lib/commerce/money';
+import { priceTermsLabel } from '@/lib/commerce/recurring';
 import styles from './page.module.css';
 
 type Props = PageProps<'/[space]/checkout/[offer]'>;
@@ -32,7 +37,7 @@ export default async function CheckoutPage({ params }: Props) {
         <Card>
           <CardBody>
             <Stack gap="tight">
-              <Text variant="label">{offer.priceCents === 0 ? 'Free' : formatMoney(offer.priceCents, offer.currency, locale)}</Text>
+              <Text variant="label">{priceTermsLabel(offer, locale)}</Text>
               {offer.products.length > 0 ? (
                 <ul className={styles.products}>
                   {offer.products.map((title) => (
@@ -48,13 +53,24 @@ export default async function CheckoutPage({ params }: Props) {
       </Stack>
       {payable ? (
         <CheckoutForm
-          offer={{ slug: offer.slug, title: offer.title, priceCents: offer.priceCents, currency: offer.currency, bump: offer.bump }}
+          offer={{
+            slug: offer.slug,
+            title: offer.title,
+            priceCents: offer.priceCents,
+            currency: offer.currency,
+            kind: offer.kind,
+            billingInterval: offer.billingInterval,
+            trialDays: offer.trialDays,
+            installments: offer.installments,
+            bump: offer.bump,
+          }}
           clientId={clientId}
           locale={locale}
           couponField={couponField}
           applyCouponAction={applyCouponAction}
           startAction={startCheckoutAction}
           completeAction={completeCheckoutAction}
+          activateAction={activateSubscriptionAction}
         />
       ) : (
         <Text role="alert" tone="danger">

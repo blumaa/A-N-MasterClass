@@ -2,11 +2,13 @@
 // Checkout form (G4, G25, G28): email, withdrawal waiver (must be ticked), optional
 // marketing consent, order bump and coupon (G23). Then one of: total 0 = "Get access"; PayPal
 // client id = PayPal buttons; no client id (dev fake provider) = "Pay (test)". The total shown
-// here is display only: the server prices the order from DB rows.
+// here is display only: the server prices the order from DB rows. A recurring offer (G5) has
+// no coupon or bump and pays through a PayPal subscription instead of an order.
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Button, Checkbox, Field, Input, Stack, Text } from '@/components/ui/mds';
 import { formatMoney, type Currency } from '@/lib/commerce/money';
+import { priceTermsLabel, type RecurringTerms } from '@/lib/commerce/recurring';
 import { WAIVER_TEXT } from '@/lib/commerce/waiver';
 import { isEmail } from '@/lib/text/email';
 import type { CompleteCheckoutState, StartCheckoutState } from '../actions';
@@ -18,7 +20,7 @@ import { PayPalButtons } from './PayPalButtons';
 import styles from './CheckoutForm.module.css';
 
 export type CheckoutFormProps = {
-  offer: { slug: string; title: string; priceCents: number; currency: Currency; bump: Omit<BumpInfo, 'id'> | null };
+  offer: RecurringTerms & { slug: string; title: string; currency: Currency; bump: Omit<BumpInfo, 'id'> | null };
   /** PayPal REST client id of the space; null = dev fake provider. */
   clientId: string | null;
   locale: string;
@@ -27,11 +29,14 @@ export type CheckoutFormProps = {
   applyCouponAction: (offerSlug: string, code: string) => Promise<CouponPreview>;
   startAction: (input: CheckoutInput) => Promise<StartCheckoutState>;
   completeAction: (offerSlug: string, providerOrderId: string) => Promise<CompleteCheckoutState>;
+  activateAction: (offerSlug: string, providerSubscriptionId: string) => Promise<CompleteCheckoutState>;
 };
 
 const FAILED = 'Something went wrong. Please try again.';
 
-export function CheckoutForm({ offer, clientId, locale, couponField, applyCouponAction, startAction, completeAction }: CheckoutFormProps) {
+export function CheckoutForm(props: CheckoutFormProps) {
+  const { offer, clientId, locale, couponField, applyCouponAction, startAction } = props;
+  const recurring = offer.kind !== 'one_time';
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [waiver, setWaiver] = useState(false);
@@ -57,7 +62,7 @@ export function CheckoutForm({ offer, clientId, locale, couponField, applyCoupon
     withBump,
   });
 
-  /** Creates the order; resolves the provider order id, or null when done or refused. */
+  /** Creates the order or subscription; resolves its provider id, or null when done or refused. */
   async function begin(): Promise<string | null> {
     setMessage(null);
     const result = await startAction(input());
@@ -69,11 +74,12 @@ export function CheckoutForm({ offer, clientId, locale, couponField, applyCoupon
       router.push(result.next);
       return null;
     }
-    return result.providerOrderId;
+    return 'providerOrderId' in result ? result.providerOrderId : result.providerSubscriptionId;
   }
 
-  async function finish(providerOrderId: string): Promise<'done' | 'restart'> {
-    const result = await completeAction(offer.slug, providerOrderId);
+  async function finish(providerId: string): Promise<'done' | 'restart'> {
+    const complete = recurring ? props.activateAction : props.completeAction;
+    const result = await complete(offer.slug, providerId);
     if (result.ok) {
       router.push(result.next);
       return 'done';
@@ -102,7 +108,8 @@ export function CheckoutForm({ offer, clientId, locale, couponField, applyCoupon
       <PayPalButtons
         clientId={clientId}
         currency={offer.currency}
-        createOrder={async () => {
+        mode={recurring ? 'subscription' : 'order'}
+        create={async () => {
           const id = await begin();
           // PayPal needs an order id or a rejection; a refusal message is already shown.
           if (!id) throw new Error('checkout refused');
@@ -133,6 +140,7 @@ export function CheckoutForm({ offer, clientId, locale, couponField, applyCoupon
         ) : null}
         {couponField ? <CouponField offerSlug={offer.slug} applied={coupon} onChange={setCoupon} applyAction={applyCouponAction} /> : null}
         <OrderSummary lines={lines} totalCents={totalCents} currency={offer.currency} locale={locale} />
+        {recurring ? <Text tone="secondary">{priceTermsLabel(offer, locale)}</Text> : null}
         <Checkbox name="waiver" label={WAIVER_TEXT} checked={waiver} onChange={(e) => setWaiver(e.target.checked)} />
         <Checkbox
           name="marketingConsent"

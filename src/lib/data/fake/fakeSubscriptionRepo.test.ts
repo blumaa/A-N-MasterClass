@@ -129,8 +129,9 @@ describe('subscriptions', () => {
       amountCents: 5000,
       paidAt: NOW,
     });
-    expect((await repo.refundSubscriptionPayment('fake', 'S1'))?.status).toBe('refunded');
-    expect(await repo.refundSubscriptionPayment('fake', 'nope')).toBeNull();
+    expect(await repo.refundSubscriptionPayment('s2', 'fake', 'S1')).toBeNull();
+    expect((await repo.refundSubscriptionPayment('s1', 'fake', 'S1'))?.status).toBe('refunded');
+    expect(await repo.refundSubscriptionPayment('s1', 'fake', 'nope')).toBeNull();
   });
 
   it('caches provider plans per terms', async () => {

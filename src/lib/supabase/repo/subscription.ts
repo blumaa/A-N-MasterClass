@@ -130,11 +130,12 @@ export function createSubscriptionRepo({ db, admin }: RepoCtx): SubscriptionRepo
       );
       return rows.map(toSubscriptionPayment);
     },
-    async refundSubscriptionPayment(provider, saleId) {
+    async refundSubscriptionPayment(spaceId, provider, saleId) {
       const row = unwrapMaybe(
         await admin()
           .from('subscription_payments')
           .update({ status: 'refunded' })
+          .eq('space_id', spaceId)
           .eq('provider', provider)
           .eq('sale_id', saleId)
           .select('*')

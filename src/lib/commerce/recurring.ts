@@ -2,7 +2,7 @@
 // subscriptions https://help.kajabi.com/en/articles/12695517-how-to-create-a-subscription-offer
 // payment plans https://help.kajabi.com/articles/sales/offers/create-a-payment-plan-offer
 // SQL check offers_recurring_terms (20261112180000_subscriptions.sql) mirrors recurringTermsError.
-import type { Currency } from './money';
+import { formatMoney, type Currency } from './money';
 import type { BillingInterval, OfferKind } from '@/lib/data/types';
 
 /** Kajabi payment plan limits: weekly 2-104, monthly 2-24, annual 2-5 payments. */
@@ -59,3 +59,14 @@ export const addTrial = (from: Date, days: number): Date => new Date(from.getTim
 /** Provider plans are fixed once created, so a cached plan is keyed by every billed term. */
 export const recurringTermsKey = (t: RecurringTerms): string =>
   [t.kind, t.priceCents, t.currency, t.billingInterval, t.trialDays ?? 0, t.installments ?? 0].join(':');
+
+const EVERY: Record<BillingInterval, string> = { week: 'weekly', month: 'monthly', year: 'annual' };
+
+/** Checkout and account price line, e.g. "7-day free trial, then €15.00 per month". */
+export function priceTermsLabel(t: RecurringTerms, locale: string): string {
+  const money = formatMoney(t.priceCents, t.currency, locale);
+  if (t.kind === 'one_time' || t.billingInterval === null) return t.priceCents === 0 ? 'Free' : money;
+  if (t.kind === 'payment_plan') return `${t.installments} ${EVERY[t.billingInterval]} payments of ${money}`;
+  const recurring = `${money} per ${t.billingInterval}`;
+  return t.trialDays ? `${t.trialDays}-day free trial, then ${recurring}` : recurring;
+}

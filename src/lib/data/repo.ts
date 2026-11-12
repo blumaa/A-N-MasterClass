@@ -356,8 +356,8 @@ export interface Repo {
   recordSubscriptionPayment(input: NewSubscriptionPayment): Promise<boolean>;
   /** Oldest first. */
   subscriptionPayments(subscriptionId: string): Promise<SubscriptionPayment[]>;
-  /** Marks a sale refunded; null when unknown. */
-  refundSubscriptionPayment(provider: RecurringProvider, saleId: string): Promise<SubscriptionPayment | null>;
+  /** Marks a sale of the space refunded; null when unknown there. */
+  refundSubscriptionPayment(spaceId: string, provider: RecurringProvider, saleId: string): Promise<SubscriptionPayment | null>;
   /** Cached provider billing plan id for these terms, or null. */
   providerPlan(
     offerId: string,

@@ -1,8 +1,9 @@
 // Order fulfilment (G4, G28): one idempotent path shared by the capture route, the free
 // checkout and the PayPal webhook. Mirrors the fulfil_order SQL RPC (atomic there).
-import { newClaimToken } from '@/lib/auth/claimToken';
 import type { Repo } from '@/lib/data/repo';
 import type { Order, OrderStatus } from '@/lib/data/types';
+import { buyerProfile, finishBuyer, giveGrants } from './buyer';
+import { applySubscriptionEvent, type SubscriptionOutcome } from './subscriptions';
 import { orderStatusFor, type Capture, type PaymentProvider, type ProviderEvent } from '@/lib/payments/provider';
 
 export type FulfilResult =
@@ -34,41 +35,16 @@ export async function fulfilOrder(repo: Repo, order: Order, capture: Capture | n
     return { status: 'pending', orderId: order.id };
   }
 
-  const existing = await repo.profileByEmail(order.email);
-  const profile = existing ?? (await repo.createProfile(order.email));
-  await repo.ensureSpaceProfile({ spaceId: order.spaceId, profileId: profile.id, displayName: order.email.split('@')[0] });
-
-  // A grant is per product + access group: holding the default group does not cover a VIP group.
+  const { profileId, isNew } = await buyerProfile(repo, order.spaceId, order.email);
   // The order bump (G23) grants its offer's products too; a product in both is granted once.
   const offerIds = order.bumpOfferId ? [order.offerId, order.bumpOfferId] : [order.offerId];
-  const items = (await Promise.all(offerIds.map((id) => repo.offerItems(id)))).flat();
-  const held = (await repo.grants(order.spaceId, profile.id, now)).map((g) => `${g.productId}:${g.accessGroupId}`);
-  const granted = new Set(held);
-  for (const { productId, accessGroupId } of items) {
-    const key = `${productId}:${accessGroupId}`;
-    if (granted.has(key)) continue;
-    granted.add(key);
-    await repo.createGrant({ productId, profileId: profile.id, source: 'purchase', orderId: order.id, accessGroupId });
-  }
-
-  await repo.upsertContact({
-    spaceId: order.spaceId,
-    email: order.email,
-    profileId: profile.id,
-    consent: order.marketingConsent ? { source: 'checkout', at: order.createdAt } : null,
-  });
-  await repo.updateOrder(order.id, { status: 'paid', captureId: capture?.captureId ?? null, profileId: profile.id, paidAt: now });
-
-  let claimToken: string | null = null;
-  if (!existing) {
-    const claim = newClaimToken(now);
-    await repo.createClaimToken({ tokenHash: claim.hash, spaceId: order.spaceId, profileId: profile.id, expiresAt: claim.expiresAt, usedAt: null });
-    claimToken = claim.token;
-  }
-  return { status: 'paid', orderId: order.id, profileId: profile.id, newAccount: !existing, claimToken };
+  await giveGrants(repo, profileId, offerIds, { orderId: order.id }, now);
+  const claimToken = await finishBuyer(repo, order, profileId, isNew, now);
+  await repo.updateOrder(order.id, { status: 'paid', captureId: capture?.captureId ?? null, profileId, paidAt: now });
+  return { status: 'paid', orderId: order.id, profileId, newAccount: isNew, claimToken };
 }
 
-export type EventOutcome = 'fulfilled' | 'pending' | 'ignored' | 'unknown_order' | OrderStatus;
+export type EventOutcome = 'fulfilled' | 'pending' | 'ignored' | 'unknown_order' | OrderStatus | SubscriptionOutcome;
 
 /** Webhook backup path. Orders of other spaces count as unknown: a space's webhook only touches its own orders. */
 export async function applyProviderEvent(
@@ -101,5 +77,10 @@ export async function applyProviderEvent(
       }
       return status;
     }
+    case 'subscription.changed':
+    case 'subscription.payment_failed':
+    case 'subscription.paid':
+    case 'sale.refunded':
+      return applySubscriptionEvent(repo, provider, spaceId, event, now);
   }
 }

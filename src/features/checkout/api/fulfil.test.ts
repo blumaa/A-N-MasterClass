@@ -166,4 +166,12 @@ describe('applyProviderEvent', () => {
     expect(await applyProviderEvent(repo, provider, 's1', { kind: 'capture.changed', captureId: 'nope' }, NOW)).toBe('unknown_order');
     expect(await applyProviderEvent(repo, provider, 's1', { kind: 'ignored' }, NOW)).toBe('ignored');
   });
+
+  it('hands subscription events to the subscription flow', async () => {
+    const failed = { kind: 'subscription.payment_failed' as const, subscriptionId: 'I-NOPE' };
+    expect(await applyProviderEvent(repo, provider, 's1', failed, NOW)).toBe('unknown_subscription');
+    expect(await applyProviderEvent(repo, provider, 's1', { kind: 'sale.refunded', saleId: 'S-NOPE' }, NOW)).toBe(
+      'unknown_sale',
+    );
+  });
 });

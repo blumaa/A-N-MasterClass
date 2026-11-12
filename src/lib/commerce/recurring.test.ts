@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addInterval, addTrial, recurringTermsError, recurringTermsKey } from './recurring';
+import { addInterval, addTrial, priceTermsLabel, recurringTermsError, recurringTermsKey } from './recurring';
 
 const sub = {
   kind: 'subscription' as const,
@@ -78,5 +78,15 @@ describe('recurringTermsKey', () => {
     expect(recurringTermsKey(sub)).toBe('subscription:1500:EUR:month:0:0');
     expect(recurringTermsKey({ ...sub, trialDays: 7 })).not.toBe(recurringTermsKey(sub));
     expect(recurringTermsKey(plan)).toBe('payment_plan:1500:EUR:month:0:3');
+  });
+});
+
+describe('priceTermsLabel', () => {
+  it('describes each price type like the Kajabi checkout', () => {
+    expect(priceTermsLabel({ ...sub, kind: 'one_time', billingInterval: null }, 'en')).toBe('€15.00');
+    expect(priceTermsLabel({ ...sub, kind: 'one_time', billingInterval: null, priceCents: 0 }, 'en')).toBe('Free');
+    expect(priceTermsLabel(sub, 'en')).toBe('€15.00 per month');
+    expect(priceTermsLabel({ ...sub, trialDays: 7 }, 'en')).toBe('7-day free trial, then €15.00 per month');
+    expect(priceTermsLabel({ ...plan, billingInterval: 'week' }, 'en')).toBe('3 weekly payments of €15.00');
   });
 });

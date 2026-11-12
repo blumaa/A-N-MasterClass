@@ -4,14 +4,17 @@
 import { useEffect, useRef } from 'react';
 import { Text } from '@/components/ui/mds';
 import type { Currency } from '@/lib/commerce/money';
-import { loadPayPal } from '../paypalSdk';
+import { loadPayPal, type PayPalMode } from '../paypalSdk';
 
 type Props = {
   clientId: string;
   currency: Currency;
-  createOrder: () => Promise<string>;
+  /** order = one-time capture; subscription = recurring offer (G5). */
+  mode: PayPalMode;
+  /** Resolves the server-created PayPal order or subscription id. */
+  create: () => Promise<string>;
   /** Resolves 'restart' when the buyer should pick another funding source. */
-  onApprove: (providerOrderId: string) => Promise<'done' | 'restart'>;
+  onApprove: (providerId: string) => Promise<'done' | 'restart'>;
   onError: (error: unknown) => void;
 };
 
@@ -21,19 +24,22 @@ export function PayPalButtons(props: Props) {
   useEffect(() => {
     latest.current = props;
   });
-  const { clientId, currency } = props;
+  const { clientId, currency, mode } = props;
 
   useEffect(() => {
     let closed = false;
     let buttons: { close(): Promise<void> } | null = null;
-    loadPayPal(clientId, currency)
+    loadPayPal(clientId, currency, mode)
       .then((paypal) => {
         if (closed || !container.current) return;
+        const create = () => latest.current.create();
         const instance = paypal.Buttons({
-          createOrder: () => latest.current.createOrder(),
+          ...(mode === 'order' ? { createOrder: create } : { createSubscription: create }),
           // onApprove must return its promise so the SDK waits for the capture.
           onApprove: async (data, actions) => {
-            if ((await latest.current.onApprove(data.orderID)) === 'restart') await actions.restart();
+            const id = mode === 'order' ? data.orderID : data.subscriptionID;
+            if (!id) throw new Error(`PayPal approved without a ${mode} id`);
+            if ((await latest.current.onApprove(id)) === 'restart') await actions.restart();
           },
           onError: (error) => latest.current.onError(error),
         });
@@ -45,7 +51,7 @@ export function PayPalButtons(props: Props) {
       closed = true;
       buttons?.close().catch((error: unknown) => latest.current.onError(error));
     };
-  }, [clientId, currency]);
+  }, [clientId, currency, mode]);
 
   return (
     <div ref={container}>

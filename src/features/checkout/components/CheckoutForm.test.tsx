@@ -5,7 +5,17 @@ import { CheckoutForm, type CheckoutFormProps } from './CheckoutForm';
 const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
-const offer = { slug: 'full', title: 'Full', priceCents: 4900, currency: 'EUR' as const, bump: null };
+const offer = {
+  slug: 'full',
+  title: 'Full',
+  priceCents: 4900,
+  currency: 'EUR' as const,
+  kind: 'one_time' as const,
+  billingInterval: null,
+  trialDays: null,
+  installments: null,
+  bump: null,
+};
 const bump = { title: 'Extra', description: 'Bonus lessons', priceCents: 900 };
 
 function setup(extra: Partial<CheckoutFormProps> = {}) {
@@ -17,6 +27,7 @@ function setup(extra: Partial<CheckoutFormProps> = {}) {
     applyCouponAction: vi.fn().mockResolvedValue({ ok: true, code: 'TEN', discountCents: 490 }),
     startAction: vi.fn().mockResolvedValue({ ok: true, providerOrderId: 'po-1' }),
     completeAction: vi.fn().mockResolvedValue({ ok: true, next: '/checkout/full/thanks?status=paid' }),
+    activateAction: vi.fn().mockResolvedValue({ ok: true, next: '/checkout/full/thanks?status=welcome' }),
     ...extra,
   };
   render(<CheckoutForm {...props} />);
@@ -129,5 +140,16 @@ describe('CheckoutForm', () => {
     type('Coupon code', 'all');
     press('Apply');
     expect(await screen.findByRole('button', { name: 'Get access' })).toBeInTheDocument();
+  });
+
+  it('a subscription shows its terms and activates after approval (G5)', async () => {
+    const monthly = { ...offer, kind: 'subscription' as const, priceCents: 1500, billingInterval: 'month' as const, trialDays: 7 };
+    const props = setup({ offer: monthly, startAction: vi.fn().mockResolvedValue({ ok: true, providerSubscriptionId: 'I-1' }) });
+    expect(screen.getByText('7-day free trial, then €15.00 per month')).toBeInTheDocument();
+    fill();
+    press('Pay (test)');
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/checkout/full/thanks?status=welcome'));
+    expect(props.activateAction).toHaveBeenCalledWith('full', 'I-1');
+    expect(props.completeAction).not.toHaveBeenCalled();
   });
 });

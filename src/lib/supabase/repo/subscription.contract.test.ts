@@ -1,5 +1,6 @@
 // Subscription Supabase repo against the linked project (G5). Service client: RLS is covered by
 // supabase/tests/220-subscriptions.test.sql; this checks queries, mapping, the RPC and constraint mapping.
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { OFFER_HAS_SUBSCRIPTIONS, OFFER_TERMS, SUBSCRIPTION_ID_TAKEN } from '@/lib/data/errors';
 import type { NewSubscription } from '@/lib/data/repo';
@@ -118,8 +119,9 @@ describe.skipIf(!contractEnabled)('subscription repo (Supabase contract)', () =>
     expect((await repo.subscriptionsForProfile(fx.spaceId, buyer)).map((x) => x.id)).toEqual([s.id]);
     expect((await repo.subscriptions(fx.spaceId)).map((x) => x.id)).toEqual([s.id]);
 
-    expect((await repo.refundSubscriptionPayment('fake', `${fx.slug}-S1`))?.status).toBe('refunded');
-    expect(await repo.refundSubscriptionPayment('fake', `${fx.slug}-none`)).toBeNull();
+    expect(await repo.refundSubscriptionPayment(randomUUID(), 'fake', `${fx.slug}-S1`)).toBeNull();
+    expect((await repo.refundSubscriptionPayment(fx.spaceId, 'fake', `${fx.slug}-S1`))?.status).toBe('refunded');
+    expect(await repo.refundSubscriptionPayment(fx.spaceId, 'fake', `${fx.slug}-none`)).toBeNull();
     expect((await repo.subscriptionPayments(s.id)).map((p) => [p.saleId, p.status])).toEqual([
       [`${fx.slug}-S1`, 'refunded'],
       [`${fx.slug}-S2`, 'paid'],

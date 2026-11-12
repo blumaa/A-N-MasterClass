@@ -68,6 +68,12 @@ describe('checkoutBump', () => {
     expect(await checkoutBump(repo, offer)).toBeNull();
     expect(await checkoutBump(repo, { ...offer, bumpOfferId: null })).toBeNull();
   });
+
+  it('has no bump on a subscription or payment plan, and never offers one as a bump', async () => {
+    expect(await checkoutBump(repo, { ...offer, kind: 'subscription' })).toBeNull();
+    await repo.updateOffer(bump.id, { kind: 'subscription', billingInterval: 'month' });
+    expect(await checkoutBump(repo, offer)).toBeNull();
+  });
 });
 
 describe('priceCheckout', () => {
@@ -100,6 +106,12 @@ describe('priceCheckout', () => {
     await repo.updateOffer(offer.id, { bumpOfferId: null });
     offer = (await repo.offer(offer.id))!;
     expect(await ask({ withBump: true })).toMatchObject({ ok: true, quote: { totalCents: 4900, bump: null } });
+  });
+
+  it('refuses any coupon on a subscription or payment plan', async () => {
+    await repo.createCoupon({ ...coupon(), code: 'TEN' });
+    offer = { ...offer, kind: 'subscription' };
+    expect(await ask({ couponCode: 'TEN' })).toMatchObject({ ok: false, message: expect.stringMatching(/subscriptions/) });
   });
 
   it('refuses a coupon past its limit or already used by this buyer', async () => {

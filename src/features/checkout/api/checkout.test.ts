@@ -125,6 +125,35 @@ describe('startCheckout with coupon and bump (G23)', () => {
   });
 });
 
+describe('startCheckout for a subscription (G5)', () => {
+  beforeEach(async () => {
+    await repo.updateOffer(offer.id, { kind: 'subscription', billingInterval: 'month', trialDays: 14 });
+  });
+
+  it('shows the billing terms', async () => {
+    expect(await checkoutOffer(repo, 's1', 'full')).toMatchObject({
+      kind: 'subscription',
+      billingInterval: 'month',
+      trialDays: 14,
+      installments: null,
+      bump: null,
+    });
+  });
+
+  it('creates a pending provider subscription instead of an order', async () => {
+    const result = await startCheckout(repo, ready, 's1', input(), NOW);
+    expect(result).toMatchObject({ ok: true, kind: 'subscription', providerSubscriptionId: expect.any(String) });
+    expect(repo.db.orders).toEqual([]);
+    expect(repo.db.subscriptions[0]).toMatchObject({ email: 'buyer@test.com', status: 'pending', amountCents: 4900 });
+  });
+
+  it('refuses coupons and needs a provider', async () => {
+    expect(await startCheckout(repo, ready, 's1', input({ couponCode: 'X' }), NOW)).toMatchObject({ ok: false, error: 'invalid' });
+    expect(await startCheckout(repo, notSetUp, 's1', input(), NOW)).toMatchObject({ ok: false, error: 'invalid' });
+    expect(repo.db.subscriptions).toEqual([]);
+  });
+});
+
 describe('completeCheckout', () => {
   it('captures and fulfils the order once', async () => {
     await startCheckout(repo, ready, 's1', input(), NOW);

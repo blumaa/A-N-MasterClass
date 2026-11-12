@@ -7,4 +7,9 @@ describe('paypalSdkUrl', () => {
     expect(url.origin + url.pathname).toBe('https://www.paypal.com/sdk/js');
     expect(Object.fromEntries(url.searchParams)).toEqual({ 'client-id': 'cid&x', currency: 'EUR', intent: 'capture' });
   });
+
+  it('loads the subscription SDK with vault and subscription intent; the plan sets the currency', () => {
+    const url = new URL(paypalSdkUrl('cid', 'EUR', 'subscription'));
+    expect(Object.fromEntries(url.searchParams)).toEqual({ 'client-id': 'cid', vault: 'true', intent: 'subscription' });
+  });
 });

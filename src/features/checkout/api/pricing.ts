@@ -1,5 +1,7 @@
 // Checkout price (G23): always computed here from DB rows, never from the browser.
 // Total = offer - coupon discount + bump. The coupon discounts the main offer only.
+// Subscriptions and payment plans (G5) take no coupon and no bump: the simplest Kajabi-like
+// option, one fixed price per billing cycle.
 import type { Repo } from '@/lib/data/repo';
 import type { Coupon, Offer } from '@/lib/data/types';
 import { lineTotalCents, type OrderLine } from '@/lib/payments/provider';
@@ -19,7 +21,7 @@ export type PriceResult = { ok: true; quote: Quote } | Refused;
 export type PriceInput = { couponCode: string; withBump: boolean };
 
 /** bump = the offer's eligible bump (checkoutBump), already loaded. */
-export type PricedOffer = Pick<Offer, 'id' | 'title' | 'priceCents' | 'currency'> & { bump: BumpInfo | null };
+export type PricedOffer = Pick<Offer, 'id' | 'title' | 'priceCents' | 'currency' | 'kind'> & { bump: BumpInfo | null };
 
 const NOT_VALID = 'This coupon code is not valid.';
 const refused = (message: string): Refused => ({ ok: false, message });
@@ -38,11 +40,14 @@ export function couponDiscount(
   return { ok: true, cents: Math.min(coupon.amountOffCents ?? 0, offer.priceCents) };
 }
 
-/** Bump shown at checkout: published and in the offer's currency (one PayPal order, one currency). */
-export async function checkoutBump(repo: Repo, offer: Pick<Offer, 'currency' | 'bumpOfferId'>): Promise<BumpInfo | null> {
-  if (!offer.bumpOfferId) return null;
+/** Bump shown at checkout: one-time, published and in the offer's currency (one PayPal order, one currency). */
+export async function checkoutBump(
+  repo: Repo,
+  offer: Pick<Offer, 'currency' | 'bumpOfferId' | 'kind'>,
+): Promise<BumpInfo | null> {
+  if (!offer.bumpOfferId || offer.kind !== 'one_time') return null;
   const bump = await repo.offer(offer.bumpOfferId);
-  if (!bump || bump.status !== 'published' || bump.currency !== offer.currency) return null;
+  if (!bump || bump.status !== 'published' || bump.currency !== offer.currency || bump.kind !== 'one_time') return null;
   return { id: bump.id, title: bump.title, description: bump.description, priceCents: bump.priceCents };
 }
 
@@ -59,6 +64,7 @@ export async function priceCheckout(
   let discountCents = 0;
   const code = input.couponCode.trim();
   if (code) {
+    if (offer.kind !== 'one_time') return refused('Coupons do not apply to subscriptions or payment plans.');
     const coupon = await repo.couponByCode(spaceId, code);
     if (!coupon) return refused(NOT_VALID);
     const discount = couponDiscount(coupon, offer, now);

@@ -1,10 +1,13 @@
-// PayPal REST adapter (Orders v2, Payments v2, Webhooks v1). One instance per space +
+// PayPal REST adapter (Orders v2, Payments v2, Subscriptions v1, Catalog Products v1, Webhooks v1). One instance per space +
 // credential env; each instructor uses their own REST app (G28). Errors throw
 // PaymentProviderError, never swallowed. fetch is injected so tests run offline.
 import { centsToDecimal, decimalToCents } from '@/lib/commerce/money';
-import type { PaymentEnv } from '@/lib/data/types';
+import type { RecurringTerms } from '@/lib/commerce/recurring';
+import type { BillingInterval, PaymentEnv } from '@/lib/data/types';
 import {
   CAPTURE_STATUSES,
+  PROVIDER_SUBSCRIPTION_STATUSES,
+  type ProviderSubscriptionStatus,
   lineTotalCents,
   orderTotalCents,
   PaymentProviderError,
@@ -39,6 +42,33 @@ function purchaseUnit({ lines, discountCents, currency, description, referenceId
     items: lines.map((l) => ({ name: l.name.slice(0, DESCRIPTION_MAX), quantity: '1', category: 'DIGITAL_GOODS', unit_amount: money(l.amountCents) })),
   };
 }
+const INTERVAL_UNIT: Record<BillingInterval, 'WEEK' | 'MONTH' | 'YEAR'> = { week: 'WEEK', month: 'MONTH', year: 'YEAR' };
+
+/** Failed payments PayPal retries before it suspends the subscription. */
+const PAYMENT_FAILURE_THRESHOLD = 3;
+
+/**
+ * Billing cycles: an optional free trial of N days, then the regular price every interval.
+ * total_cycles 0 = until cancelled (subscription); N = payment plan installments.
+ * https://developer.paypal.com/docs/api/subscriptions/v1/#plans_create
+ */
+function billingCycles(t: RecurringTerms) {
+  if (!t.billingInterval) throw new PaymentProviderError(0, 'NOT_RECURRING', null);
+  const trial = t.trialDays
+    ? [{ frequency: { interval_unit: 'DAY', interval_count: t.trialDays }, tenure_type: 'TRIAL', sequence: 1, total_cycles: 1 }]
+    : [];
+  return [
+    ...trial,
+    {
+      frequency: { interval_unit: INTERVAL_UNIT[t.billingInterval], interval_count: 1 },
+      tenure_type: 'REGULAR',
+      sequence: trial.length + 1,
+      total_cycles: t.installments ?? 0,
+      pricing_scheme: { fixed_price: { value: centsToDecimal(t.priceCents), currency_code: t.currency } },
+    },
+  ];
+}
+
 /** Renew the token this long before PayPal's expiry. */
 const TOKEN_MARGIN_MS = 60_000;
 
@@ -72,6 +102,25 @@ function readCapture(raw: unknown): Capture | null {
     status: status as CaptureStatus,
     amountCents: value === null ? null : decimalToCents(value),
     currency: str(amount.currency_code) ?? '',
+  };
+}
+
+/** A sale is one subscription payment only when it carries billing_agreement_id (the subscription id). */
+function readSale(resource: Json): ProviderEvent {
+  const subscriptionId = str(resource.billing_agreement_id);
+  const saleId = str(resource.id);
+  const amount = obj(resource.amount);
+  const total = str(amount.total);
+  const amountCents = total === null ? null : decimalToCents(total);
+  const created = str(resource.create_time);
+  if (!subscriptionId || !saleId || amountCents === null) return { kind: 'ignored' };
+  return {
+    kind: 'subscription.paid',
+    subscriptionId,
+    saleId,
+    amountCents,
+    currency: str(amount.currency) ?? '',
+    paidAt: created ? new Date(created) : new Date(),
   };
 }
 
@@ -112,7 +161,15 @@ export function createPayPalProvider(config: PayPalConfig, fetchImpl: typeof fet
       body: init.body,
     });
     if (!res.ok) throw await failure(res);
-    return obj(await res.json());
+    // Cancel answers 204 No Content.
+    return res.status === 204 ? {} : obj(await res.json());
+  }
+
+  async function create(path: string, requestId: string, payload: unknown, missing: string): Promise<string> {
+    const body = await call(path, { method: 'POST', headers: { 'PayPal-Request-Id': requestId }, body: JSON.stringify(payload) });
+    const id = str(body.id);
+    if (!id) throw new PaymentProviderError(200, missing, null);
+    return id;
   }
 
   return {
@@ -166,6 +223,47 @@ export function createPayPalProvider(config: PayPalConfig, fetchImpl: typeof fet
       return body.verification_status === 'SUCCESS';
     },
 
+    async createPlan({ name, terms, requestId }) {
+      const productId = await create(
+        '/v1/catalogs/products',
+        `${requestId}-product`,
+        { name: name.slice(0, DESCRIPTION_MAX), type: 'DIGITAL' },
+        'NO_PRODUCT_ID',
+      );
+      return create(
+        '/v1/billing/plans',
+        `${requestId}-plan`,
+        {
+          product_id: productId,
+          name: name.slice(0, DESCRIPTION_MAX),
+          status: 'ACTIVE',
+          billing_cycles: billingCycles(terms),
+          payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: PAYMENT_FAILURE_THRESHOLD },
+        },
+        'NO_PLAN_ID',
+      );
+    },
+
+    async createSubscription({ planId, customId, requestId }) {
+      return create('/v1/billing/subscriptions', requestId, { plan_id: planId, custom_id: customId }, 'NO_SUBSCRIPTION_ID');
+    },
+
+    async subscriptionStatus(subscriptionId) {
+      const body = await call(`/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'GET' });
+      const status = str(body.status);
+      if (!PROVIDER_SUBSCRIPTION_STATUSES.includes(status as ProviderSubscriptionStatus)) {
+        throw new PaymentProviderError(200, 'UNKNOWN_SUBSCRIPTION_STATUS', null);
+      }
+      return status as ProviderSubscriptionStatus;
+    },
+
+    async cancelSubscription(subscriptionId, reason) {
+      await call(`/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: reason.slice(0, DESCRIPTION_MAX) }),
+      });
+    },
+
     parseEvent(rawBody): ProviderEvent {
       let event: Json;
       try {
@@ -187,6 +285,23 @@ export function createPayPalProvider(config: PayPalConfig, fetchImpl: typeof fet
           const up = str(links.find((l) => l.rel === 'up')?.href);
           const captureId = (up && CAPTURE_PATH.exec(up)?.[1]) ?? str(resource.id);
           return captureId ? { kind: 'capture.changed', captureId } : { kind: 'ignored' };
+        }
+        case 'BILLING.SUBSCRIPTION.ACTIVATED':
+        case 'BILLING.SUBSCRIPTION.CANCELLED':
+        case 'BILLING.SUBSCRIPTION.SUSPENDED':
+        case 'BILLING.SUBSCRIPTION.EXPIRED': {
+          const subscriptionId = str(resource.id);
+          return subscriptionId ? { kind: 'subscription.changed', subscriptionId } : { kind: 'ignored' };
+        }
+        case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED': {
+          const subscriptionId = str(resource.id);
+          return subscriptionId ? { kind: 'subscription.payment_failed', subscriptionId } : { kind: 'ignored' };
+        }
+        case 'PAYMENT.SALE.COMPLETED':
+          return readSale(resource);
+        case 'PAYMENT.SALE.REFUNDED': {
+          const saleId = str(resource.sale_id);
+          return saleId ? { kind: 'sale.refunded', saleId } : { kind: 'ignored' };
         }
         default:
           return { kind: 'ignored' };

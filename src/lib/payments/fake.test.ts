@@ -27,4 +27,31 @@ describe('fake provider', () => {
     await expect(p.captureOrder('nope', 'r')).rejects.toThrow(/unknown order/);
     expect(await p.verifyWebhook(new Headers(), '{}')).toBe(false);
   });
+
+  it('creates plans and subscriptions that start approved and can be cancelled', async () => {
+    const p = createFakeProvider();
+    const terms = {
+      kind: 'subscription',
+      priceCents: 1500,
+      currency: 'EUR',
+      billingInterval: 'month',
+      trialDays: null,
+      installments: null,
+    } as const;
+    const planId = await p.createPlan({ name: 'Monthly', terms, requestId: 'r' });
+    expect(planId).toMatch(/^FAKE-PLAN-/);
+    const subId = await p.createSubscription({ planId, customId: 'offer-1', requestId: 'r2' });
+    expect(await p.subscriptionStatus(subId)).toBe('APPROVED');
+    p.setSubscriptionStatus(subId, 'ACTIVE');
+    expect(await p.subscriptionStatus(subId)).toBe('ACTIVE');
+    await p.cancelSubscription(subId, 'member cancelled');
+    expect(await p.subscriptionStatus(subId)).toBe('CANCELLED');
+  });
+
+  it('refuses an unknown plan or subscription', async () => {
+    const p = createFakeProvider();
+    await expect(p.createSubscription({ planId: 'nope', customId: 'o', requestId: 'r' })).rejects.toThrow(/unknown plan/);
+    await expect(p.subscriptionStatus('nope')).rejects.toThrow(/unknown subscription/);
+    await expect(p.cancelSubscription('nope', 'x')).rejects.toThrow(/unknown subscription/);
+  });
 });
