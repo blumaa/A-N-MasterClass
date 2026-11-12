@@ -1,4 +1,4 @@
-// Student view of a program: modules, steps, access state, progress (G6, G7, G8, G26 quiz lock).
+// Student view of a program: modules, steps, access state, progress (G6, G7, G8, G26 quiz lock and certificate).
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { Module, Product, Step } from '@/lib/data/types';
@@ -18,6 +18,8 @@ export type Outline = {
   continueStepId: string | null;
   hasAccess: boolean;
   isEditor: boolean;
+  /** Certificates on, the viewer holds a grant and finished every counted step (G26). */
+  certificateReady: boolean;
 };
 
 export async function programOutline(
@@ -83,14 +85,16 @@ export async function programOutline(
   const counted = outlineModules.flatMap((m) =>
     m.status === 'published' ? m.steps.filter((s) => s.status === 'published') : [],
   );
+  const completed = counted.filter((s) => s.done).length;
   const firstOpenTodo = flat.find((s) => s.access.kind === 'open' && !s.done);
   return {
     program,
     modules: outlineModules,
-    completed: counted.filter((s) => s.done).length,
+    completed,
     total: counted.length,
     continueStepId: firstOpenTodo?.id ?? flat[0]?.id ?? null,
     hasAccess: isEditor || grant !== null,
     isEditor,
+    certificateReady: program.certificates && grant !== null && counted.length > 0 && completed === counted.length,
   };
 }

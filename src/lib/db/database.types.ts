@@ -225,6 +225,42 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          id: string
+          issued_at: string
+          profile_id: string
+          program_id: string
+        }
+        Insert: {
+          id?: string
+          issued_at?: string
+          profile_id: string
+          program_id: string
+        }
+        Update: {
+          id?: string
+          issued_at?: string
+          profile_id?: string
+          program_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_entries: {
         Row: {
           body: string
@@ -1884,6 +1920,7 @@ export type Database = {
       }
       products: {
         Row: {
+          certificates: boolean
           cover_path: string | null
           created_at: string
           id: string
@@ -1897,6 +1934,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          certificates?: boolean
           cover_path?: string | null
           created_at?: string
           id?: string
@@ -1910,6 +1948,7 @@ export type Database = {
           title: string
         }
         Update: {
+          certificates?: boolean
           cover_path?: string | null
           created_at?: string
           id?: string
@@ -2915,6 +2954,21 @@ export type Database = {
       is_space_participant: { Args: { target_space: string }; Returns: boolean }
       is_space_staff: { Args: { target_space: string }; Returns: boolean }
       is_time_zone: { Args: { zone: string }; Returns: boolean }
+      issue_certificate: {
+        Args: { target_program: string }
+        Returns: {
+          id: string
+          issued_at: string
+          profile_id: string
+          program_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "certificates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       live_post_topics: { Args: { target_post: string }; Returns: string[] }
       live_send: { Args: { topic: string }; Returns: undefined }
       live_topics: { Args: { r: Json; tbl: string }; Returns: string[] }

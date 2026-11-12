@@ -1,9 +1,10 @@
 // Sidebar/program-page outline: modules, steps, checkmarks, lock/drip labels, progress (G6–G8).
-import { Badge, Heading, ProgressBar, Stack, Text } from '@/components/ui/mds';
+// Certificate link (G26) is a plain anchor: full navigation to the PDF route.
+import { Badge, Heading, Link, ProgressBar, Stack, Text } from '@/components/ui/mds';
 import { AppLink } from '@/components/ui/links';
 import type { Outline } from '../api/outline';
 import { accessLabel } from '../accessLabel';
-import { stepHref } from '../paths';
+import { certificateHref, stepHref } from '../paths';
 import { percent } from '../progress';
 import styles from './ProgramOutline.module.css';
 
@@ -18,6 +19,11 @@ export function ProgramOutline({ outline, currentStepId, now }: Props) {
         label="Program progress"
         valueText={`${completed} of ${total} lessons complete`}
       />
+      {outline.certificateReady ? (
+        <Link variant="standalone" href={certificateHref(program.slug)}>
+          Download certificate
+        </Link>
+      ) : null}
       <Stack gap="loose" as="ol" className={styles.list}>
         {modules.map((mod) => {
           const lock = accessLabel(mod.access, now);

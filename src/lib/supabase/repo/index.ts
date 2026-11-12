@@ -1,6 +1,7 @@
 // Supabase adapter for the Repo port: one module per domain, merged here.
 // The type check below fails if any Repo method has no Supabase implementation.
 import type { Repo } from '@/lib/data/repo';
+import { createCertificateRepo } from './certificate';
 import { createChatRepo } from './chat';
 import { createCoachingRepo } from './coaching';
 import { createCommerceRepo } from './commerce';
@@ -31,5 +32,6 @@ export function createSupabaseRepo(ctx: RepoCtx): Repo {
     ...createModerationRepo(ctx),
     ...createPushRepo(ctx),
     ...createQuizRepo(ctx),
+    ...createCertificateRepo(ctx),
   };
 }

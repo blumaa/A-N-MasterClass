@@ -6,6 +6,7 @@ import { programOutline } from './outline';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
+const ALL_STEPS = ['step-intro', 'step-safety', 'step-single-column', 'step-double-column', 'step-week2', 'step-replay'];
 
 beforeEach(() => {
   repo = createFakeRepo(seedDb(NOW));
@@ -58,6 +59,17 @@ describe('programOutline (student)', () => {
     const o = (await programOutline(repo, await as(SEED_IDS.student), 'shibari-101', NOW))!;
     expect(o.total).toBe(5);
     expect(o.modules.find((m) => m.id === 'mod-live')?.steps).toEqual([]);
+  });
+
+  it('offers the certificate only when on, granted and every counted step is done (G26)', async () => {
+    const ready = async (who: string) => (await programOutline(repo, await as(who), 'shibari-101', NOW))!.certificateReady;
+    for (const s of ALL_STEPS) await repo.setStepComplete(SEED_IDS.student, s, true);
+    expect(await ready(SEED_IDS.student)).toBe(false);
+    await repo.updateProduct(SEED_IDS.program, { certificates: true });
+    expect(await ready(SEED_IDS.student)).toBe(true);
+    expect(await ready(SEED_IDS.assistant)).toBe(false);
+    await repo.setStepComplete(SEED_IDS.student, 'step-replay', false);
+    expect(await ready(SEED_IDS.student)).toBe(false);
   });
 
   it('visitor without grant sees outline marked no_grant', async () => {

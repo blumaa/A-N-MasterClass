@@ -4,6 +4,7 @@ import type {
   AvailabilityOverride,
   AvailabilityRule,
   CalendarConnection,
+  Certificate,
   CoachingProgram,
   CoachingSession,
   CoachSettings,
@@ -74,6 +75,7 @@ export type Db = {
   /** Options carry the answer key here; Supabase keeps it in quiz_keys. */
   quizOptions: FakeQuizOption[];
   quizAttempts: QuizAttempt[];
+  certificates: Certificate[];
   grants: Grant[];
   stepProgress: StepProgress[];
   pages: Page[];
@@ -139,6 +141,7 @@ export const emptyDb = (): Db => ({
   quizQuestions: [],
   quizOptions: [],
   quizAttempts: [],
+  certificates: [],
   grants: [],
   stepProgress: [],
   pages: [],

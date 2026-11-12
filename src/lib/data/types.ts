@@ -53,6 +53,8 @@ export type Product = {
   position: number;
   /** Per-program brand colours (plan: per-product override). null = space brand. */
   themeOverride: BrandColors | null;
+  /** Programs only: members who finish every published step get a certificate (G26). */
+  certificates: boolean;
 };
 
 export type Module = {
@@ -109,6 +111,13 @@ export type QuizQuestion = {
   multiple: boolean;
   options: QuizOption[];
 };
+export type Certificate = {
+  id: string;
+  programId: string;
+  profileId: string;
+  issuedAt: Date;
+};
+
 export type QuizAttempt = {
   id: string;
   partId: string;

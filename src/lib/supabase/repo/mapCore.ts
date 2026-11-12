@@ -67,6 +67,7 @@ export const toProduct = (r: Row<'products'>): Product => ({
   status: r.status as Product['status'],
   position: r.position,
   themeOverride: r.theme_override as BrandColors | null,
+  certificates: r.certificates,
 });
 
 export const toModule = (r: Row<'modules'>): Module => ({

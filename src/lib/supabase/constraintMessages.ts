@@ -5,6 +5,9 @@ import {
   ALREADY_MEMBER,
   ALREADY_REPORTED,
   ATTACHMENT_INCOMPLETE,
+  CERTIFICATE_NOT_EARNED,
+  CERTIFICATES_OFF,
+  CERTIFICATES_PROGRAM_ONLY,
   FILE_IN_USE,
   FILE_OUTSIDE_FOLDER,
   HOST_TAKEN,
@@ -101,6 +104,10 @@ const BY_NAME: Readonly<Record<string, string>> = {
   quiz_empty: QUIZ_EMPTY,
   // Studio checks the quiz first; this fires only on a race with a delete.
   modules_unlock_quiz_fk: 'quiz not found',
+  products_certificates_program: CERTIFICATES_PROGRAM_ONLY,
+  // Raised by issue_certificate.
+  certificates_off: CERTIFICATES_OFF,
+  certificate_not_earned: CERTIFICATE_NOT_EARNED,
 };
 
 const TITLE_CHECK = /_title(_check)?$/;

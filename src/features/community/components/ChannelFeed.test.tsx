@@ -21,6 +21,7 @@ const community: Product = {
   status: 'published',
   position: 0,
   themeOverride: null,
+  certificates: false,
 };
 const channel = (over: Partial<Channel> = {}): Channel => ({
   id: 'ch1',

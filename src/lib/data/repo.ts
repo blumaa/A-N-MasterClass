@@ -45,6 +45,7 @@ import type {
   Product,
   Profile,
   PushSubscription,
+  Certificate,
   QuizAttempt,
   QuizQuestion,
   Reaction,
@@ -64,7 +65,7 @@ import type {
 } from './types';
 
 export type NewProduct = Pick<Product, 'spaceId' | 'kind' | 'slug' | 'title'>;
-export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status' | 'themeOverride'>>;
+export type ProductPatch = Partial<Pick<Product, 'slug' | 'title' | 'subtitle' | 'status' | 'themeOverride' | 'certificates'>>;
 export type NewModule = Pick<Module, 'programId' | 'title'>;
 export type ModulePatch = Partial<
   Pick<
@@ -239,6 +240,14 @@ export interface Repo {
   submitQuiz(partId: string, profileId: string, optionIds: readonly string[]): Promise<QuizAttempt>;
   /** Newest first. */
   quizAttempts(profileId: string, partIds: readonly string[]): Promise<QuizAttempt[]>;
+
+  // certificates (G26)
+  /**
+   * Issues the member's certificate, or returns the one they have. Needs the program's
+   * certificates on (CERTIFICATES_OFF), an active grant and every published step in a published
+   * module done (CERTIFICATE_NOT_EARNED). Supabase: profileId is the signed-in user.
+   */
+  issueCertificate(programId: string, profileId: string): Promise<Certificate>;
 
   // site (pages ordered by title; versions newest first)
   pages(spaceId: string): Promise<Page[]>;

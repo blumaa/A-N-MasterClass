@@ -4,7 +4,7 @@ import type { Outline } from '../api/outline';
 import { ProgramOutline } from './ProgramOutline';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
-const program = { id: 'p', spaceId: 's', kind: 'program', slug: 'shibari-101', title: 'Shibari 101', subtitle: null, status: 'published', position: 0, themeOverride: null } as const;
+const program = { id: 'p', spaceId: 's', kind: 'program', slug: 'shibari-101', title: 'Shibari 101', subtitle: null, status: 'published', position: 0, themeOverride: null, certificates: false } as const;
 
 const outline: Outline = {
   program,
@@ -13,6 +13,7 @@ const outline: Outline = {
   continueStepId: 'b',
   hasAccess: true,
   isEditor: false,
+  certificateReady: false,
   modules: [
     {
       id: 'm1', title: 'Welcome', description: null, status: 'published', access: { kind: 'open' }, completed: 1,
@@ -36,4 +37,11 @@ it('links open steps, marks done ones and labels drip modules', () => {
   expect(screen.getByText('Opens in 3 days')).toBeInTheDocument();
   expect(screen.getAllByLabelText('Complete')).toHaveLength(1);
   expect(screen.getByText('Safety').closest('li')).toHaveAttribute('aria-current', 'page');
+});
+
+it('offers the certificate download only when it is earned (G26)', () => {
+  const { rerender } = render(<ProgramOutline outline={outline} now={NOW} />);
+  expect(screen.queryByRole('link', { name: 'Download certificate' })).toBeNull();
+  rerender(<ProgramOutline outline={{ ...outline, certificateReady: true }} now={NOW} />);
+  expect(screen.getByRole('link', { name: 'Download certificate' })).toHaveAttribute('href', '/programs/shibari-101/certificate');
 });

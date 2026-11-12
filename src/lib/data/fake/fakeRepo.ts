@@ -1,7 +1,7 @@
 // Repo over in-memory tables. Enforces the same constraints as the SQL schema
 // (unique slug, one active grant, vimeo id digits, cascades) so fakes fail like Postgres.
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
-import { ALREADY_MEMBER, ConstraintError, HOST_TAKEN, ONE_PRIMARY_DOMAIN, QUIZ_PASS_PERCENT, SLUG_RESERVED } from '../errors';
+import { ALREADY_MEMBER, CERTIFICATES_PROGRAM_ONLY, ConstraintError, HOST_TAKEN, ONE_PRIMARY_DOMAIN, QUIZ_PASS_PERCENT, SLUG_RESERVED } from '../errors';
 import { grantIsActive } from '../grants';
 import type { Direction, Reorderable, Repo } from '../repo';
 import type { Grant, Module, Part, Product, Profile, Space, Step } from '../types';
@@ -17,6 +17,7 @@ import { createFakeModerationRepo } from './fakeModerationRepo';
 import { withPoints } from './fakePoints';
 import { createFakePushRepo } from './fakePushRepo';
 import { createFakeQuizRepo, removeQuizParts } from './fakeQuizRepo';
+import { createFakeCertificateRepo } from './fakeCertificateRepo';
 import { createFakeSiteRepo } from './fakeSiteRepo';
 
 export type FakeRepo = Repo & { db: Db };
@@ -90,6 +91,7 @@ export function createFakeRepo(db: Db): FakeRepo {
     ...createFakeModerationRepo(db, id),
     ...createFakePushRepo(db),
     ...createFakeQuizRepo(db, id),
+    ...createFakeCertificateRepo(db, id),
 
     spaceBySlug: async (slug) => db.spaces.find((s) => s.slug === slug) ?? null,
     spaceSlugByHost: async (host) => {
@@ -179,6 +181,7 @@ export function createFakeRepo(db: Db): FakeRepo {
         subtitle: null,
         status: 'draft',
         themeOverride: null,
+        certificates: false,
         position: nextPosition(db.products.filter((p) => p.spaceId === input.spaceId)),
       };
       db.products.push(row);
@@ -194,6 +197,7 @@ export function createFakeRepo(db: Db): FakeRepo {
           throw new ConstraintError(`slug taken: ${patch.slug}`);
         }
       }
+      if (patch.certificates && row.kind !== 'program') throw new ConstraintError(CERTIFICATES_PROGRAM_ONLY);
       return Object.assign(row, patch);
     },
 

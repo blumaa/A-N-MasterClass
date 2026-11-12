@@ -36,3 +36,8 @@ export const QUIZ_PROMPT = 'question required';
 export const QUIZ_OPTION_LABEL = 'answer required';
 export const QUIZ_EMPTY = 'quiz has no questions';
 export const QUIZ_PASS_PERCENT = 'pass mark must be 1 to 100';
+
+// Certificate texts (G26), shared by the fake repo and constraintMessages.
+export const CERTIFICATES_OFF = 'certificates are off for this program';
+export const CERTIFICATE_NOT_EARNED = 'finish every step to earn the certificate';
+export const CERTIFICATES_PROGRAM_ONLY = 'only programs give certificates';

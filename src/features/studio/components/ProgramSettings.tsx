@@ -1,4 +1,5 @@
-// Program title, subtitle, publish state.
+// Program title, subtitle, publish state, completion certificate (G26).
+import { YesNoSelect } from '@/components/fields/fields';
 import { Field, Input } from '@/components/ui/mds';
 import type { Product } from '@/lib/data/types';
 import { CommandForm } from './CommandForm';
@@ -14,6 +15,13 @@ export function ProgramSettings({ program }: { program: Product }) {
         <Input name="subtitle" defaultValue={program.subtitle ?? ''} />
       </Field>
       <StatusSelect value={program.status} />
+      <YesNoSelect
+        name="certificates"
+        label="Certificate"
+        value={program.certificates}
+        yes="Give a certificate at 100% completion"
+        no="Off"
+      />
     </CommandForm>
   );
 }

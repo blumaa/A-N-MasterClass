@@ -268,6 +268,7 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
               subtitle: patch.subtitle,
               status: patch.status,
               theme_override: patch.themeOverride,
+              certificates: patch.certificates,
             }),
           )
           .eq('id', id)

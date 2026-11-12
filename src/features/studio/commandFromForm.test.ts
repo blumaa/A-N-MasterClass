@@ -15,6 +15,13 @@ describe('commandFromForm', () => {
     });
   });
 
+  it('reads the program certificate toggle (G26)', () => {
+    expect(commandFromForm(form({ op: 'updateProgram', programId: 'p', title: 'Floor', certificates: 'true' }))).toEqual({
+      ok: true,
+      command: { op: 'updateProgram', programId: 'p', patch: { title: 'Floor', certificates: true } },
+    });
+  });
+
   it('patches only fields the form sent, blanks become null', () => {
     const r = commandFromForm(
       form({ op: 'updateModule', moduleId: 'm', title: 'Week 2', unlockAfterStepId: '', releaseAfterDays: '7', releaseAt: '' }),

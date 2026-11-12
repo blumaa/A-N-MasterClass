@@ -4,3 +4,5 @@ export const programHref = (program: string): string => `/programs/${program}`;
 export const stepHref = (program: string, step: string): string => `/programs/${program}/${step}`;
 /** Download part file: route checks step access, then 302 to a signed URL. */
 export const partFileHref = (program: string, step: string, part: string): string => `${stepHref(program, step)}/files/${part}`;
+/** Completion certificate PDF: route checks it was earned, then draws it (G26). */
+export const certificateHref = (program: string): string => `${programHref(program)}/certificate`;
