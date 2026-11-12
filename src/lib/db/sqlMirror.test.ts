@@ -193,6 +193,10 @@ describe('SQL mirrors: community', () => {
     expect(list(/notifications_type check \(type in \(([^)]+)\)\)/)).toEqual([...NOTIFICATION_TYPES]);
   });
 
+  it('push mutes type check equals NOTIFICATION_TYPES', () => {
+    expect(list(/push_mutes_type check \(type in \(([^)]+)\)\)/)).toEqual([...NOTIFICATION_TYPES]);
+  });
+
   it('posts status check equals POST_STATUSES', () => {
     expect(list(/posts_status check \(status in \(([^)]+)\)\)/)).toEqual([...POST_STATUSES]);
   });

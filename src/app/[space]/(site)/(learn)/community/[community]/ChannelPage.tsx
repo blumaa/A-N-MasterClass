@@ -12,6 +12,7 @@ import { liveTopic, typingTopic } from '@/lib/realtime/topics';
 import { typingConfig } from '@/components/Typing/typingConfig';
 import { chatAction } from '@/features/community/chatActions';
 import { communityAction } from '@/app/[space]/communityActions';
+import { reportAction } from '@/app/[space]/reportActions';
 
 export async function loadChannel(space: string, community: string, channelId: string | null) {
   const viewer = await currentViewer(space);
@@ -41,11 +42,12 @@ export async function ChannelPage({ space, community, channelId }: { space: stri
         <ChannelChat
           page={page}
           action={chatAction}
+          report={reportAction}
           signedIn={signedIn}
           typing={typingConfig(typingTopic.channel(page.channel.id), viewer.profile?.id ?? null, page.members)}
         />
       ) : (
-        <ChannelFeed page={page} action={communityAction} signedIn={signedIn} />
+        <ChannelFeed page={page} action={communityAction} report={reportAction} signedIn={signedIn} />
       )}
     </CommunityFrame>
   );

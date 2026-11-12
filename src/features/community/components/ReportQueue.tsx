@@ -1,12 +1,11 @@
 // Reports queue of one community (Studio and the member side share it). Open reports carry a
 // preview and Dismiss / Hide (posts, comments) / Remove content; resolved ones stay, signed. The reporter shows only when
 // the API gives it (staff).
-import { ActionForm } from '@/components/ActionForm/ActionForm';
+import { ActionForm, type FormAction } from '@/components/ActionForm/ActionForm';
 import { EmptyState, Heading, Inline, ListGroup, ListItem, Stack, Text } from '@/components/ui/mds';
 import { formatDateTime } from '@/lib/format/date';
 import type { ReportStatus, ReportTarget } from '@/lib/data/types';
 import type { ReportEntry, ReportQueue as Queue } from '../api/reports';
-import { reportAction } from '../reportActions';
 
 const TARGET: Record<ReportTarget, string> = { post: 'Post', comment: 'Comment', message: 'Chat line' };
 const STATUS: Record<ReportStatus, string> = { open: 'Reported', dismissed: 'Dismissed', removed: 'Removed', hidden: 'Hidden' };
@@ -28,15 +27,15 @@ function Details({ e }: { e: ReportEntry }) {
 
 const resolveFields = (e: ReportEntry, action: 'dismiss' | 'remove' | 'hide') => ({ op: 'resolveReport', reportId: e.id, action });
 
-function Actions({ e }: { e: ReportEntry }) {
+function Actions({ e, action }: { e: ReportEntry; action: FormAction }) {
   return (
     <Inline gap="tight">
-      <ActionForm action={reportAction} inline variant="secondary" submit="Dismiss" fields={resolveFields(e, 'dismiss')} />
+      <ActionForm action={action} inline variant="secondary" submit="Dismiss" fields={resolveFields(e, 'dismiss')} />
       {e.targetType === 'message' ? null : (
-        <ActionForm action={reportAction} inline variant="secondary" submit="Hide" fields={resolveFields(e, 'hide')} />
+        <ActionForm action={action} inline variant="secondary" submit="Hide" fields={resolveFields(e, 'hide')} />
       )}
       <ActionForm
-        action={reportAction}
+        action={action}
         inline
         variant="danger"
         submit="Remove content"
@@ -47,7 +46,7 @@ function Actions({ e }: { e: ReportEntry }) {
   );
 }
 
-function Entries({ label, entries, open }: { label: string; entries: ReportEntry[]; open: boolean }) {
+function Entries({ label, entries, open, action }: { label: string; entries: ReportEntry[]; open: boolean; action: FormAction }) {
   return (
     <ListGroup aria-label={label}>
       {entries.map((e) => (
@@ -56,23 +55,23 @@ function Entries({ label, entries, open }: { label: string; entries: ReportEntry
           href={e.href}
           title={`${TARGET[e.targetType]} in ${e.channel}`}
           description={<Details e={e} />}
-          actions={open ? <Actions e={e} /> : undefined}
+          actions={open ? <Actions e={e} action={action} /> : undefined}
         />
       ))}
     </ListGroup>
   );
 }
 
-export function ReportQueue({ queue }: { queue: Queue }) {
+export function ReportQueue({ queue, action }: { queue: Queue; action: FormAction }) {
   return (
     <Stack gap="loose">
-      {queue.open.length === 0 ? <EmptyState title="No open reports" /> : <Entries label="Open reports" entries={queue.open} open />}
+      {queue.open.length === 0 ? <EmptyState title="No open reports" /> : <Entries label="Open reports" entries={queue.open} open action={action} />}
       {queue.resolved.length > 0 ? (
         <Stack gap="base">
           <Heading level={2} variant="subtitle">
             Resolved
           </Heading>
-          <Entries label="Resolved reports" entries={queue.resolved} open={false} />
+          <Entries label="Resolved reports" entries={queue.resolved} open={false} action={action} />
         </Stack>
       ) : null}
     </Stack>

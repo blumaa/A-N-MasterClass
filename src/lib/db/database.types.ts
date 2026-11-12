@@ -2316,6 +2316,35 @@ export type Database = {
           },
         ]
       }
+      push_mutes: {
+        Row: {
+          created_at: string
+          profile_id: string
+          space_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          profile_id: string
+          space_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          profile_id?: string
+          space_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_mutes_space_id_profile_id_fkey"
+            columns: ["space_id", "profile_id"]
+            isOneToOne: false
+            referencedRelation: "space_profiles"
+            referencedColumns: ["space_id", "profile_id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string

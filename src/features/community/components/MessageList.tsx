@@ -9,9 +9,10 @@ import { MessageAttachment } from './MessageAttachment';
 import { ReportForm } from './ReportForm';
 import styles from './community.module.css';
 
-type Props = { messages: MessageItem[]; action: FormAction; report?: boolean };
+/** report: the report action (app/: it pushes to moderators); none = no Report buttons. */
+type Props = { messages: MessageItem[]; action: FormAction; report?: FormAction };
 
-export function MessageList({ messages, action, report = false }: Props) {
+export function MessageList({ messages, action, report }: Props) {
   if (messages.length === 0) return <EmptyState title="No messages yet" />;
   return (
     <ol aria-label="Messages" className={styles.rows}>
@@ -34,7 +35,7 @@ export function MessageList({ messages, action, report = false }: Props) {
                     fields={{ op: 'deleteMessage', messageId: m.id }}
                   />
                 ) : null}
-                {report && !m.mine ? <ReportForm targetType="message" targetId={m.id} /> : null}
+                {report && !m.mine ? <ReportForm targetType="message" targetId={m.id} action={report} /> : null}
               </Inline>
             </Inline>
             {m.body ? <MentionBody body={m.body} /> : null}

@@ -32,6 +32,7 @@ import type {
   Member,
   Module,
   Notification,
+  NotificationType,
   Offer,
   Order,
   OrderProvider,
@@ -51,6 +52,7 @@ import type {
   PostPhoto,
   Product,
   Profile,
+  PushMute,
   PushSubscription,
   Certificate,
   QuizAttempt,
@@ -517,6 +519,10 @@ export interface Repo {
   pushSubscriptions(spaceId: string, profileIds: readonly string[]): Promise<PushSubscription[]>;
   /** Service role only. Drops dead endpoints (push service said 404/410). */
   deletePushSubscriptions(endpoints: readonly string[]): Promise<void>;
+  /** Service role only. Push types these profiles turned off on this space. */
+  pushMutes(spaceId: string, profileIds: readonly string[]): Promise<PushMute[]>;
+  /** As the caller. Needs a profile on the space. Idempotent both ways. */
+  setPushMute(spaceId: string, profileId: string, type: NotificationType, muted: boolean): Promise<void>;
 
   // gamification (G12): points ledger is written by triggers on the source rows (SQL) or the
   // withPoints wrapper (fake); repo callers only read it.

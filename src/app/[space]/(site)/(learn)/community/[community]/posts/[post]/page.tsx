@@ -12,6 +12,7 @@ import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
 import { liveTopic } from '@/lib/realtime/topics';
 import { communityAction } from '@/app/[space]/communityActions';
+import { reportAction } from '@/app/[space]/reportActions';
 
 type Props = PageProps<'/[space]/community/[community]/posts/[post]'>;
 
@@ -44,6 +45,7 @@ export default async function PostRoute({ params }: Props) {
           href={null}
           moderate={rules.moderatePosts}
           signedIn={signedIn}
+          report={reportAction}
           afterDelete={communityHref(community.slug)}
           addPhotos={post.mine && rules.post}
         />
@@ -55,6 +57,7 @@ export default async function PostRoute({ params }: Props) {
           canComment={signedIn}
           closed={!open}
           moderate={rules.moderateComments}
+          report={reportAction}
         />
       </Stack>
     </CommunityFrame>

@@ -1,5 +1,5 @@
 'use server';
-// Studio community forms + mark-all-read. Space from Host (actionViewer), never from the form.
+// Studio community forms, mark-all-read and push settings. Space from Host (actionViewer), never from the form.
 // Member writes (posts, comments, reactions) need the programs StepGate and live in app/.
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -8,6 +8,7 @@ import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
 import { drainSoon } from '@/lib/storage/cleanup';
 import { markAllRead } from './api/notifications';
+import { savePushTypes } from './api/pushSettings';
 import { editCommunity } from './api/studio';
 import { studioCommunityCommandFromForm } from './commandFromForm';
 import { studioCommunityHref } from './paths';
@@ -35,6 +36,15 @@ export async function markAllReadAction(): Promise<EditState> {
   const viewer = await actionViewer();
   if (!viewer) return { message: 'Sign in to see notifications.' };
   await markAllRead(getRepo(), viewer, new Date());
+  refresh();
+  return null;
+}
+
+export async function savePushTypesAction(_prev: EditState, form: FormData): Promise<EditState> {
+  const viewer = await actionViewer();
+  if (!viewer) return { message: 'Sign in to change push settings.' };
+  const result = await savePushTypes(getRepo(), viewer, form.getAll('on'));
+  if (!result.ok) return { message: failureMessage(result, 'Sign in to change push settings.') };
   refresh();
   return null;
 }

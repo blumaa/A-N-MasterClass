@@ -20,11 +20,13 @@ type Props = {
   /** Locked or unpublished post: no new comments (postOpen). */
   closed?: boolean;
   moderate: boolean;
+  /** Report action (app/: it pushes to moderators). None: no Report button. */
+  report?: FormAction;
 };
 
 type ItemProps = Omit<Props, 'comments' | 'target'> & { comment: CommentItem; target: Props['target'] };
 
-function Comment({ comment, action, moderate, canComment, target }: ItemProps) {
+function Comment({ comment, action, moderate, canComment, target, report }: ItemProps) {
   const id = { commentId: comment.id };
   return (
     <Stack gap="tight">
@@ -45,7 +47,9 @@ function Comment({ comment, action, moderate, canComment, target }: ItemProps) {
           <ActionForm action={action} inline variant="ghost" submit="Delete" confirm="Delete this comment?" fields={{ op: 'deleteComment', ...id }} />
         ) : null}
         {/* Only comments on posts are reportable (lesson comments have no channel). */}
-        {target.type === 'post' && canComment && !comment.mine ? <ReportForm targetType="comment" targetId={comment.id} /> : null}
+        {report && target.type === 'post' && canComment && !comment.mine ? (
+          <ReportForm targetType="comment" targetId={comment.id} action={report} />
+        ) : null}
       </Inline>
     </Stack>
   );

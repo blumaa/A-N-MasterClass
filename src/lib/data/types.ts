@@ -695,6 +695,9 @@ export type Reaction = {
 export const NOTIFICATION_TYPES = ['comment', 'reply', 'step_comment', 'mention', 'reaction', 'report'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
+/** Member turned push off for this type on this space. No row = push on (Kajabi default). */
+export type PushMute = { profileId: string; type: NotificationType };
+
 /** One browser's push subscription, on one space (Launch 6 item 6). Keys are the browser's. */
 export type PushSubscription = {
   spaceId: string;

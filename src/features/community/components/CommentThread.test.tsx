@@ -4,7 +4,6 @@ import type { CommentNode } from '../api/present';
 import { CommentThread } from './CommentThread';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
 vi.mock('../uploadActions', () => ({ communityUploadAction: vi.fn() }));
 
 const comment: CommentNode = {
@@ -21,7 +20,7 @@ const comment: CommentNode = {
 };
 
 const thread = (closed: boolean) => (
-  <CommentThread action={vi.fn()} target={{ type: 'post', id: 'p1' }} comments={[comment]} members={[]} canComment closed={closed} moderate={false} />
+  <CommentThread action={vi.fn()} target={{ type: 'post', id: 'p1' }} comments={[comment]} members={[]} canComment closed={closed} moderate={false} report={vi.fn()} />
 );
 
 describe('CommentThread', () => {

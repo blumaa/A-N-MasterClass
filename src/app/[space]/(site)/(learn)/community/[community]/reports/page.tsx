@@ -4,6 +4,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { communityAction } from '@/app/[space]/communityActions';
+import { reportAction } from '@/app/[space]/reportActions';
 import { Heading, Stack } from '@/components/ui/mds';
 import { logFilterOf, review, reviewTabOf } from '@/features/community/api/review';
 import { communityShell } from '@/features/community/api/shell';
@@ -30,7 +31,7 @@ export default async function ReportsRoute({ params, searchParams }: PageProps<'
         <Heading level={1} variant="title">
           Review feed
         </Heading>
-        <ReviewFeed review={feed} page={reportsHref(shell.community.slug)} action={communityAction} />
+        <ReviewFeed review={feed} page={reportsHref(shell.community.slug)} action={communityAction} report={reportAction} />
       </Stack>
     </CommunityFrame>
   );

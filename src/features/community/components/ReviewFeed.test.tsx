@@ -5,7 +5,6 @@ import type { LogItem, Review } from '../api/review';
 import { ReviewFeed } from './ReviewFeed';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
 vi.mock('../uploadActions', () => ({ communityUploadAction: vi.fn() }));
 
 const community = { id: 'c1', slug: 'circle' } as Review['community'];
@@ -36,7 +35,7 @@ const entry: LogItem = {
   createdAt: new Date('2026-11-10T12:00:00Z'),
 };
 
-const view = (review: Review) => render(<ReviewFeed review={review} page="#x" action={vi.fn()} />);
+const view = (review: Review) => render(<ReviewFeed review={review} page="#x" action={vi.fn()} report={vi.fn()} />);
 
 describe('ReviewFeed', () => {
   it('tabs link to each view; the current one is marked', () => {

@@ -25,8 +25,24 @@ const stepRow: NewNotification = {
 
 describe('pushMessages', () => {
   it('uses the space name as title, the in-app text as body and a path on the space host', async () => {
-    expect(await pushMessages(repo, space, [stepRow])).toEqual([
-      { recipientId: SEED_IDS.alexanderOwner, title: space.name, body: 'Robin (student) commented on Introduction', url: '/programs/shibari-101/step-intro' },
+    expect(await pushMessages(repo, space, [stepRow], null)).toEqual([
+      {
+        recipientId: SEED_IDS.alexanderOwner,
+        type: 'step_comment',
+        title: space.name,
+        body: 'Robin (student) commented on Introduction',
+        url: '/programs/shibari-101/step-intro',
+        icon: null,
+      },
+    ]);
+  });
+
+  it('carries each row type and the space icon', async () => {
+    const reaction: NewNotification = { ...stepRow, type: 'reaction' };
+    const messages = await pushMessages(repo, space, [stepRow, reaction], '/icon.png');
+    expect(messages.map((m) => [m.type, m.icon])).toEqual([
+      ['step_comment', '/icon.png'],
+      ['reaction', '/icon.png'],
     ]);
   });
 });

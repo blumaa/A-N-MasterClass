@@ -3,6 +3,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { communityAction } from '@/app/[space]/communityActions';
+import { reportAction } from '@/app/[space]/reportActions';
 import { BackLink } from '@/components/ui/links';
 import { Heading, Stack } from '@/components/ui/mds';
 import { logFilterOf, reviewTabOf, studioReview } from '@/features/community/api/review';
@@ -26,7 +27,7 @@ export default async function StudioReportsPage({ params, searchParams }: PagePr
       <div>
         <BackLink href={studioCommunityHref(id)}>community settings</BackLink>
       </div>
-      <ReviewFeed review={feed} page={studioReportsHref(id)} action={communityAction} />
+      <ReviewFeed review={feed} page={studioReportsHref(id)} action={communityAction} report={reportAction} />
     </Stack>
   );
 }

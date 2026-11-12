@@ -3,8 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ReportEntry, ReportQueue as Queue } from '../api/reports';
 import { ReportQueue } from './ReportQueue';
 
-const reportAction = vi.hoisted(() => vi.fn(async (_prev: unknown, _form: FormData) => null));
-vi.mock('../reportActions', () => ({ reportAction }));
+const reportAction = vi.fn(async (_prev: unknown, _form: FormData) => null);
 
 const AT = new Date('2026-11-12T12:00:00Z');
 const entry = (over: Partial<ReportEntry>): ReportEntry => ({
@@ -26,7 +25,7 @@ const queue = (over: Partial<Queue> = {}): Queue =>
 
 describe('ReportQueue', () => {
   it('lists open reports with preview, reason, reporter and the two actions', () => {
-    render(<ReportQueue queue={queue()} />);
+    render(<ReportQueue action={reportAction} queue={queue()} />);
     const open = screen.getByRole('list', { name: 'Open reports' });
     expect(within(open).getByRole('link', { name: /Post in General/ })).toHaveAttribute('href', '/community/c/posts/p1');
     expect(open).toHaveTextContent('Alexander: Buy now');
@@ -42,7 +41,7 @@ describe('ReportQueue', () => {
 
   it('offers no Hide on chat lines; signs hidden reports', () => {
     render(
-      <ReportQueue
+      <ReportQueue action={reportAction}
         queue={queue({
           open: [entry({ targetType: 'message' })],
           resolved: [entry({ id: 'r2', status: 'hidden', resolvedBy: 'Sam', resolvedAt: AT })],
@@ -55,7 +54,7 @@ describe('ReportQueue', () => {
 
   it('hides the reporter when not shown; marks removed content; keeps resolved reports signed', () => {
     render(
-      <ReportQueue
+      <ReportQueue action={reportAction}
         queue={queue({
           reporters: false,
           open: [entry({ reporter: null, preview: null, reason: null })],
@@ -74,7 +73,7 @@ describe('ReportQueue', () => {
   });
 
   it('says when nothing is open', () => {
-    render(<ReportQueue queue={queue({ open: [] })} />);
+    render(<ReportQueue action={reportAction} queue={queue({ open: [] })} />);
     expect(screen.getByText('No open reports')).toBeInTheDocument();
   });
 });

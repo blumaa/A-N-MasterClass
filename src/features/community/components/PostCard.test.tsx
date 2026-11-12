@@ -4,7 +4,6 @@ import type { PostItem } from '../api/feed';
 import { PostCard } from './PostCard';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
 vi.mock('../uploadActions', () => ({ communityUploadAction: vi.fn() }));
 
 const post = (over: Partial<PostItem> = {}): PostItem => ({
@@ -58,5 +57,12 @@ describe('PostCard', () => {
     rerender(<PostCard post={post({ status: 'rejected' })} action={action} href="#x" moderate signedIn />);
     expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reject' })).toBeNull();
+  });
+
+  it('offers Report only when given a report action', () => {
+    const { rerender } = render(<PostCard post={post()} action={action} href="#x" moderate={false} signedIn />);
+    expect(screen.queryByText('Report')).toBeNull();
+    rerender(<PostCard post={post()} action={action} href="#x" moderate={false} signedIn report={vi.fn()} />);
+    expect(screen.getByText('Report')).toBeInTheDocument();
   });
 });

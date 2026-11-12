@@ -7,9 +7,9 @@ import { postHref } from '../paths';
 import { Composer } from './Composer';
 import { PostCard } from './PostCard';
 
-type Props = { page: Extract<CommunityPage, { kind: 'open' }>; action: FormAction; signedIn: boolean };
+type Props = { page: Extract<CommunityPage, { kind: 'open' }>; action: FormAction; report: FormAction; signedIn: boolean };
 
-export function ChannelFeed({ page, action, signedIn }: Props) {
+export function ChannelFeed({ page, action, report, signedIn }: Props) {
   const { community, channel, rules, posts, members } = page;
   return (
     <Stack gap="loose">
@@ -41,6 +41,7 @@ export function ChannelFeed({ page, action, signedIn }: Props) {
             href={postHref(community.slug, p.id)}
             moderate={rules.moderatePosts}
             signedIn={signedIn}
+            report={report}
           />
         ))
       )}

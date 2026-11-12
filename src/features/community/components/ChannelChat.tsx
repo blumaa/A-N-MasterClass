@@ -6,16 +6,22 @@ import type { CommunityPage } from '../api/feed';
 import { ChatComposer } from './ChatComposer';
 import { MessageList } from './MessageList';
 
-type Props = { page: Extract<CommunityPage, { kind: 'open' }>; action: FormAction; signedIn: boolean; typing?: TypingConfig | null };
+type Props = {
+  page: Extract<CommunityPage, { kind: 'open' }>;
+  action: FormAction;
+  report: FormAction;
+  signedIn: boolean;
+  typing?: TypingConfig | null;
+};
 
-export function ChannelChat({ page, action, signedIn, typing = null }: Props) {
+export function ChannelChat({ page, action, report, signedIn, typing = null }: Props) {
   const { channel, rules, messages, members } = page;
   return (
     <Stack gap="loose">
       <Heading level={1} variant="title">
         {channel.title}
       </Heading>
-      <MessageList messages={messages} action={action} report={signedIn} />
+      <MessageList messages={messages} action={action} report={signedIn ? report : undefined} />
       <ChatComposer
         typing={typing}
         composer={

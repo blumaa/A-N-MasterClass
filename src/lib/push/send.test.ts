@@ -13,11 +13,14 @@ const sub = (profileId: string, endpoint: string, spaceId: string = SEED_IDS.ale
   userAgent: null,
 });
 
-const msg = (recipientId: string, body = 'Alexander commented on your post'): PushMessage => ({
+const msg = (recipientId: string, body = 'Alexander commented on your post', over: Partial<PushMessage> = {}): PushMessage => ({
   recipientId,
+  type: 'comment',
   title: 'Alexander',
   body,
   url: '/community/c/p1',
+  icon: null,
+  ...over,
 });
 
 async function setup() {
@@ -36,6 +39,27 @@ describe('sendPush', () => {
     await sendPush({ repo, send, report: vi.fn() }, SEED_IDS.alexander, [msg(SEED_IDS.student)]);
     expect(send.mock.calls.map(([s]) => s.endpoint).sort()).toEqual(['https://push.test/laptop', 'https://push.test/phone']);
     expect(JSON.parse(send.mock.calls[0]![1])).toEqual({ title: 'Alexander', body: 'Alexander commented on your post', url: '/community/c/p1' });
+  });
+
+  it('adds the space icon to the payload when there is one', async () => {
+    const repo = await setup();
+    const send = vi.fn<PushSend>(async () => {});
+    await sendPush({ repo, send, report: vi.fn() }, SEED_IDS.alexander, [msg(SEED_IDS.alexanderOwner, 'x', { icon: 'https://cdn.test/icon.png' })]);
+    expect(JSON.parse(send.mock.calls[0]![1])).toMatchObject({ icon: 'https://cdn.test/icon.png' });
+  });
+
+  it('skips types the recipient muted for push on that space', async () => {
+    const repo = await setup();
+    await repo.setPushMute(SEED_IDS.alexander, SEED_IDS.student, 'reaction', true);
+    await repo.setPushMute(SEED_IDS.natasha, SEED_IDS.student, 'comment', true);
+    const send = vi.fn<PushSend>(async () => {});
+    await sendPush({ repo, send, report: vi.fn() }, SEED_IDS.alexander, [
+      msg(SEED_IDS.student, 'liked', { type: 'reaction' }),
+      msg(SEED_IDS.student, 'commented'),
+      msg(SEED_IDS.alexanderOwner, 'liked', { type: 'reaction' }),
+    ]);
+    const sent = send.mock.calls.map(([s, payload]) => `${s.endpoint} ${JSON.parse(payload).body}`).sort();
+    expect(sent).toEqual(['https://push.test/laptop commented', 'https://push.test/owner liked', 'https://push.test/phone commented']);
   });
 
   it('does nothing without messages or subscriptions', async () => {

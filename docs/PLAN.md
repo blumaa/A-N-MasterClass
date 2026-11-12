@@ -261,7 +261,7 @@ Launch 6 item 3 follow-up as built:
 - Review Feed: existing reports pages, `?tab=reports|pending|rejected|hidden|locked|log`. No new route. Studio and member side share `ReviewFeed` (`review` / `studioReview`). Channel moderators see their channels only.
 - Report queue "Hide": hides the content, resolves every open report on it as `hidden`.
 - Logs (`moderation_log`): hide, unhide, lock, unlock, approve, reject. Moderator, action, timestamp, content preview + link (null once deleted). Filter by action and date range (`?action=&from=&to=`, UTC days, both ends included). Read: channel moderators for their channels, comment moderators (staff) all.
-- Report notifications: new type `report` to every channel moderator (`can_moderate_channel` recipients, SSOT), links to the Review Feed. In-app only, no web push.
+- Report notifications: new type `report` to every channel moderator (`can_moderate_channel` recipients, SSOT), links to the Review Feed. Also web push since Group 2 push (`reportAction` moved to `app/[space]/reportActions.ts`, uses `pushingRepo`).
 - G0 diff: no "report a user" (Kajabi mobile has it). Reports target content only.
 - Not yet: member data export does not include `moderation_log` or `post_approval_members`. Erase: approval row cascades; log keeps the row, actor null ("Someone").
 
@@ -297,7 +297,7 @@ Launch 6 item 6 as built:
 - Config `src/config/push.ts`: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. All unset = push off (no switch, no worker). Half set throws. `DATA_SOURCE=fake` sends nothing. The public key goes to the browser as a prop, so the build needs no keys.
 - UI: switch on /notifications per device (MDS `Switch`). iPhone/iPad Safari outside the home-screen app gets install steps instead (push needs iOS 16.4+ home-screen app); unsupported and blocked browsers get a note. `PushHeal` in the space layout re-subscribes when the browser or server lost the subscription.
 - Shared device: space sign-out (`SignOutForm`) first deletes this browser's row and unsubscribes it (`leavePush`), then ends the session; a push failure is reported and sign-out goes on. The local hint `push-on:v2` holds the profile id that turned push on, so `PushHeal` re-subscribes only that account; for anyone else it unsubscribes a subscription the server does not keep for them (`healPlan` `drop`). Signed-out visitors: `PushHeal` unsubscribes whatever is left (`dropPush`). Leak window when sign-out cleanup failed or the session switched without sign-out (claim link, checkout, dev login): until the next space page load. The old row goes on the next 410. Platform host serves no worker, so its sign-out is unchanged.
-- Not yet: per-type push settings; KSG's iOS tap parking; notification icon (spaces have no icons yet). A new action that writes notifications must use `pushingRepo` too (today all go through `communityActions.ts`).
+- Closed in Group 2 push: per-type push settings, KSG's iOS tap parking, notification icon, report push. A new action that writes notifications must use `pushingRepo` too (today: `communityActions.ts`, `reportActions.ts`, both in `app/[space]`).
 
 Launch 6 item 7 as built:
 - Migration `20261112130000_typing_topics.sql` + `supabase/tests/170-typing.test.sql` (20 asserts), applied to ksb 2026-11-12.
@@ -421,6 +421,18 @@ Group 2 live updates as built:
 - Not hinted: `dm_reads` (opening a thread marks it read; would loop refreshes), grant expiry by time (no write), product publish or unpublish, the Space header notification badge.
 - Caveat: the join check is cached per connection, so a member who loses access still gets the hint; the refresh then shows the locked page.
 - G0: Kajabi live-update behaviour for these cases not checked on help.kajabi.com.
+
+Group 2 push as built:
+- Migration `20261117000000_push_settings.sql` + `supabase/tests/310-push-settings.test.sql` (9 asserts), applied to ksb 2026-11-12.
+- `push_mutes` (space, profile, type): one row = push off for that type on that space. No row = on. Type check mirrors `NOTIFICATION_TYPES` (SSOT, `sqlMirror.test.ts`). FK to `space_profiles`, cascade. RLS: member reads, adds, deletes own rows; add needs a profile on that space.
+- Repo: `pushMutes(spaceId, profileIds)` (service role, send path), `setPushMute` (as the member).
+- Send: `sendPush` drops muted recipient + type pairs before the subscription lookup. The in-app notification is still written.
+- UI: /notifications, under the device switch, "Push me about": one MDS `Switch` per type, one save (`ActionForm`, pending state, toast "Push settings saved"). Shown only when push is configured. `savePushTypesAction` in `features/community/actions.ts`.
+- Icon: `spaceIconSrc` (`app/[space]/spaceIcon.ts`) = uploaded favicon URL or null. One source for favicon, manifest icon and push icon. No favicon: no icon in the payload (browser default). An SVG favicon may not render as a push icon on some platforms.
+- iOS tap parking (KSG port, copied): the worker parks the tap URL in Cache Storage (`masterclass-notification-tap`, 60 s TTL) before focusing or opening a window, and posts `{ type: 'navigate', url }` to an open client. `NotificationTap` (space layout, with `PushHeal`) takes a parked tap on launch and listens for messages; same-origin paths only (`sameOriginPath`), the entry is consumed before it is checked. Reason: iOS home-screen apps can drop `openWindow`/`navigate` URLs.
+- Report push: `reportAction` moved to `app/[space]/reportActions.ts` with `pushingRepo`; components take it as a `report` prop (`FormAction`). No `report` prop = no Report button.
+- G0: Kajabi has per-feature, per-channel member notification preferences, all on by default, with admin overrides and channel mute (https://help.kajabi.com/en/articles/17175826-community-settings-notifications). Built: member per-type switches, default on. Kajabi's exact type list and wording not matched; follows KSG types.
+- Not built: Kajabi admin community-level overrides, per-channel mute, email channel; mark-read on tap (payload has no notification id); badge count; KSG tag/renotify; `push_mutes` not in the member data export (same as `push_subscriptions`).
 
 Waiting on outside setup: Storage cleanup cron (`CRON_SECRET` + schedule, Group 2), transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

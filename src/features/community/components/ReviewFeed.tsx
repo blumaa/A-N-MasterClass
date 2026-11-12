@@ -15,6 +15,8 @@ type Props = {
   /** Reports page (member or Studio); tabs add ?tab=. */
   page: string;
   action: FormAction;
+  /** Report and resolve action (app/). */
+  report: FormAction;
 };
 
 const TAB_LABEL: Record<ReviewTab, string> = {
@@ -44,7 +46,7 @@ const DID: Record<ModerationAction, string> = {
   reject: 'rejected',
 };
 
-export function ReviewFeed({ review, page, action }: Props) {
+export function ReviewFeed({ review, page, action, report }: Props) {
   return (
     <Stack gap="base">
       <nav aria-label="Review feed">
@@ -56,19 +58,19 @@ export function ReviewFeed({ review, page, action }: Props) {
           ))}
         </Inline>
       </nav>
-      <Body review={review} page={page} action={action} />
+      <Body review={review} page={page} action={action} report={report} />
     </Stack>
   );
 }
 
-function Body({ review, page, action }: Props) {
-  if (review.tab === 'reports') return <ReportQueue queue={review.queue} />;
+function Body({ review, page, action, report }: Props) {
+  if (review.tab === 'reports') return <ReportQueue queue={review.queue} action={report} />;
   if (review.tab === 'log') return <Log page={page} filter={review.filter} entries={review.entries} />;
   if (review.posts.length === 0) return <EmptyState title={`No ${review.tab} posts`} />;
   return (
     <Stack gap="base">
       {review.posts.map((p) => (
-        <PostCard key={p.id} post={p} action={action} href={postHref(review.community.slug, p.id)} moderate signedIn />
+        <PostCard key={p.id} post={p} action={action} href={postHref(review.community.slug, p.id)} moderate signedIn report={report} />
       ))}
     </Stack>
   );

@@ -51,6 +51,7 @@ import type {
   PostPhoto,
   Product,
   Profile,
+  PushMute,
   PushSubscription,
   QuizAttempt,
   Reaction,
@@ -118,6 +119,7 @@ export type Db = {
   reactions: Reaction[];
   notifications: Notification[];
   pushSubscriptions: PushSubscription[];
+  pushMutes: (PushMute & { spaceId: string })[];
   pointsLedger: PointsEntry[];
   challenges: Challenge[];
   challengeEntries: ChallengeEntry[];
@@ -189,6 +191,7 @@ export const emptyDb = (): Db => ({
   reactions: [],
   notifications: [],
   pushSubscriptions: [],
+  pushMutes: [],
   pointsLedger: [],
   challenges: [],
   challengeEntries: [],

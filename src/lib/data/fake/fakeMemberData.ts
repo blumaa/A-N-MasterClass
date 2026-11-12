@@ -111,6 +111,7 @@ export function createFakeMemberData(db: Db): MemberDataRepo {
       db.grants = db.grants.filter((g) => !(me(g.profileId) && s.products.has(g.productId)));
       db.notifications = db.notifications.filter((n) => !(n.spaceId === spaceId && (me(n.recipientId) || me(n.actorId))));
       db.pushSubscriptions = db.pushSubscriptions.filter((p) => !(p.spaceId === spaceId && me(p.profileId)));
+      db.pushMutes = db.pushMutes.filter((p) => !(p.spaceId === spaceId && me(p.profileId)));
       db.claimTokens = db.claimTokens.filter((t) => !(t.spaceId === spaceId && me(t.profileId)));
       db.contacts = db.contacts.filter((c) => !(c.spaceId === spaceId && me(c.profileId)));
       for (const o of db.orders) if (o.spaceId === spaceId && me(o.profileId)) o.profileId = null;

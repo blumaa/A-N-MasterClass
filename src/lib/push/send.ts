@@ -1,15 +1,15 @@
 // Web push delivery for in-app notifications. Pure: the sender and the error sink are passed in,
 // so tests cover targeting and cleanup without keys or network.
 import type { Repo } from '@/lib/data/repo';
-import type { PushSubscription } from '@/lib/data/types';
+import type { NotificationType, PushSubscription } from '@/lib/data/types';
 
-/** One push per recipient. Same text as the in-app notification, nothing more. */
-export type PushMessage = { recipientId: string; title: string; body: string; url: string };
+/** One push per recipient. Same text as the in-app notification, plus the space icon. */
+export type PushMessage = { recipientId: string; type: NotificationType; title: string; body: string; url: string; icon: string | null };
 
 export type PushSend = (subscription: PushSubscription, payload: string) => Promise<void>;
 
 export type PushDeps = {
-  repo: Pick<Repo, 'pushSubscriptions' | 'deletePushSubscriptions'>;
+  repo: Pick<Repo, 'pushSubscriptions' | 'deletePushSubscriptions' | 'pushMutes'>;
   send: PushSend;
   report: (error: unknown) => void;
 };
@@ -30,10 +30,20 @@ function failure(endpoint: string, error: unknown): Error {
   return new Error(`Web push to ${host} failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
 }
 
-export const pushPayload = ({ title, body, url }: PushMessage): string => JSON.stringify({ title, body, url });
+export const pushPayload = ({ title, body, url, icon }: PushMessage): string =>
+  JSON.stringify(icon ? { title, body, url, icon } : { title, body, url });
 
-/** Send each message to every device its recipient subscribed on this space. Dead endpoints are deleted. */
-export async function sendPush({ repo, send, report }: PushDeps, spaceId: string, messages: readonly PushMessage[]): Promise<void> {
+const muteKey = (profileId: string, type: string) => `${profileId}:${type}`;
+
+/**
+ * Send each message to every device its recipient subscribed on this space, unless the recipient
+ * turned push off for that type there. Dead endpoints are deleted.
+ */
+export async function sendPush({ repo, send, report }: PushDeps, spaceId: string, all: readonly PushMessage[]): Promise<void> {
+  if (all.length === 0) return;
+  const recipients = [...new Set(all.map((m) => m.recipientId))];
+  const muted = new Set((await repo.pushMutes(spaceId, recipients)).map((m) => muteKey(m.profileId, m.type)));
+  const messages = all.filter((m) => !muted.has(muteKey(m.recipientId, m.type)));
   if (messages.length === 0) return;
   const subscriptions = await repo.pushSubscriptions(spaceId, [...new Set(messages.map((m) => m.recipientId))]);
   const gone: string[] = [];

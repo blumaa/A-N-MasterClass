@@ -23,24 +23,26 @@ import { pushPublicKey } from "@/lib/push/getPushSender";
 import { siteImageSrc } from "@/lib/storage/siteImageSrc";
 import { accountHref, accountSubscriptionsHref, signInHref } from "@/lib/routes";
 import styles from "./layout.module.css";
+import { NotificationTap } from "./NotificationTap";
 import { PushHeal } from "./PushHeal";
 import { SignOutForm } from "./SignOutForm";
 import { SpaceHeader } from "./SpaceHeader";
+import { spaceIconSrc } from "./spaceIcon";
 
 export async function generateMetadata({
   params,
 }: LayoutProps<"/[space]">): Promise<Metadata> {
   const viewer = await currentViewer((await params).space);
   if (!viewer) return {};
-  const { faviconPath } = await spaceMarks(getRepo(), viewer.space.id);
-  const icon = faviconPath ? siteImageSrc(faviconPath) : "/brand-icon.svg";
+  const uploaded = spaceIconSrc(await spaceMarks(getRepo(), viewer.space.id));
+  const icon = uploaded ?? "/brand-icon.svg";
   return {
     title: {
       default: viewer.space.name,
       template: `%s · ${viewer.space.name}`,
     },
     manifest: "/manifest.webmanifest",
-    icons: { icon, apple: faviconPath ? icon : undefined },
+    icons: { icon, apple: uploaded ?? undefined },
   };
 }
 
@@ -65,7 +67,10 @@ export default async function SpaceLayout({
       <ThemeStyle css={themeCss(theme, "space")} />
       <ViewerZoneScript />
       {pushKey ? (
-        <PushHeal publicKey={pushKey} profileId={viewer.profile?.id ?? null} />
+        <>
+          <PushHeal publicKey={pushKey} profileId={viewer.profile?.id ?? null} />
+          <NotificationTap />
+        </>
       ) : null}
       <SpaceHeader
         spaceName={viewer.space.name}

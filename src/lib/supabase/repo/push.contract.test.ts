@@ -82,4 +82,19 @@ describe.skipIf(!contractEnabled)('push repo (Supabase contract)', () => {
     await service.deletePushSubscriptions([`${sub().endpoint}-2`]);
     expect(await service.pushSubscriptions(fx.spaceId, [a])).toEqual([]);
   });
+
+  it('mutes push per type as the caller; service reads them', async () => {
+    await asA.setPushMute(fx.spaceId, a, 'reaction', true);
+    await asA.setPushMute(fx.spaceId, a, 'reaction', true);
+    await asA.setPushMute(fx.spaceId, a, 'mention', true);
+    await expect(asB.setPushMute(fx.spaceId, a, 'comment', true)).rejects.toThrow();
+    const mutes = await service.pushMutes(fx.spaceId, [a, b]);
+    expect(mutes.toSorted((x, y) => x.type.localeCompare(y.type))).toEqual([
+      { profileId: a, type: 'mention' },
+      { profileId: a, type: 'reaction' },
+    ]);
+    await asA.setPushMute(fx.spaceId, a, 'reaction', false);
+    expect(await service.pushMutes(fx.spaceId, [a])).toEqual([{ profileId: a, type: 'mention' }]);
+    expect(await service.pushMutes(fx.spaceId, [])).toEqual([]);
+  });
 });

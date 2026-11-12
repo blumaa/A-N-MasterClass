@@ -6,7 +6,6 @@ import { DmThread } from './DmThread';
 import { MemberList } from './MemberList';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
 vi.mock('../uploadActions', () => ({ communityUploadAction: vi.fn() }));
 
 const action = vi.fn();

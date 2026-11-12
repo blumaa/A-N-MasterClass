@@ -6,10 +6,18 @@ import type { Space } from '@/lib/data/types';
 import type { PushMessage } from '@/lib/push/send';
 import { notificationHref } from './(site)/(learn)/notifications/notificationHref';
 
-/** Same text and target as the in-app notification; title is the space name. */
-export async function pushMessages(repo: Repo, space: Space, rows: readonly NewNotification[]): Promise<PushMessage[]> {
+/** Same text and target as the in-app notification; title is the space name, icon the space icon. */
+export async function pushMessages(repo: Repo, space: Space, rows: readonly NewNotification[], icon: string | null): Promise<PushMessage[]> {
+  // describeNotifications keeps rows 1:1 and in order.
   const texts = await describeNotifications(repo, space.id, rows);
-  return texts.map((t) => ({ recipientId: t.recipientId, title: space.name, body: t.text, url: notificationHref(t.link) ?? '/' }));
+  return texts.map((t, i) => ({
+    recipientId: t.recipientId,
+    type: rows[i].type,
+    title: space.name,
+    body: t.text,
+    url: notificationHref(t.link) ?? '/',
+    icon,
+  }));
 }
 
 type Schedule = (task: () => Promise<void>) => void;

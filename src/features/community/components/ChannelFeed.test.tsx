@@ -8,7 +8,6 @@ import { ChannelFeed } from './ChannelFeed';
 type Open = Extract<CommunityPage, { kind: 'open' }>;
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
 vi.mock('../uploadActions', () => ({ communityUploadAction: vi.fn() }));
 
 const community: Product = {
@@ -53,7 +52,7 @@ const action = vi.fn();
 
 describe('ChannelFeed', () => {
   it('shows the composer when the viewer may post', () => {
-    render(<ChannelFeed page={page({ rules: { read: true, post: true, moderatePosts: false, moderateComments: false } })} action={action} signedIn />);
+    render(<ChannelFeed page={page({ rules: { read: true, post: true, moderatePosts: false, moderateComments: false } })} action={action} report={action} signedIn />);
     expect(screen.getByLabelText('Write in News')).toBeTruthy();
     expect(screen.getByText('No posts yet')).toBeTruthy();
     expect(screen.getByText('Add photos')).toBeTruthy();
@@ -76,7 +75,7 @@ describe('ChannelFeed', () => {
       mine: true,
       photos: [{ id: 'ph1', href: '/community/circle/posts/p1/photos/ph1' }],
     };
-    render(<ChannelFeed page={page({ posts: [post] })} action={action} signedIn />);
+    render(<ChannelFeed page={page({ posts: [post] })} action={action} report={action} signedIn />);
     expect(screen.getByRole('img', { name: 'Photo 1 of 1' })).toHaveAttribute('src', post.photos[0].href);
     expect(screen.queryByText('Remove photo')).toBeNull();
   });
@@ -99,14 +98,14 @@ describe('ChannelFeed', () => {
       photos: [],
     };
     const posts = [post, { ...post, id: 'p2', mine: true }];
-    const { rerender } = render(<ChannelFeed page={page({ posts })} action={action} signedIn />);
+    const { rerender } = render(<ChannelFeed page={page({ posts })} action={action} report={action} signedIn />);
     expect(screen.getAllByText('Report')).toHaveLength(1);
-    rerender(<ChannelFeed page={page({ posts })} action={action} signedIn={false} />);
+    rerender(<ChannelFeed page={page({ posts })} action={action} report={action} signedIn={false} />);
     expect(screen.queryByText('Report')).toBeNull();
   });
 
   it('explains read-only channels instead of a composer', () => {
-    render(<ChannelFeed page={page({ channel: channel({ readOnly: true }) })} action={action} signedIn />);
+    render(<ChannelFeed page={page({ channel: channel({ readOnly: true }) })} action={action} report={action} signedIn />);
     expect(screen.queryByLabelText('Write in News')).toBeNull();
     expect(screen.getByText('Only staff post in this channel.')).toBeTruthy();
   });
@@ -125,7 +124,7 @@ describe('ChannelChat', () => {
   };
 
   it('lists messages with delete and report where allowed, and a send box', () => {
-    render(<ChannelChat page={page({ channel: chat, rules: { read: true, post: true, moderatePosts: false, moderateComments: false }, messages: [line, { ...line, id: 'm2', body: 'mine', author: { id: 'p2', name: 'Me' }, mine: true }] })} action={action} signedIn />);
+    render(<ChannelChat page={page({ channel: chat, rules: { read: true, post: true, moderatePosts: false, moderateComments: false }, messages: [line, { ...line, id: 'm2', body: 'mine', author: { id: 'p2', name: 'Me' }, mine: true }] })} action={action} report={action} signedIn />);
     expect(screen.getByText('hello')).toBeTruthy();
     expect(screen.getByText('Robin')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2);
@@ -136,12 +135,12 @@ describe('ChannelChat', () => {
 
   it('shows a file-only line as its attachment', () => {
     const file = { name: 'Notes.pdf', type: 'application/pdf', size: 1200, image: false, href: '/community/circle/attachments/m1' };
-    render(<ChannelChat page={page({ channel: chat, messages: [{ ...line, body: '', attachment: file }] })} action={action} signedIn />);
+    render(<ChannelChat page={page({ channel: chat, messages: [{ ...line, body: '', attachment: file }] })} action={action} report={action} signedIn />);
     expect(screen.getByRole('link', { name: 'Notes.pdf' })).toHaveAttribute('href', file.href);
   });
 
   it('read-only chat: no send box', () => {
-    render(<ChannelChat page={page({ channel: { ...chat, readOnly: true }, messages: [] })} action={action} signedIn={false} />);
+    render(<ChannelChat page={page({ channel: { ...chat, readOnly: true }, messages: [] })} action={action} report={action} signedIn={false} />);
     expect(screen.queryByLabelText('Message Lounge')).toBeNull();
     expect(screen.getByText('No messages yet')).toBeTruthy();
     expect(screen.getByText('Only staff send in this channel.')).toBeTruthy();

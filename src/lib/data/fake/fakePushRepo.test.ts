@@ -62,3 +62,29 @@ describe('push subscriptions', () => {
     expect(repo.db.pushSubscriptions).toEqual([]);
   });
 });
+
+describe('push mutes', () => {
+  it('mutes and unmutes per type; absent row = on', async () => {
+    expect(await repo.pushMutes(SEED_IDS.alexander, [SEED_IDS.student])).toEqual([]);
+    await repo.setPushMute(SEED_IDS.alexander, SEED_IDS.student, 'reaction', true);
+    await repo.setPushMute(SEED_IDS.alexander, SEED_IDS.student, 'reaction', true);
+    await repo.setPushMute(SEED_IDS.alexander, SEED_IDS.student, 'mention', true);
+    expect(await repo.pushMutes(SEED_IDS.alexander, [SEED_IDS.student])).toEqual([
+      { profileId: SEED_IDS.student, type: 'reaction' },
+      { profileId: SEED_IDS.student, type: 'mention' },
+    ]);
+    await repo.setPushMute(SEED_IDS.alexander, SEED_IDS.student, 'reaction', false);
+    expect(await repo.pushMutes(SEED_IDS.alexander, [SEED_IDS.student])).toEqual([{ profileId: SEED_IDS.student, type: 'mention' }]);
+  });
+
+  it('keeps spaces and profiles apart', async () => {
+    await repo.setPushMute(SEED_IDS.alexander, SEED_IDS.student, 'comment', true);
+    expect(await repo.pushMutes(SEED_IDS.natasha, [SEED_IDS.student])).toEqual([]);
+    expect(await repo.pushMutes(SEED_IDS.alexander, [SEED_IDS.alexanderOwner])).toEqual([]);
+    expect(await repo.pushMutes(SEED_IDS.alexander, [])).toEqual([]);
+  });
+
+  it('needs a profile on the space', async () => {
+    await expect(repo.setPushMute(SEED_IDS.alexander, 'user-nobody', 'comment', true)).rejects.toThrow('no profile on this space');
+  });
+});

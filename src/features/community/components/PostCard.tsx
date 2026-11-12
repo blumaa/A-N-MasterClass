@@ -19,6 +19,8 @@ type Props = {
   href: string | null;
   moderate: boolean;
   signedIn: boolean;
+  /** Report action (app/: it pushes to moderators). None: no Report button. */
+  report?: FormAction;
   /** Where to go after deleting (the post page itself would 404). */
   afterDelete?: string;
   /** Post page, author who may still post: room to add photos. */
@@ -29,7 +31,7 @@ const STATUS_BADGE = { pending: 'Waiting for approval', rejected: 'Not approved'
 
 const commentsLabel = (n: number): string => (n === 1 ? '1 comment' : `${n} comments`);
 
-export function PostCard({ post, action, href, moderate, signedIn, afterDelete, addPhotos = false }: Props) {
+export function PostCard({ post, action, href, moderate, signedIn, report, afterDelete, addPhotos = false }: Props) {
   const id = { postId: post.id };
   const room = POST_PHOTOS_MAX - post.photos.length;
   return (
@@ -77,7 +79,7 @@ export function PostCard({ post, action, href, moderate, signedIn, afterDelete, 
                 fields={{ op: 'deletePost', ...id, ...(afterDelete ? { redirectTo: afterDelete } : {}) }}
               />
             ) : null}
-            {signedIn && !post.mine ? <ReportForm targetType="post" targetId={post.id} /> : null}
+            {report && signedIn && !post.mine ? <ReportForm targetType="post" targetId={post.id} action={report} /> : null}
           </Inline>
         </Stack>
       </CardBody>
