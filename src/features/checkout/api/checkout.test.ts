@@ -3,7 +3,7 @@ import { emptyDb } from '@/lib/data/fake/db';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import type { Offer } from '@/lib/data/types';
 import { createFakeProvider, type FakeProvider } from '@/lib/payments/fake';
-import { checkoutOffer, completeCheckout, startCheckout, type CheckoutDeps, type CheckoutInput } from './checkout';
+import { checkoutOffer, completeCheckout, previewCoupon, startCheckout, type CheckoutDeps, type CheckoutInput } from './checkout';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 
@@ -30,6 +30,8 @@ const input = (extra: Partial<CheckoutInput> = {}): CheckoutInput => ({
   email: ' Buyer@Test.com ',
   waiverAccepted: true,
   marketingConsent: false,
+  couponCode: '',
+  withBump: false,
   ...extra,
 });
 
@@ -76,6 +78,50 @@ describe('startCheckout', () => {
     const result = await startCheckout(repo, notSetUp, 's1', input(), NOW);
     expect(result).toMatchObject({ ok: true, kind: 'fulfilled', fulfilment: { status: 'paid', newAccount: true } });
     expect(repo.db.orders[0]).toMatchObject({ provider: 'free', livemode: true });
+  });
+});
+
+describe('startCheckout with coupon and bump (G23)', () => {
+  let bump: Offer;
+  beforeEach(async () => {
+    bump = await repo.createOffer({ spaceId: 's1', slug: 'extra', title: 'Extra', priceCents: 900, currency: 'EUR' });
+    await repo.updateOffer(bump.id, { status: 'published' });
+    await repo.updateOffer(offer.id, { bumpOfferId: bump.id });
+    await repo.createCoupon({
+      spaceId: 's1', code: 'TEN', percentOff: 10, amountOffCents: null, currency: null, maxUses: null,
+      oncePerCustomer: false, expiresAt: null, active: true, offerIds: [offer.id],
+    });
+  });
+
+  it('charges offer - discount + bump in one provider order and stores the extras', async () => {
+    const result = await startCheckout(repo, ready, 's1', input({ couponCode: 'ten', withBump: true }), NOW);
+    expect(result).toMatchObject({ ok: true, kind: 'provider' });
+    expect(await provider.captureOrder('FAKE-ORDER-1', 'r1')).toMatchObject({ amountCents: 5310 });
+    expect(repo.db.orders[0]).toMatchObject({
+      amountCents: 5310,
+      discountCents: 490,
+      couponId: repo.db.coupons[0].id,
+      bumpOfferId: bump.id,
+      bumpCents: 900,
+    });
+  });
+
+  it('previews a coupon discount without an email', async () => {
+    expect(await previewCoupon(repo, 's1', 'full', ' ten ', NOW)).toEqual({ ok: true, code: 'TEN', discountCents: 490 });
+    expect(await previewCoupon(repo, 's1', 'full', 'NOPE', NOW)).toMatchObject({ ok: false, message: expect.any(String) });
+    expect(await previewCoupon(repo, 's1', 'gone', 'TEN', NOW)).toMatchObject({ ok: false });
+  });
+
+  it('refuses a bad coupon before any order exists', async () => {
+    expect(await startCheckout(repo, ready, 's1', input({ couponCode: 'NOPE' }), NOW)).toMatchObject({ ok: false, error: 'invalid' });
+    expect(repo.db.orders).toEqual([]);
+  });
+
+  it('fulfils a fully discounted order without a provider', async () => {
+    await repo.updateCoupon(repo.db.coupons[0].id, { percentOff: 100 });
+    const result = await startCheckout(repo, notSetUp, 's1', input({ couponCode: 'TEN' }), NOW);
+    expect(result).toMatchObject({ ok: true, kind: 'fulfilled', fulfilment: { status: 'paid' } });
+    expect(repo.db.orders[0]).toMatchObject({ provider: 'free', amountCents: 0, discountCents: 4900 });
   });
 });
 

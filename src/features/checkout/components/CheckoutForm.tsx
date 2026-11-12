@@ -1,38 +1,61 @@
 'use client';
 // Checkout form (G4, G25, G28): email, withdrawal waiver (must be ticked), optional
-// marketing consent. Then one of: free = "Get access"; PayPal client id = PayPal buttons;
-// no client id (dev fake provider) = "Pay (test)". Price always comes from the server.
+// marketing consent, order bump and coupon (G23). Then one of: total 0 = "Get access"; PayPal
+// client id = PayPal buttons; no client id (dev fake provider) = "Pay (test)". The total shown
+// here is display only: the server prices the order from DB rows.
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Button, Checkbox, Field, Input, Stack, Text } from '@/components/ui/mds';
-import type { Currency } from '@/lib/commerce/money';
+import { formatMoney, type Currency } from '@/lib/commerce/money';
 import { WAIVER_TEXT } from '@/lib/commerce/waiver';
 import { isEmail } from '@/lib/text/email';
 import type { CompleteCheckoutState, StartCheckoutState } from '../actions';
+import type { CheckoutInput, CouponPreview } from '../api/checkout';
+import type { BumpInfo } from '../api/pricing';
+import { CouponField, type AppliedCoupon } from './CouponField';
+import { OrderSummary } from './OrderSummary';
 import { PayPalButtons } from './PayPalButtons';
 import styles from './CheckoutForm.module.css';
 
 export type CheckoutFormProps = {
-  offer: { slug: string; priceCents: number; currency: Currency };
+  offer: { slug: string; title: string; priceCents: number; currency: Currency; bump: Omit<BumpInfo, 'id'> | null };
   /** PayPal REST client id of the space; null = dev fake provider. */
   clientId: string | null;
-  startAction: (input: { offerSlug: string; email: string; waiverAccepted: boolean; marketingConsent: boolean }) => Promise<StartCheckoutState>;
+  locale: string;
+  /** Kajabi shows the coupon box only when the offer has an active coupon. */
+  couponField: boolean;
+  applyCouponAction: (offerSlug: string, code: string) => Promise<CouponPreview>;
+  startAction: (input: CheckoutInput) => Promise<StartCheckoutState>;
   completeAction: (offerSlug: string, providerOrderId: string) => Promise<CompleteCheckoutState>;
 };
 
 const FAILED = 'Something went wrong. Please try again.';
 
-export function CheckoutForm({ offer, clientId, startAction, completeAction }: CheckoutFormProps) {
+export function CheckoutForm({ offer, clientId, locale, couponField, applyCouponAction, startAction, completeAction }: CheckoutFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [waiver, setWaiver] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [withBump, setWithBump] = useState(false);
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const ready = isEmail(email.trim()) && waiver;
-  const free = offer.priceCents === 0;
+  const bump = withBump ? offer.bump : null;
+  const lines = [{ label: offer.title, cents: offer.priceCents }];
+  if (bump) lines.push({ label: bump.title, cents: bump.priceCents });
+  if (coupon) lines.push({ label: `Coupon ${coupon.code}`, cents: -coupon.discountCents });
+  const totalCents = lines.reduce((sum, l) => sum + l.cents, 0);
+  const free = totalCents === 0;
 
-  const input = () => ({ offerSlug: offer.slug, email: email.trim(), waiverAccepted: waiver, marketingConsent: consent });
+  const input = (): CheckoutInput => ({
+    offerSlug: offer.slug,
+    email: email.trim(),
+    waiverAccepted: waiver,
+    marketingConsent: consent,
+    couponCode: coupon?.code ?? '',
+    withBump,
+  });
 
   /** Creates the order; resolves the provider order id, or null when done or refused. */
   async function begin(): Promise<string | null> {
@@ -97,6 +120,19 @@ export function CheckoutForm({ offer, clientId, startAction, completeAction }: C
         <Field label="Email">
           <Input type="email" name="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
+        {offer.bump ? (
+          <Stack gap="hairline">
+            <Checkbox
+              name="bump"
+              label={`Yes, add ${offer.bump.title} (${formatMoney(offer.bump.priceCents, offer.currency, locale)})`}
+              checked={withBump}
+              onChange={(e) => setWithBump(e.target.checked)}
+            />
+            {offer.bump.description ? <Text tone="secondary">{offer.bump.description}</Text> : null}
+          </Stack>
+        ) : null}
+        {couponField ? <CouponField offerSlug={offer.slug} applied={coupon} onChange={setCoupon} applyAction={applyCouponAction} /> : null}
+        <OrderSummary lines={lines} totalCents={totalCents} currency={offer.currency} locale={locale} />
         <Checkbox name="waiver" label={WAIVER_TEXT} checked={waiver} onChange={(e) => setWaiver(e.target.checked)} />
         <Checkbox
           name="marketingConsent"

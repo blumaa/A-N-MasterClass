@@ -3,7 +3,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Card, CardBody, Heading, Stack, Text } from '@/components/ui/mds';
-import { completeCheckoutAction, startCheckoutAction } from '@/features/checkout/actions';
+import { applyCouponAction, completeCheckoutAction, startCheckoutAction } from '@/features/checkout/actions';
 import { loadCheckout } from '@/features/checkout/api/load';
 import { CheckoutForm } from '@/features/checkout/components/CheckoutForm';
 import { formatMoney } from '@/lib/commerce/money';
@@ -21,7 +21,7 @@ export default async function CheckoutPage({ params }: Props) {
   const { space, offer: slug } = await params;
   const found = await loadCheckout(space, slug);
   if (!found) notFound();
-  const { offer, locale, payable, clientId } = found;
+  const { offer, locale, payable, clientId, couponField } = found;
   return (
     <div className={styles.layout}>
       <Stack gap="base">
@@ -48,8 +48,11 @@ export default async function CheckoutPage({ params }: Props) {
       </Stack>
       {payable ? (
         <CheckoutForm
-          offer={{ slug: offer.slug, priceCents: offer.priceCents, currency: offer.currency }}
+          offer={{ slug: offer.slug, title: offer.title, priceCents: offer.priceCents, currency: offer.currency, bump: offer.bump }}
           clientId={clientId}
+          locale={locale}
+          couponField={couponField}
+          applyCouponAction={applyCouponAction}
           startAction={startCheckoutAction}
           completeAction={completeCheckoutAction}
         />

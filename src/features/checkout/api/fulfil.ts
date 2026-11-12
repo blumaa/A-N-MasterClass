@@ -39,9 +39,15 @@ export async function fulfilOrder(repo: Repo, order: Order, capture: Capture | n
   await repo.ensureSpaceProfile({ spaceId: order.spaceId, profileId: profile.id, displayName: order.email.split('@')[0] });
 
   // A grant is per product + access group: holding the default group does not cover a VIP group.
-  const held = await repo.grants(order.spaceId, profile.id, now);
-  for (const { productId, accessGroupId } of await repo.offerItems(order.offerId)) {
-    if (held.some((g) => g.productId === productId && g.accessGroupId === accessGroupId)) continue;
+  // The order bump (G23) grants its offer's products too; a product in both is granted once.
+  const offerIds = order.bumpOfferId ? [order.offerId, order.bumpOfferId] : [order.offerId];
+  const items = (await Promise.all(offerIds.map((id) => repo.offerItems(id)))).flat();
+  const held = (await repo.grants(order.spaceId, profile.id, now)).map((g) => `${g.productId}:${g.accessGroupId}`);
+  const granted = new Set(held);
+  for (const { productId, accessGroupId } of items) {
+    const key = `${productId}:${accessGroupId}`;
+    if (granted.has(key)) continue;
+    granted.add(key);
     await repo.createGrant({ productId, profileId: profile.id, source: 'purchase', orderId: order.id, accessGroupId });
   }
 

@@ -11,7 +11,7 @@ import { getServiceRepo } from '@/lib/data/getRepo';
 import { claimPath, setPasswordHref } from '@/lib/routes';
 import { PaymentProviderError } from '@/lib/payments/provider';
 import { spaceProvider } from '@/lib/payments/spaceProvider';
-import { completeCheckout, startCheckout } from './api/checkout';
+import { completeCheckout, previewCoupon, startCheckout, type CouponPreview } from './api/checkout';
 import { claimAccount } from './api/claim';
 import type { FulfilResult } from './api/fulfil';
 import { thanksPath } from './paths';
@@ -38,6 +38,8 @@ export async function startCheckoutAction(input: {
   email: string;
   waiverAccepted: boolean;
   marketingConsent: boolean;
+  couponCode: string;
+  withBump: boolean;
 }): Promise<StartCheckoutState> {
   const viewer = await actionViewer();
   if (!viewer) return { ok: false, message: GONE };
@@ -46,12 +48,25 @@ export async function startCheckoutAction(input: {
     getServiceRepo(),
     { env: paymentsEnv(), resolveProvider: () => spaceProvider(viewer.space.id) },
     viewer.space.id,
-    { offerSlug, email: String(input.email), waiverAccepted: input.waiverAccepted === true, marketingConsent: input.marketingConsent === true },
+    {
+      offerSlug,
+      email: String(input.email),
+      waiverAccepted: input.waiverAccepted === true,
+      marketingConsent: input.marketingConsent === true,
+      couponCode: String(input.couponCode ?? ''),
+      withBump: input.withBump === true,
+    },
     new Date(),
   );
   if (!result.ok) return { ok: false, message: result.error === 'invalid' ? result.message : GONE };
   if (result.kind === 'provider') return { ok: true, providerOrderId: result.providerOrderId };
   return { ok: true, next: await afterFulfil(offerSlug, result.fulfilment) };
+}
+
+export async function applyCouponAction(offerSlug: string, code: string): Promise<CouponPreview> {
+  const viewer = await actionViewer();
+  if (!viewer) return { ok: false, message: GONE };
+  return previewCoupon(getServiceRepo(), viewer.space.id, String(offerSlug), String(code), new Date());
 }
 
 export async function completeCheckoutAction(offerSlug: string, providerOrderId: string): Promise<CompleteCheckoutState> {

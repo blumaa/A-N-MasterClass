@@ -64,6 +64,15 @@ describe('fulfilOrder', () => {
     expect(repo.db.claimTokens).toHaveLength(0);
   });
 
+  it('grants the bump offer products too, a shared product once (G23)', async () => {
+    const bump = await repo.createOffer({ spaceId: 's1', slug: 'extra', title: 'Extra', priceCents: 900, currency: 'EUR' });
+    const c = await repo.createProduct({ spaceId: 's1', kind: 'program', slug: 'c', title: 'C' });
+    await repo.setOfferItems(bump.id, [productIds[0], c.id].map((productId) => ({ productId, accessGroupId: null })));
+    const order = await newOrder({ bumpOfferId: bump.id, bumpCents: 900, amountCents: 5800 });
+    await fulfilOrder(repo, order, capture({ amountCents: 5800 }), NOW);
+    expect((await repo.grantsForOrder(order.id)).map((g) => g.productId).toSorted()).toEqual([...productIds, c.id].toSorted());
+  });
+
   it('skips products the buyer already has', async () => {
     const existing = await repo.createProfile('buyer@test.com');
     await repo.createGrant({ productId: productIds[0], profileId: existing.id, source: 'manual' });
@@ -126,7 +135,7 @@ describe('applyProviderEvent', () => {
   });
 
   const paidOrder = async () => {
-    const providerOrderId = await provider.createOrder({ amountCents: 4900, currency: 'EUR', description: 'x', referenceId: 'o', requestId: 'r' });
+    const providerOrderId = await provider.createOrder({ lines: [{ name: "x", amountCents: 4900 }], discountCents: 0, currency: 'EUR', description: 'x', referenceId: 'o', requestId: 'r' });
     const order = await newOrder({ providerOrderId });
     const cap = await provider.captureOrder(providerOrderId, 'r');
     await fulfilOrder(repo, order, cap, NOW);
