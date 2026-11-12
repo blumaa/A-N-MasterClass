@@ -2,6 +2,7 @@
 // photos and chat attachments). Files are never public: every read is
 // a short-lived signed URL handed out after an access check (G18, Kajabi downloads). Uploads go
 // straight from the browser to a signed upload URL (Server Action bodies are too small for files).
+// Objects are removed only by the storage_trash drain (./trash.ts), never by commands.
 
 /**
  * Signed URL lifetime. Short on purpose: the URL is minted per click behind a 302 and never cached
@@ -28,11 +29,6 @@ export type FileStore = {
   /** Deletes objects. Missing paths are not an error. */
   remove(paths: string[]): Promise<void>;
 };
-
-/** Removes objects after their rows are gone (cascades do not reach Storage). No call when empty. */
-export async function removeFiles(files: FileStore, paths: readonly string[]): Promise<void> {
-  if (paths.length > 0) await files.remove([...paths]);
-}
 
 /** Origin of fake file URLs (DATA_SOURCE=fake); nothing is served there. */
 export const FAKE_FILES_ORIGIN = 'https://files.example.test';

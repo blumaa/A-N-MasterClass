@@ -3,9 +3,7 @@
 // Mirrors report_target_channel() and can_read_report_target() in SQL.
 import type { Repo } from '@/lib/data/repo';
 import type { Post, ReportTarget } from '@/lib/data/types';
-import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import type { ChannelAccess } from './access';
-import { postFilePaths } from './files';
 import { seesPost } from './visibility';
 
 export type ReportContent = {
@@ -58,15 +56,9 @@ export async function hideContent(repo: Repo, c: ReportContent, now: Date): Prom
 export const removesContent = (rules: ChannelAccess, c: ReportContent): boolean =>
   c.type === 'comment' ? rules.moderateComments : rules.moderatePosts;
 
-/** Deletes the content, then its files (post photos, chat attachment). */
-export async function removeContent(repo: Repo, files: FileStore, c: ReportContent): Promise<void> {
+/** Deletes the content. DB triggers queue its files (post photos, chat attachment). */
+export async function removeContent(repo: Repo, c: ReportContent): Promise<void> {
   if (c.type === 'comment') return repo.deleteComment(c.id);
-  if (c.type === 'post') {
-    const paths = await postFilePaths(repo, [c.id]);
-    await repo.deletePost(c.id);
-    return removeFiles(files, paths);
-  }
-  const attachment = (await repo.message(c.id))?.attachment;
-  await repo.deleteMessage(c.id);
-  await removeFiles(files, attachment ? [attachment.path] : []);
+  if (c.type === 'post') return repo.deletePost(c.id);
+  return repo.deleteMessage(c.id);
 }

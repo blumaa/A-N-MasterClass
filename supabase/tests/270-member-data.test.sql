@@ -1,7 +1,7 @@
 -- G25: member data export and per-space erase. Rows of the space go, the other space stays,
--- orders keep their record without the member, owners cannot leave, Storage paths come back.
+-- orders keep their record without the member, owners cannot leave.
 begin;
-select plan(17);
+select plan(15);
 
 do $$
 declare
@@ -81,8 +81,6 @@ select throws_ok($$ select public.erase_member_space(a, owner) from ids $$, 'P00
 
 create temp table erased as select public.erase_member_space(a, member) as r from ids;
 select is((select (r->>'last_space')::boolean from erased), false, 'member still belongs to space B');
-select is((select jsonb_array_length(r->'site') from erased), 1, 'avatar path returned');
-select is((select jsonb_array_length(r->'community') from erased), 2, 'post photo and DM attachment returned');
 
 select is((select count(*)::int from public.space_profiles sp, ids where sp.space_id = ids.a and sp.profile_id = ids.member), 0, 'profile in A gone');
 select is((select count(*)::int from public.posts p, ids where p.author_id = ids.member), 1, 'only the post in B remains');

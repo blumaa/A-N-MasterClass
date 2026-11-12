@@ -1,6 +1,6 @@
 -- Launch 6 item 4: post photos and chat attachments stay in their folder, follow post/chat access.
 begin;
-select plan(22);
+select plan(19);
 
 do $$
 declare
@@ -72,8 +72,6 @@ select throws_ok(format($$ insert into public.post_photos (post_id, path) values
 delete from public.post_photos where id = 'a1400000-0000-4000-8000-000000000001';
 select results_eq($$ select count(*)::int from public.post_photos where id = 'a1400000-0000-4000-8000-000000000001' $$,
   $$ values (1) $$, 'others do not delete photos');
-select is_empty($$ select * from public.channel_files('e1400000-0000-4000-8000-000000000001') $$,
-  'channel_files is empty for members');
 
 select tests.authenticate_as('stranger');
 select is_empty($$ select 1 from public.post_photos where post_id = 'f1400000-0000-4000-8000-000000000001' $$,
@@ -103,12 +101,6 @@ select lives_ok(format($$ insert into public.messages (id, thread_id, author_id,
 select tests.authenticate_as('stranger');
 select is_empty($$ select 1 from public.messages where id in
   ('b1400000-0000-4000-8000-000000000001', 'b1400000-0000-4000-8000-000000000002') $$, 'stranger reads no attachments');
-
-select tests.authenticate_as('owner');
-select results_eq($$ select count(*)::int from public.channel_files('e1400000-0000-4000-8000-000000000001') $$,
-  $$ values (9) $$, 'staff list feed channel files');
-select results_eq($$ select * from public.channel_files('e1400000-0000-4000-8000-000000000002') $$,
-  format($$ values ('%s1-notes.pdf') $$, (select chat from f)), 'staff list chat channel files');
 
 select * from finish(true);
 rollback;

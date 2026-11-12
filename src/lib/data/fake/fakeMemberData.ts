@@ -80,17 +80,10 @@ export function createFakeMemberData(db: Db): MemberDataRepo {
       const me = (id: string | null) => id === profileId;
       const inSpace = (communityId: string) => s.products.has(communityId);
 
-      const site = db.spaceProfiles
-        .filter((p) => p.spaceId === spaceId && me(p.profileId) && p.avatarPath !== null)
-        .map((p) => p.avatarPath as string);
       const myPosts = new Set(db.posts.filter((p) => me(p.authorId) && s.channels.has(p.channelId)).map((p) => p.id));
       const goneMessages = db.messages.filter(
         (m) => (me(m.authorId) && m.channelId !== null && s.channels.has(m.channelId)) || (m.threadId !== null && s.threads.has(m.threadId)),
       );
-      const community = [
-        ...db.postPhotos.filter((ph) => myPosts.has(ph.postId)).map((ph) => ph.path),
-        ...goneMessages.flatMap((m) => (m.attachment ? [m.attachment.path] : [])),
-      ];
       const goneMessageIds = new Set(goneMessages.map((m) => m.id));
       const challenges = new Set(db.challenges.filter((c) => inSpace(c.communityId)).map((c) => c.id));
       const meetups = new Set(db.meetups.filter((m) => inSpace(m.communityId)).map((m) => m.id));
@@ -127,7 +120,7 @@ export function createFakeMemberData(db: Db): MemberDataRepo {
 
       const remaining =
         db.spaceProfiles.some((p) => me(p.profileId)) || db.members.some((m) => me(m.profileId)) || db.grants.some((g) => me(g.profileId));
-      return { files: { site, community }, lastSpace: !remaining };
+      return { lastSpace: !remaining };
     },
 
     async deleteAccount(profileId) {

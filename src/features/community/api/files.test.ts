@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { chatCommand, type ChatCommand } from './chat';
 import { attachmentHref, postPhotoHref } from '../paths';
 import { communityCommand, type CommunityCommand } from './commands';
@@ -16,16 +15,14 @@ const FOLDER = `${SEED_IDS.alexander}/${SEED_IDS.community}`;
 const FEED = `${FOLDER}/${SEED_IDS.general}/`;
 const CHAT = `${FOLDER}/${SEED_IDS.lounge}/`;
 let repo: FakeRepo;
-let files: ReturnType<typeof createFakeFileStore>;
 
 beforeEach(() => {
   repo = createFakeRepo(seedDb(NOW));
-  files = createFakeFileStore(() => NOW, 'community');
 });
 
 const viewer = async (who: string) => (await resolveViewer(repo, 'alexander', who))!;
-const post = async (who: string, cmd: CommunityCommand) => communityCommand(repo, files, await viewer(who), cmd, NOW, async () => true);
-const chat = async (who: string, cmd: ChatCommand) => chatCommand(repo, files, await viewer(who), cmd, NOW);
+const post = async (who: string, cmd: CommunityCommand) => communityCommand(repo, await viewer(who), cmd, NOW, async () => true);
+const chat = async (who: string, cmd: ChatCommand) => chatCommand(repo, await viewer(who), cmd, NOW);
 const id = (r: { ok: boolean; id?: string }): string => {
   if (!r.ok || !r.id) throw new Error(`expected id, got ${JSON.stringify(r)}`);
   return r.id;
@@ -57,19 +54,17 @@ describe('post photos', () => {
     expect(photoPaths()).toEqual(photos(1));
   });
 
-  it('removing a photo deletes the row, then the object', async () => {
+  it('removing a photo deletes its row (DB triggers queue the object)', async () => {
     const postId = id(await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'hi', photos: photos(2) }));
     const [first] = await repo.postPhotos([postId]);
     expect((await post(SEED_IDS.alexanderOwner, { op: 'removePostPhoto', postId, photoId: first!.id })).ok).toBe(true);
     expect(photoPaths()).toEqual([photos(2)[1]]);
-    expect(files.removed).toEqual([photos(2)[0]]);
     expect(await post(SEED_IDS.student, { op: 'removePostPhoto', postId, photoId: 'nope' })).toEqual({ ok: false, error: 'not_found' });
   });
 
-  it('deleting a post removes its photo objects', async () => {
+  it('deleting a post deletes its photo rows', async () => {
     const postId = id(await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'hi', photos: photos(2) }));
     expect((await post(SEED_IDS.student, { op: 'deletePost', postId })).ok).toBe(true);
-    expect(files.removed).toEqual(photos(2));
     expect(photoPaths()).toEqual([]);
   });
 });
@@ -96,10 +91,10 @@ describe('chat attachments', () => {
     });
   });
 
-  it('deleting a line removes its file', async () => {
+  it('deleting a line deletes it with its file row', async () => {
     const messageId = id(await chat(SEED_IDS.student, { op: 'sendMessage', channelId: SEED_IDS.lounge, body: 'x', attachment: pdf }));
     expect((await chat(SEED_IDS.student, { op: 'deleteMessage', messageId })).ok).toBe(true);
-    expect(files.removed).toEqual([pdf.path]);
+    expect(await repo.message(messageId)).toBeNull();
   });
 
   it('DM lines take files in the thread folder', async () => {
@@ -108,32 +103,33 @@ describe('chat attachments', () => {
     const messageId = id(await chat(SEED_IDS.student, { op: 'sendDm', threadId, body: '', attachment: file }));
     expect((await repo.message(messageId))?.attachment).toEqual(file);
     expect((await chat(SEED_IDS.student, { op: 'deleteMessage', messageId })).ok).toBe(true);
-    expect(files.removed).toEqual([file.path]);
+    expect(await repo.message(messageId)).toBeNull();
   });
 });
 
 describe('moderation cleanup', () => {
   const removeReported = async (targetType: 'post' | 'message', targetId: string) => {
-    await reportCommand(repo, files, await viewer(SEED_IDS.student), { op: 'report', targetType, targetId, reason: null }, NOW);
+    await reportCommand(repo, await viewer(SEED_IDS.student), { op: 'report', targetType, targetId, reason: null }, NOW);
     const reportId = repo.db.reports.at(-1)!.id;
     const action = { op: 'resolveReport', reportId, action: 'remove' } as const;
-    expect((await reportCommand(repo, files, await viewer(SEED_IDS.alexanderOwner), action, NOW)).ok).toBe(true);
+    expect((await reportCommand(repo, await viewer(SEED_IDS.alexanderOwner), action, NOW)).ok).toBe(true);
   };
 
-  it('removing a reported post or line removes its files', async () => {
+  it('removing a reported post or line deletes its rows', async () => {
     const postId = id(await post(SEED_IDS.alexanderOwner, { op: 'createPost', channelId: SEED_IDS.general, body: 'hi', photos: photos(1) }));
     await removeReported('post', postId);
     const file = { path: `${CHAT}u1-a.pdf`, name: 'a.pdf', type: 'application/pdf', size: 3 };
     const messageId = id(await chat(SEED_IDS.alexanderOwner, { op: 'sendMessage', channelId: SEED_IDS.lounge, body: '', attachment: file }));
     await removeReported('message', messageId);
-    expect(files.removed).toEqual([...photos(1), file.path]);
+    expect(photoPaths()).toEqual([]);
+    expect(await repo.message(messageId)).toBeNull();
   });
 
-  it('deleting a channel in Studio removes its files', async () => {
+  it('deleting a channel in Studio deletes its photo rows', async () => {
     await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'hi', photos: photos(2) });
     const cmd = { op: 'deleteChannel', channelId: SEED_IDS.general } as const;
-    expect((await editCommunity(repo, files, await viewer(SEED_IDS.alexanderOwner), cmd, NOW)).ok).toBe(true);
-    expect(files.removed).toEqual(photos(2));
+    expect((await editCommunity(repo, await viewer(SEED_IDS.alexanderOwner), cmd, NOW)).ok).toBe(true);
+    expect(photoPaths()).toEqual([]);
   });
 });
 

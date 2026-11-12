@@ -2939,6 +2939,24 @@ export type Database = {
           },
         ]
       }
+      storage_trash: {
+        Row: {
+          bucket: string
+          path: string
+          queued_at: string
+        }
+        Insert: {
+          bucket: string
+          path: string
+          queued_at?: string
+        }
+        Update: {
+          bucket?: string
+          path?: string
+          queued_at?: string
+        }
+        Relationships: []
+      }
       subscription_payments: {
         Row: {
           amount_cents: number
@@ -3308,7 +3326,6 @@ export type Database = {
         }
       }
       channel_community: { Args: { target_channel: string }; Returns: string }
-      channel_files: { Args: { target_channel: string }; Returns: string[] }
       channel_folder: { Args: { target_channel: string }; Returns: string }
       coaching_busy: {
         Args: { from_at: string; target_space: string; to_at: string }
@@ -3604,6 +3621,36 @@ export type Database = {
         Returns: string
       }
       step_space: { Args: { target_step: string }; Returns: string }
+      storage_columns: {
+        Args: never
+        Returns: {
+          bucket: string
+          col: string
+          tbl: string
+        }[]
+      }
+      storage_queue_orphans: {
+        Args: { grace?: string; max_rows?: number }
+        Returns: number
+      }
+      storage_refs: {
+        Args: never
+        Returns: {
+          bucket: string
+          path: string
+        }[]
+      }
+      storage_trash_done: {
+        Args: { paths: string[]; target_bucket: string }
+        Returns: undefined
+      }
+      storage_trash_take: {
+        Args: { max_rows?: number }
+        Returns: {
+          bucket: string
+          path: string
+        }[]
+      }
       submit_quiz: {
         Args: { picked: string[]; target_part: string }
         Returns: {

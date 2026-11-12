@@ -191,8 +191,8 @@ export type SpacePatch = Partial<Pick<Space, 'name' | 'status'>>;
 
 /** One member's data in one space (G25 export): JSON keys as in member_space_data. */
 export type MemberSpaceData = Record<string, unknown>;
-/** Result of erasing a member from a space: Storage objects whose rows went, and whether no space is left. */
-export type ErasedMember = { files: { site: string[]; community: string[] }; lastSpace: boolean };
+/** Result of erasing a member from a space: whether no space is left. DB triggers queue the member's files. */
+export type ErasedMember = { lastSpace: boolean };
 
 export type Direction = 'up' | 'down';
 export type Reorderable = 'modules' | 'steps' | 'parts' | 'channels';
@@ -484,8 +484,6 @@ export interface Repo {
   /** Appends after the last photo. Paths in the post's channel folder, max 10 per post (constraint). */
   addPostPhotos(postId: string, paths: readonly string[]): Promise<PostPhoto[]>;
   deletePostPhoto(id: string): Promise<void>;
-  /** Stored file paths of a channel's photos and attachments. Empty unless the viewer edits the community. */
-  channelFiles(channelId: string): Promise<string[]>;
 
   /** Oldest first, for every target id given. */
   comments(targetType: CommentTarget, targetIds: readonly string[]): Promise<Comment[]>;

@@ -6,6 +6,7 @@ import { actionViewer } from '@/lib/auth/actionViewer';
 import type { Viewer } from '@/lib/auth/viewer';
 import { failureMessage, type CommandResult } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
+import { drainSoon } from '@/lib/storage/cleanup';
 import { saveBranding, saveBrandMarks, saveProgramTheme } from './api/branding';
 import { brandingFromForm, colorsFromForm, marksFromForm } from './formInput';
 
@@ -16,6 +17,7 @@ async function run(forbidden: string, command: (viewer: Viewer) => Promise<Comma
   if (!viewer) return { message: forbidden, saved: false };
   const result = await command(viewer);
   if (!result.ok) return { message: failureMessage(result, forbidden), saved: false };
+  drainSoon();
   refresh();
   return { message: 'Saved.', saved: true };
 }

@@ -8,11 +8,10 @@ import type { Repo } from '@/lib/data/repo';
 import { REACTION_EMOJIS, type Comment, type Post, type Product, type ReactionEmoji } from '@/lib/data/types';
 import { mentionIdsFromBody } from '@/lib/mentions/parse';
 import { POST_PHOTOS_MAX } from '@/lib/storage/communityFiles';
-import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import { inFolder } from '@/lib/storage/uploadPath';
 import { channelScope as findChannel, type ChannelAccess } from './access';
 import { directory } from './feed';
-import { channelFolderOf, postFilePaths } from './files';
+import { channelFolderOf } from './files';
 import { logModeration } from './moderationLog';
 import { buildNotifications, type Candidate, type NotificationBase } from './notify';
 import { postOpen, seesPost } from './visibility';
@@ -38,7 +37,7 @@ const OK: CommandResult = { ok: true };
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
 const NOT_FOUND: CommandResult = { ok: false, error: 'not_found' };
 
-type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date; gate: StepGate };
+type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date; gate: StepGate };
 
 /** Where a comment lives: a post of a community, or a step of a program. */
 type Scope =
@@ -129,7 +128,6 @@ async function editPhotos(ctx: Ctx, cmd: Extract<CommunityCommand, { op: 'addPos
   if (!photo) return NOT_FOUND;
   if (post.authorId !== ctx.me && !rules.moderatePosts) return FORBIDDEN;
   await ctx.repo.deletePostPhoto(photo.id);
-  await removeFiles(ctx.files, [photo.path]);
   return OK;
 }
 
@@ -192,9 +190,7 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
       const { post, rules } = found.value;
       if (cmd.op === 'deletePost') {
         if (!rules.moderatePosts && post.authorId !== ctx.me) return FORBIDDEN;
-        const paths = await postFilePaths(repo, [post.id]);
         await repo.deletePost(post.id);
-        await removeFiles(ctx.files, paths);
         return OK;
       }
       if (!rules.moderatePosts) return FORBIDDEN;
@@ -270,7 +266,6 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
 
 export async function communityCommand(
   repo: Repo,
-  files: FileStore,
   viewer: Viewer,
   cmd: CommunityCommand,
   now: Date,
@@ -278,7 +273,7 @@ export async function communityCommand(
 ): Promise<CommandResult> {
   if (!viewer.profile) return FORBIDDEN;
   try {
-    return await run({ repo, files, viewer, me: viewer.profile.id, now, gate }, cmd);
+    return await run({ repo, viewer, me: viewer.profile.id, now, gate }, cmd);
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

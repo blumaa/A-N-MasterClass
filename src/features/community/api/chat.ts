@@ -11,7 +11,6 @@ import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import type { Attachment, Block, DmThread, Product } from '@/lib/data/types';
 import { communityFileProblem } from '@/lib/storage/communityFiles';
-import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import { channelScope, communityAccess, type CommunityAccess } from './access';
 import { directory } from './feed';
 
@@ -26,7 +25,7 @@ const OK: CommandResult = { ok: true };
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
 const NOT_FOUND: CommandResult = { ok: false, error: 'not_found' };
 
-type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date };
+type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date };
 
 /** Everything the DM rules need about one viewer in one community. */
 export type DmContext = {
@@ -106,7 +105,6 @@ async function deleteMessage(ctx: Ctx, messageId: string): Promise<CommandResult
     if (message.authorId !== ctx.me) return FORBIDDEN;
   }
   await ctx.repo.deleteMessage(message.id);
-  await removeFiles(ctx.files, message.attachment ? [message.attachment.path] : []);
   return OK;
 }
 
@@ -173,10 +171,10 @@ async function run(ctx: Ctx, cmd: ChatCommand): Promise<CommandResult> {
   }
 }
 
-export async function chatCommand(repo: Repo, files: FileStore, viewer: Viewer, cmd: ChatCommand, now: Date): Promise<CommandResult> {
+export async function chatCommand(repo: Repo, viewer: Viewer, cmd: ChatCommand, now: Date): Promise<CommandResult> {
   if (!viewer.profile) return FORBIDDEN;
   try {
-    return await run({ repo, files, viewer, me: viewer.profile.id, now }, cmd);
+    return await run({ repo, viewer, me: viewer.profile.id, now }, cmd);
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

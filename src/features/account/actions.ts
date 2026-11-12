@@ -7,7 +7,7 @@ import { actionViewer } from '@/lib/auth/actionViewer';
 import { endSession } from '@/lib/auth/session';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
-import { getFileStore } from '@/lib/storage/getFileStore';
+import { drainSoon } from '@/lib/storage/cleanup';
 import { deleteMyAccount } from './api/memberData';
 import { saveMyProfile } from './api/profile';
 
@@ -27,6 +27,7 @@ export async function saveProfileAction(_prev: ActionState, form: FormData): Pro
     avatarPath: text(form, 'avatarPath') || null,
   });
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };
+  drainSoon();
   refresh();
   return { message: 'Saved.', ok: true };
 }
@@ -35,9 +36,9 @@ export async function saveProfileAction(_prev: ActionState, form: FormData): Pro
 export async function deleteAccountAction(_prev: ActionState): Promise<ActionState> {
   const viewer = await actionViewer();
   if (!viewer) return { message: FORBIDDEN };
-  const files = { site: getFileStore('site'), community: getFileStore('community') };
-  const result = await deleteMyAccount(getRepo(), files, viewer);
+  const result = await deleteMyAccount(getRepo(), viewer);
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };
+  drainSoon();
   await endSession();
   redirect('/');
 }

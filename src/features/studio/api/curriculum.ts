@@ -1,14 +1,13 @@
 // Studio curriculum: reads + one command entry point. Every command checks capability
 // (G15) and that the target row lives in the viewer's space (tenant wall before RLS).
 // Download parts: the file is uploaded first (FileUpload, kind program); a new path must sit in the
-// program's folder (isProductPath). Objects of deleted or replaced files go after the DB write.
+// program's folder (isProductPath). DB triggers queue objects of deleted or replaced files (storage_trash).
 // Quiz questions (G26) sit on quiz parts; a module can lock until a quiz of the same program is passed.
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { Direction, ModulePatch, PartPatch, ProductPatch, QuizQuestionInput, Repo, StepPatch } from '@/lib/data/repo';
 import type { Module, Part, PartKind, Product, QuizQuestion, Step } from '@/lib/data/types';
-import type { FileStore } from '@/lib/storage/fileStore';
 import { isProductPath } from '@/lib/storage/uploadPath';
 
 export type CurriculumStep = Step & { parts: Part[] };
@@ -109,19 +108,6 @@ const targetOf: { [K in CurriculumCommand['op']]: (repo: Repo, c: Extract<Curric
     c.table === 'modules' ? programOfModule(repo, c.id) : c.table === 'steps' ? programOfStep(repo, c.id) : programOfPart(repo, c.id),
 };
 
-/** Stored files of parts in these steps (to remove once their rows are gone). */
-async function stepFiles(repo: Repo, stepIds: string[]): Promise<string[]> {
-  const parts = (await Promise.all(stepIds.map((id) => repo.parts(id)))).flat();
-  return parts.flatMap((p) => (p.filePath ? [p.filePath] : []));
-}
-
-/** Runs the DB write, then removes the objects it orphaned. Storage errors propagate. */
-async function thenRemove(files: FileStore, paths: string[], write: () => Promise<unknown>): Promise<undefined> {
-  await write();
-  if (paths.length > 0) await files.remove(paths);
-  return undefined;
-}
-
 /** A changed file path must be an upload in the program's folder; an unchanged (legacy) one may stay. */
 async function partPathOk(repo: Repo, spaceId: string, program: Product | null, c: CurriculumCommand): Promise<boolean> {
   if (c.op !== 'updatePart' || !c.patch.filePath || !program) return true;
@@ -129,7 +115,7 @@ async function partPathOk(repo: Repo, spaceId: string, program: Product | null, 
   return (await repo.part(c.partId))?.filePath === c.patch.filePath;
 }
 
-async function run(repo: Repo, files: FileStore, viewer: Viewer, c: CurriculumCommand, program: Product | null): Promise<string | undefined> {
+async function run(repo: Repo, viewer: Viewer, c: CurriculumCommand, program: Product | null): Promise<string | undefined> {
   switch (c.op) {
     case 'createProgram':
       return (await repo.createProduct({ spaceId: viewer.space.id, kind: 'program', slug: c.slug, title: c.title })).id;
@@ -149,27 +135,20 @@ async function run(repo: Repo, files: FileStore, viewer: Viewer, c: CurriculumCo
       }
       await repo.updateModule(c.moduleId, c.patch);
       return;
-    case 'deleteModule': {
-      const steps = await repo.steps([c.moduleId]);
-      return thenRemove(files, await stepFiles(repo, steps.map((s) => s.id)), () => repo.deleteModule(c.moduleId));
-    }
+    case 'deleteModule':
+      return void (await repo.deleteModule(c.moduleId));
     case 'createStep':
       return (await repo.createStep({ moduleId: c.moduleId, title: c.title })).id;
     case 'updateStep':
       return void (await repo.updateStep(c.stepId, c.patch));
     case 'deleteStep':
-      return thenRemove(files, await stepFiles(repo, [c.stepId]), () => repo.deleteStep(c.stepId));
+      return void (await repo.deleteStep(c.stepId));
     case 'createPart':
       return (await repo.createPart({ stepId: c.stepId, kind: c.kind })).id;
-    case 'updatePart': {
-      const old = (await repo.part(c.partId))?.filePath;
-      const replaced = old && c.patch.filePath !== undefined && c.patch.filePath !== old;
-      return thenRemove(files, replaced ? [old] : [], () => repo.updatePart(c.partId, c.patch));
-    }
-    case 'deletePart': {
-      const old = (await repo.part(c.partId))?.filePath;
-      return thenRemove(files, old ? [old] : [], () => repo.deletePart(c.partId));
-    }
+    case 'updatePart':
+      return void (await repo.updatePart(c.partId, c.patch));
+    case 'deletePart':
+      return void (await repo.deletePart(c.partId));
     case 'saveQuestion':
       return repo.saveQuizQuestion({ partId: c.partId, questionId: c.questionId, prompt: c.prompt, options: c.options });
     case 'deleteQuestion':
@@ -179,7 +158,7 @@ async function run(repo: Repo, files: FileStore, viewer: Viewer, c: CurriculumCo
   }
 }
 
-export async function editCurriculum(repo: Repo, files: FileStore, viewer: Viewer, c: CurriculumCommand): Promise<CommandResult> {
+export async function editCurriculum(repo: Repo, viewer: Viewer, c: CurriculumCommand): Promise<CommandResult> {
   if (!viewerCan(viewer, 'products.edit')) return { ok: false, error: 'forbidden' };
   const resolve = targetOf[c.op] as (repo: Repo, c: CurriculumCommand) => Promise<Product | null> | null;
   const pending = resolve(repo, c);
@@ -189,7 +168,7 @@ export async function editCurriculum(repo: Repo, files: FileStore, viewer: Viewe
   }
   if (!(await partPathOk(repo, viewer.space.id, program, c))) return { ok: false, error: 'not_found' };
   try {
-    return { ok: true, id: await run(repo, files, viewer, c, program) };
+    return { ok: true, id: await run(repo, viewer, c, program) };
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

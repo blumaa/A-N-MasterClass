@@ -228,18 +228,18 @@ Launch 6 item 1 as built:
 - Upload flow: Studio `FileUpload` field asks `requestUploadAction` for a ticket, then PUTs the bytes straight to Storage (XHR for progress, same request as supabase-js `uploadToSignedUrl`, no upsert), then fills hidden path + size inputs. The picker has no name, so bytes never go through the Server Action.
 - Ticket checks: products.edit, product in the viewer's space (Host), right kind, size 1 byte..250 MB, podcast = .mp3.
 - Object key `<spaceId>/<productId>/<uuid>-<safe name>` (`uploadPath`). `addFile`, `createEpisode`, `updateEpisode` refuse any path outside that folder (not_found). An unchanged legacy episode path still saves.
-- Delete file, delete episode or replace episode audio removes the old object after the DB write. Storage errors are thrown, not swallowed.
+- Delete file, delete episode or replace episode audio: the old object goes through `storage_trash` (Group 2 cleanup).
 - CSP: `media-src` now allows the Supabase origin (episode `<audio>` follows the 302). Upload XHR is covered by `connect-src`.
 - Fake repos (media, coaching) now replace rows on update instead of mutating them, like the Supabase repo. Other fake repos still mutate rows in place.
-- Not yet: cleanup of orphaned objects (uploaded, never saved); size is what the browser reports, not read back from Storage; uploads do nothing with `DATA_SOURCE=fake` (fake upload URL points nowhere). Supabase Free caps one upload at 50 MB; the bucket allows 250 MB on Pro.
+- Not yet: size is what the browser reports, not read back from Storage; uploads do nothing with `DATA_SOURCE=fake` (fake upload URL points nowhere). Supabase Free caps one upload at 50 MB; the bucket allows 250 MB on Pro.
 
 Launch 6 item 2 as built:
 - Studio download part: `FileUpload` (upload kind `program`, same checks: products.edit, product in Host space, right kind, 1 byte..250 MB). Form saves `filePath` + `fileSize`; blank path clears both.
 - `updatePart` refuses a path outside `<spaceId>/<programId>/` (not_found). An unchanged legacy path still saves.
 - Student step page: download part shows title + type + size, links to `/programs/[program]/[step]/files/[part]`. Route reuses `stepView` (grant + module lock + drip; RLS `can_read_step` on parts again), then 302 to a signed URL named after the part title. Path never rendered.
-- Delete part, step or module, or replace a part file: old objects removed after the DB write. Storage errors thrown.
+- Delete part, step or module, or replace a part file: old objects go through `storage_trash` (Group 2 cleanup).
 - `parts.file_size` now used (column existed, no migration). Fake parts replaced on update, not mutated.
-- Not yet: program delete has no op, so no cleanup there; orphaned uploads; size is what the browser reports.
+- Not yet: program delete has no op (the trigger cleanup covers it once it exists); size is what the browser reports.
 
 Launch 6 item 3 as built:
 - Migration `20261112090000_moderation.sql` + `supabase/tests/130-moderation.test.sql` (23 asserts), applied to ksb 2026-11-12.
@@ -272,9 +272,9 @@ Launch 6 item 4 as built:
 - Chat (channels + DMs): one file per line, image or common file type, up to 25 MB, not resized. A line may be a file alone. Images inline, other files as a link with size.
 - Upload ticket (`communityUploadAction`): channel needs rules.post, DM needs canReply; feed channels take photos, chat and DMs take attachments; type + size checked; path signed inside the folder. Command checks the folder again.
 - Signed routes: `community/[community]/posts/[post]/photos/[photo]` and `community/[community]/attachments/[message]` re-check read access (hidden post only for its moderators, DM only for participants) and the community slug. Non-images download under their name.
-- Objects removed after the DB write: delete post, delete chat line, remove photo, report Remove, Studio delete channel (`channel_files` RPC, staff only).
+- Delete post, delete chat line, remove photo, report Remove, Studio delete channel: objects go through `storage_trash` (Group 2 cleanup). `channel_files` RPC dropped.
 - G0 diff: Kajabi allows 40 MB photos and video in posts; here photos are resized and posts take no video.
-- Not yet: cleanup when a community, space or profile is deleted; orphaned uploads (picked, never sent); photo captions/reorder; thumbnails (full photo shown cropped in the grid); uploads do nothing with `DATA_SOURCE=fake`.
+- Not yet: photo captions/reorder; thumbnails (full photo shown cropped in the grid); uploads do nothing with `DATA_SOURCE=fake`.
 
 Launch 6 item 5 as built:
 - Migration `20261112110000_live_topics.sql` + `supabase/tests/150-live-topics.test.sql` (28 asserts), applied to ksb 2026-11-12.
@@ -397,7 +397,22 @@ UI pass 3 (walkthroughs: visitor, member, phone, Studio, platform) as built:
 - Still open: MDS Avatar initials keep punctuation ("Robin (student)" gives "R("; fix in MDS `initials()`: first letter or digit per word), MDS badge/meta text is mono with no brand font slot (MDS), MDS `Field` label has no id, so a non-native control (TipTap editor) cannot use `aria-labelledby` and carries its own `aria-label`.
 - Text parts: TipTap editor (`RichTextField`, heading, bold, italic, lists, quote, link), stored as a TipTap document in `parts.body`, read by `DocBody` (old plain-string rows still read).
 
-Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
+Group 2 cleanup as built:
+- Migration `20261115000000_storage_cleanup.sql` + `supabase/tests/290-storage-cleanup.test.sql` (29 asserts), applied to ksb 2026-11-12.
+- Queue `storage_trash (bucket, path)`, service role only. `storage_columns()` lists every path column and its bucket (9 columns, 3 buckets). One AFTER DELETE / UPDATE OF trigger per table queues the old path on delete or change. `parts.poster_path` left out (unused, no bucket).
+- Cascades reach the triggers, so deleting a community, space or profile (erase) queues every file below it. SQL test checks no rows of the community or space are left.
+- Orphan sweep `storage_queue_orphans(grace)`: objects older than 24 h that no row and no site page or page version JSON points at. Covers uploads never saved and site images dropped from every page.
+- `storage_trash_take` drops paths a row points at again (re-saved path) instead of handing them out. `storage_trash_done` forgets removed paths.
+- Drain (`src/lib/storage/trash.ts`): per bucket, Storage API `remove` in batches of 1000, then `done`. A failing bucket stays queued, other buckets still drain, the error is thrown. A missing object is no error (Storage `remove` skips it).
+- `drainSoon()` (`src/lib/storage/cleanup.ts`, Next `after()`) runs after every mutating action that can queue paths: studio curriculum, podcasts, downloads, community (posts, chat, reports, Studio), profile save, account delete, branding, coaching. A failure leaves the paths for the cron run.
+- Cron route `GET /api/cron/storage`: `Authorization: Bearer <CRON_SECRET>` (`src/config/cron.ts`, constant-time check, min 32 chars, unset = refused). Queues orphans, then drains.
+- Why one mechanism: the DB sees every cascade (space, community, channel, profile, module, step), so no caller has to list paths; a failed removal is not lost; `after()` keeps removal near-immediate. Commands no longer remove files. `erase_member_space` returns only `last_space`; `channel_files` dropped.
+- Vault: `payment_credentials_cleanup` trigger deletes the PayPal secret with its row (space delete cascades here).
+- Caveat: an upload left more than 24 h in an unsaved form is swept; the save then points at a missing object.
+- Outside setup (not done): set `CRON_SECRET` (`openssl rand -hex 32`) in production; schedule `GET /api/cron/storage` with the Bearer header, for example daily via Vercel Cron (free on Hobby, once a day) or Supabase `pg_cron` + `pg_net`. Without it, orphans are not swept and failed drains wait.
+- Fake mode: in-memory queue, no Storage, nothing swept.
+
+Waiting on outside setup: Storage cleanup cron (`CRON_SECRET` + schedule, Group 2), transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 
 **Later** — drip release emails (`pg_cron`), embedded live room, Vercel Domains API, Capacitor, native marketing-tool integration.
 

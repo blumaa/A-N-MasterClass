@@ -73,8 +73,4 @@ describe.skipIf(!contractEnabled)('community files repo (Supabase contract)', ()
     await expect(line('x', `${chatFolder}3-a.pdf`, ' ')).rejects.toThrow(ATTACHMENT_INCOMPLETE);
     expect((await chat.createMessage({ channelId: chatChannel, threadId: null, authorId: user, body: 'hi', createdAt: NOW })).attachment).toBeNull();
   });
-
-  it('channelFiles is staff only (empty without a staff session)', async () => {
-    expect(await files.channelFiles(chatChannel)).toEqual([]);
-  });
 });

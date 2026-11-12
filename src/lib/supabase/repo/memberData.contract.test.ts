@@ -29,7 +29,7 @@ describe.skipIf(!contractEnabled)('member data repo (Supabase contract)', () => 
     const data = await repo.memberSpaceData(fx.spaceId, student);
     expect(data.account).toEqual({ email: fx.email('student') });
     expect(data.access).toHaveLength(1);
-    expect(await repo.eraseMemberSpace(fx.spaceId, student)).toEqual({ files: { site: [], community: [] }, lastSpace: true });
+    expect(await repo.eraseMemberSpace(fx.spaceId, student)).toEqual({ lastSpace: true });
     expect(await core.spaceProfiles(fx.spaceId)).toEqual([]);
     await repo.deleteAccount(student);
     expect(await core.profile(student)).toBeNull();

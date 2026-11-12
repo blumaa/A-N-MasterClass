@@ -1,4 +1,4 @@
-// Community files part of the fake repo: post photo rows, chat attachment checks, channel files.
+// Community files part of the fake repo: post photo rows, chat attachment checks.
 // Same rules as supabase/migrations/20261112100000_community_files.sql.
 import { channelFolder, POST_PHOTOS_MAX, threadFolder } from '@/lib/storage/communityFiles';
 import { inFolder } from '@/lib/storage/uploadPath';
@@ -7,7 +7,7 @@ import type { Repo } from '../repo';
 import type { Attachment, PostPhoto } from '../types';
 import type { Db } from './db';
 
-type FilesRepo = Pick<Repo, 'postPhotos' | 'addPostPhotos' | 'deletePostPhoto' | 'channelFiles'>;
+type FilesRepo = Pick<Repo, 'postPhotos' | 'addPostPhotos' | 'deletePostPhoto'>;
 
 function must<T>(row: T | undefined, what: string): T {
   if (!row) throw new Error(`${what} not found`);
@@ -62,13 +62,6 @@ export function createFakeCommunityFiles(db: Db, id: (prefix: string) => string)
     },
     async deletePostPhoto(photoId) {
       db.postPhotos = db.postPhotos.filter((p) => p.id !== photoId);
-    },
-    async channelFiles(channelId) {
-      const posts = new Set(db.posts.filter((p) => p.channelId === channelId).map((p) => p.id));
-      return [
-        ...db.postPhotos.filter((p) => posts.has(p.postId)).map((p) => p.path),
-        ...db.messages.flatMap((m) => (m.channelId === channelId && m.attachment ? [m.attachment.path] : [])),
-      ];
     },
   };
 }

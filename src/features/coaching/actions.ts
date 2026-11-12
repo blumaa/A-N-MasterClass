@@ -10,6 +10,7 @@ import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
 import { googleClient } from '@/lib/google/server';
+import { drainSoon } from '@/lib/storage/cleanup';
 import { headersOrigin, platformOrigin } from '@/lib/tenancy/origin';
 import { editBooking } from './api/booking';
 import { calendarPortFor } from './api/googleCalendar';
@@ -37,6 +38,7 @@ export async function editCoachingAction(_prev: CoachingState, form: FormData): 
   const { repo, port } = calendar();
   const result = await editCoaching(repo, viewer, port, parsed.command, new Date());
   if (!result.ok) return { message: failureMessage(result, NO_EDIT) };
+  drainSoon();
   refresh();
   return null;
 }

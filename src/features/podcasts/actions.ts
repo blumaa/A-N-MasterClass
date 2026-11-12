@@ -5,7 +5,7 @@ import { refresh } from 'next/cache';
 import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
-import { getFileStore } from '@/lib/storage/getFileStore';
+import { drainSoon } from '@/lib/storage/cleanup';
 import { formReader } from '@/lib/forms/formReader';
 import { resetFeed } from './api/listen';
 import { editPodcasts } from './api/studio';
@@ -21,8 +21,9 @@ export async function editPodcastsAction(_prev: PodcastState, form: FormData): P
   if (!parsed.ok) return { message: parsed.message };
   const viewer = await actionViewer();
   if (!viewer) return { message: NO_EDIT };
-  const result = await editPodcasts(getRepo(), getFileStore(), viewer, parsed.command, new Date());
+  const result = await editPodcasts(getRepo(), viewer, parsed.command, new Date());
   if (!result.ok) return { message: failureMessage(result, NO_EDIT) };
+  drainSoon();
   refresh();
   return null;
 }

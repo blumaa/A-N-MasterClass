@@ -9,7 +9,7 @@ import { stepOpen } from '@/features/programs/api/step';
 import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
-import { getFileStore } from '@/lib/storage/getFileStore';
+import { drainSoon } from '@/lib/storage/cleanup';
 import { pushingRepo } from './pushingRepo';
 
 export type CommunityState = { message: string } | null;
@@ -25,8 +25,9 @@ export async function communityAction(_prev: CommunityState, form: FormData): Pr
   // Notifications this write creates also go out as web push, after the response.
   const repo = pushingRepo(getRepo(), viewer.space);
   const now = new Date();
-  const result = await communityCommand(repo, getFileStore('community'), viewer, parsed.command, now, (stepId) => stepOpen(repo, viewer, stepId, now));
+  const result = await communityCommand(repo, viewer, parsed.command, now, (stepId) => stepOpen(repo, viewer, stepId, now));
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };
+  drainSoon();
   // Deleting the post you are reading: go back to its community.
   const back = form.get('redirectTo');
   if (typeof back === 'string' && back.startsWith('/community/')) redirect(back);

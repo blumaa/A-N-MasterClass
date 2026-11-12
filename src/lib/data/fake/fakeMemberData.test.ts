@@ -38,8 +38,7 @@ describe('eraseMemberSpace', () => {
     await expect(repo.eraseMemberSpace(alexander, alexanderOwner)).rejects.toThrow('owner cannot leave the space');
   });
 
-  it('removes the member from one space, keeps orders without the profile, returns file paths', async () => {
-    db.spaceProfiles.find((p) => p.spaceId === alexander && p.profileId === student)!.avatarPath = 'a.png';
+  it('removes the member from one space, keeps orders without the profile', async () => {
     await addPost();
     db.orders.push({
       id: 'order-x', spaceId: alexander, offerId: 'offer-x', profileId: student, email: 'student@example.test',
@@ -48,7 +47,7 @@ describe('eraseMemberSpace', () => {
       waiverAcceptedAt: new Date(), marketingConsent: false, createdAt: new Date(), paidAt: new Date(),
     });
     const erased = await repo.eraseMemberSpace(alexander, student);
-    expect(erased).toEqual({ files: { site: ['a.png'], community: [expect.stringMatching(/^photo\//)] }, lastSpace: false });
+    expect(erased).toEqual({ lastSpace: false });
     expect(db.spaceProfiles.some((p) => p.spaceId === alexander && p.profileId === student)).toBe(false);
     expect(db.posts.some((p) => p.authorId === student)).toBe(false);
     expect(db.grants.some((g) => g.productId === program && g.profileId === student)).toBe(false);

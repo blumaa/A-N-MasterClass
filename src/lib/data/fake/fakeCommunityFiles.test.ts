@@ -49,13 +49,11 @@ describe('post photos', () => {
     await expect(repo.addPostPhotos(other.id, [`${folder}0-a.jpg`])).rejects.toThrow(FILE_IN_USE);
   });
 
-  it('go with the post and the channel; channelFiles lists them', async () => {
+  it('go with the post', async () => {
     const post = await newPost();
     await repo.addPostPhotos(post.id, [`${folder}1-a.jpg`]);
-    expect(await repo.channelFiles(feedId)).toEqual([`${folder}1-a.jpg`]);
     await repo.deletePost(post.id);
     expect(await repo.postPhotos([post.id])).toEqual([]);
-    expect(await repo.channelFiles(feedId)).toEqual([]);
   });
 });
 
@@ -72,7 +70,6 @@ describe('chat attachments', () => {
     await expect(chatLine('x', file(`${folder}2-a.pdf`))).rejects.toThrow(FILE_OUTSIDE_FOLDER);
     await expect(chatLine('x', { ...file(`${chatFolder}3-a.pdf`), name: ' ' })).rejects.toThrow(ATTACHMENT_INCOMPLETE);
     await expect(chatLine('x', file(`${chatFolder}1-a.pdf`))).rejects.toThrow(FILE_IN_USE);
-    expect(await repo.channelFiles(chatId)).toEqual([`${chatFolder}1-a.pdf`]);
 
     const thread = await repo.createDmThread(communityId, SEED_IDS.student, SEED_IDS.alexanderOwner);
     const dmFolder = threadFolder(SEED_IDS.alexander, communityId, thread.id);

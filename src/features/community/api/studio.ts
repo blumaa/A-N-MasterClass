@@ -7,7 +7,6 @@ import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { AccessGroupPatch, ChannelPatch, CommunitySettingsPatch, Direction, ProductPatch, Repo } from '@/lib/data/repo';
 import type { AccessGroup, Channel, ChannelKind, ChannelPrivacy, CommunitySettings, Product, Role } from '@/lib/data/types';
-import { removeFiles, type FileStore } from '@/lib/storage/fileStore';
 import { reachesAsStaff } from './access';
 import { spaceNames } from '@/lib/data/names';
 import { directory, type DirectoryEntry } from './feed';
@@ -206,9 +205,9 @@ async function setPostApproval(repo: Repo, c: Extract<StudioCommunityCommand, { 
   await repo.setPostApproval(c.communityId, c.profileId, c.on);
 }
 
-type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date };
+type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date };
 
-async function run({ repo, files, viewer, me, now }: Ctx, c: StudioCommunityCommand): Promise<string | undefined> {
+async function run({ repo, viewer, me, now }: Ctx, c: StudioCommunityCommand): Promise<string | undefined> {
   switch (c.op) {
     case 'createCommunity': {
       const community = await repo.createProduct({
@@ -250,10 +249,8 @@ async function run({ repo, files, viewer, me, now }: Ctx, c: StudioCommunityComm
       if (channel && (await repo.channels(channel.communityId)).length <= 1) {
         throw new ConstraintError('a community needs at least one channel');
       }
-      // Rows cascade, objects do not: list them first (staff only), remove after the delete.
-      const paths = await repo.channelFiles(c.channelId);
-      await repo.deleteChannel(c.channelId);
-      return void (await removeFiles(files, paths));
+      // Rows cascade; DB triggers queue their files (storage_trash).
+      return void (await repo.deleteChannel(c.channelId));
     }
     case 'moveChannel':
       return void (await repo.move('channels', c.channelId, c.direction));
@@ -282,7 +279,6 @@ async function run({ repo, files, viewer, me, now }: Ctx, c: StudioCommunityComm
 
 export async function editCommunity(
   repo: Repo,
-  files: FileStore,
   viewer: Viewer,
   c: StudioCommunityCommand,
   now: Date,
@@ -296,7 +292,7 @@ export async function editCommunity(
     if (!communityId || !(await editable(repo, viewer, communityId))) return NOT_FOUND;
   }
   try {
-    return { ok: true, id: await run({ repo, files, viewer, me: viewer.profile.id, now }, c) };
+    return { ok: true, id: await run({ repo, viewer, me: viewer.profile.id, now }, c) };
   } catch (e) {
     if (e instanceof ConstraintError) return { ok: false, error: 'invalid', message: e.message };
     throw e;

@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { actionViewer } from '@/lib/auth/actionViewer';
 import { failureMessage } from '@/lib/data/commandResult';
 import { getRepo } from '@/lib/data/getRepo';
-import { getFileStore } from '@/lib/storage/getFileStore';
+import { drainSoon } from '@/lib/storage/cleanup';
 import { markAllRead } from './api/notifications';
 import { editCommunity } from './api/studio';
 import { studioCommunityCommandFromForm } from './commandFromForm';
@@ -23,8 +23,9 @@ export async function editCommunityAction(_prev: EditState, form: FormData): Pro
   if (!viewer) return { message: FORBIDDEN };
 
   const { command } = parsed;
-  const result = await editCommunity(getRepo(), getFileStore('community'), viewer, command, new Date());
+  const result = await editCommunity(getRepo(), viewer, command, new Date());
   if (!result.ok) return { message: failureMessage(result, FORBIDDEN) };
+  drainSoon();
   if (command.op === 'createCommunity' && result.id) redirect(studioCommunityHref(result.id));
   refresh();
   return null;

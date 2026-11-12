@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
-import { createFakeFileStore } from '@/lib/storage/fileStore';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import type { CommunitySettingsPatch } from '@/lib/data/repo';
@@ -17,7 +16,7 @@ beforeEach(() => {
 const as = async (profileId: string | null, space = 'alexander'): Promise<Viewer> =>
   (await resolveViewer(repo, space, profileId))!;
 const run = async (who: string | null, cmd: StudioCommunityCommand, space = 'alexander') =>
-  editCommunity(repo, createFakeFileStore(), await as(who, space), cmd, NOW);
+  editCommunity(repo, await as(who, space), cmd, NOW);
 const createdId = (r: Awaited<ReturnType<typeof run>>): string => {
   if (!r.ok || !r.id) throw new Error(`expected created id, got ${JSON.stringify(r)}`);
   return r.id;
