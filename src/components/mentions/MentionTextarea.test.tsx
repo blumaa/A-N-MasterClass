@@ -32,6 +32,13 @@ function typeInto(el: HTMLTextAreaElement, next: string): void {
 }
 
 describe('MentionTextarea', () => {
+  it('tells the owner when the field loses focus', () => {
+    const onBlur = vi.fn();
+    render(<MentionTextarea aria-label="composer" value="" onChange={() => {}} members={MEMBERS} onBlur={onBlur} />);
+    fireEvent.blur(screen.getByRole('combobox', { name: 'composer' }));
+    expect(onBlur).toHaveBeenCalledOnce();
+  });
+
   it('renders a closed combobox on a textarea', () => {
     render(<Harness />);
     const host = screen.getByRole('combobox', { name: 'composer' });

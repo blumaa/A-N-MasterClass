@@ -118,6 +118,23 @@ describe('check:realtime — socket invalidates, never sets', () => {
     });
     expect(run('check-realtime.mjs', root).code).toBe(0);
   });
+
+  it('fails when a client sends the stale event (data hints are database-only)', () => {
+    const root = fixture({ 'typing.ts': `channel.send({ type: 'broadcast', event: LIVE_EVENT, payload: {} });\n` });
+    const { code, output } = run('check-realtime.mjs', root);
+    expect(code).toBe(1);
+    expect(output).toContain('stale');
+  });
+
+  it('fails on httpSend of the stale event too', () => {
+    const root = fixture({ 'typing.ts': `await channel.httpSend('stale', {});\n` });
+    expect(run('check-realtime.mjs', root).code).toBe(1);
+  });
+
+  it('passes a client send of a typing event', () => {
+    const root = fixture({ 'typing.ts': `channel.send({ type: 'broadcast', event: TYPING_EVENT, payload: { profileId } });\n` });
+    expect(run('check-realtime.mjs', root).code).toBe(0);
+  });
 });
 
 describe('check:signing — TTL comes from the constant', () => {

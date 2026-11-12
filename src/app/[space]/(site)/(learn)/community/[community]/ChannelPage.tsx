@@ -9,7 +9,8 @@ import { ChannelFeed } from '@/features/community/components/ChannelFeed';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
-import { liveTopic } from '@/lib/realtime/topics';
+import { liveTopic, typingTopic } from '@/lib/realtime/topics';
+import { typingConfig } from '@/components/Typing/typingConfig';
 import { chatAction } from '@/features/community/chatActions';
 import { communityAction } from '@/app/[space]/communityActions';
 
@@ -33,7 +34,12 @@ export async function ChannelPage({ space, community, channelId }: { space: stri
     <CommunityFrame community={page.community} channels={page.channels} activeId={page.channel.id} extras={nav}>
       <LiveRefresh topics={signedIn ? [liveTopic.channel(page.channel.id)] : []} />
       {page.channel.kind === 'chat' ? (
-        <ChannelChat page={page} action={chatAction} signedIn={signedIn} />
+        <ChannelChat
+          page={page}
+          action={chatAction}
+          signedIn={signedIn}
+          typing={typingConfig(typingTopic.channel(page.channel.id), viewer.profile?.id ?? null, page.members)}
+        />
       ) : (
         <ChannelFeed page={page} action={communityAction} signedIn={signedIn} />
       )}

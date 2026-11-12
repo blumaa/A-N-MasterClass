@@ -2587,6 +2587,7 @@ export type Database = {
         Returns: boolean
       }
       can_send_dm: { Args: { target_thread: string }; Returns: boolean }
+      can_send_live: { Args: { topic: string }; Returns: boolean }
       can_start_dm: {
         Args: { other: string; target_community: string }
         Returns: boolean

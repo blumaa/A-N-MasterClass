@@ -10,7 +10,8 @@ import { DmThread } from '@/features/community/components/DmThread';
 import { LiveRefresh } from '@/components/LiveRefresh/LiveRefresh';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
-import { liveTopic } from '@/lib/realtime/topics';
+import { liveTopic, typingTopic } from '@/lib/realtime/topics';
+import { typingConfig } from '@/components/Typing/typingConfig';
 
 export const metadata: Metadata = { title: 'Messages' };
 
@@ -29,7 +30,12 @@ export default async function DmThreadRoute({ params }: PageProps<'/[space]/comm
   return (
     <CommunityFrame community={shell.community} channels={shell.channels} activeId="messages" extras={nav}>
       <LiveRefresh topics={[liveTopic.dm(page.threadId)]} />
-      <DmThread communityId={shell.community.id} page={page} action={chatAction} />
+      <DmThread
+        communityId={shell.community.id}
+        page={page}
+        action={chatAction}
+        typing={typingConfig(typingTopic.dm(page.threadId), viewer.profile?.id ?? null, [page.other])}
+      />
     </CommunityFrame>
   );
 }

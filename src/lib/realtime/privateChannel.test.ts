@@ -83,6 +83,17 @@ describe('privateChannel', () => {
     f.status('SUBSCRIBED');
     expect(reportError).toHaveBeenCalledTimes(2);
   });
+
+  it('tells the caller once the join succeeds', async () => {
+    const f = fakeHost();
+    const onJoin = vi.fn();
+    privateChannel(f.host, 'typing-dm:t1', () => {}, onJoin);
+    await f.authed();
+    f.status('CHANNEL_ERROR');
+    expect(onJoin).not.toHaveBeenCalled();
+    f.status('SUBSCRIBED');
+    expect(onJoin).toHaveBeenCalledOnce();
+  });
 });
 
 describe('listenStale', () => {

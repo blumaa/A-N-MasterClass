@@ -35,6 +35,7 @@ export interface MentionTextareaProps {
   disabled?: boolean;
   'aria-label'?: string;
   fieldRef?: RefObject<HTMLTextAreaElement | null>;
+  onBlur?: () => void;
 }
 
 const MENU_MAX = 240;
@@ -51,6 +52,7 @@ export function MentionTextarea({
   disabled,
   'aria-label': ariaLabel,
   fieldRef,
+  onBlur,
 }: MentionTextareaProps): ReactElement {
   const field = useFieldContext();
   const listboxId = useId();
@@ -164,7 +166,10 @@ export function MentionTextarea({
         placeholder={placeholder}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        onBlur={close}
+        onBlur={() => {
+          close();
+          onBlur?.();
+        }}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={open}

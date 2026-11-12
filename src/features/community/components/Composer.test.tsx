@@ -60,4 +60,30 @@ describe('Composer', () => {
     act(() => report({ ready: 2, busy: false }));
     expect(screen.getByRole('button', { name: 'Post' })).toBeDisabled();
   });
+
+  it('reports typing on each edit and stops on blur and after a send', async () => {
+    const onType = vi.fn();
+    const onStop = vi.fn();
+    const action = vi.fn(async () => null);
+    render(<Composer action={action} fields={{}} members={members} submit="Send" label="Message" onType={onType} onStop={onStop} />);
+    const box = screen.getByLabelText('Message');
+    fireEvent.change(box, { target: { value: 'h' } });
+    fireEvent.change(box, { target: { value: 'hi' } });
+    expect(onType).toHaveBeenCalledTimes(2);
+    fireEvent.blur(box);
+    expect(onStop).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(onStop).toHaveBeenCalledTimes(2));
+  });
+
+  it('clearing the box stops typing instead of reporting it', () => {
+    const onType = vi.fn();
+    const onStop = vi.fn();
+    render(<Composer action={vi.fn()} fields={{}} members={members} submit="Send" label="Message" onType={onType} onStop={onStop} />);
+    const box = screen.getByLabelText('Message');
+    fireEvent.change(box, { target: { value: 'h' } });
+    fireEvent.change(box, { target: { value: '' } });
+    expect(onType).toHaveBeenCalledOnce();
+    expect(onStop).toHaveBeenCalledOnce();
+  });
 });

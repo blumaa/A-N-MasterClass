@@ -9,9 +9,15 @@ export type RealtimeHost = Pick<SupabaseClient, 'channel' | 'removeChannel' | 'r
 
 /**
  * Opens `topic` as a private channel. `bind` attaches listeners (broadcast now; presence later).
- * Auth is set before subscribe (Supabase docs). Returns close; safe before the join finishes.
+ * Auth is set before subscribe (Supabase docs). `onJoin` runs once joined (send only after it).
+ * Returns close; safe before the join finishes.
  */
-export function privateChannel(host: RealtimeHost, topic: string, bind: (channel: RealtimeChannel) => void): () => void {
+export function privateChannel(
+  host: RealtimeHost,
+  topic: string,
+  bind: (channel: RealtimeChannel) => void,
+  onJoin?: () => void,
+): () => void {
   const channel = host.channel(topic, { config: { private: true } });
   bind(channel);
   let closed = false;
@@ -20,6 +26,7 @@ export function privateChannel(host: RealtimeHost, topic: string, bind: (channel
     .then(() => {
       if (closed) return;
       channel.subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') onJoin?.();
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reportError(err ?? new Error(`realtime ${status} on ${topic}`));
       });
     })

@@ -21,15 +21,19 @@ export type ComposerProps = {
   placeholder?: string;
   rows?: number;
   files?: ComposerFiles;
+  /** Typing indicator hooks (chat). Edit = typing; empty box, blur or send = stop. */
+  onType?: () => void;
+  onStop?: () => void;
 };
 
 const NO_FILES: FilesState = { ready: 0, busy: false };
 
-export function Composer({ action, fields, members, submit, label, placeholder, rows = 3, files }: ComposerProps) {
+export function Composer({ action, fields, members, submit, label, placeholder, rows = 3, files, onType, onStop }: ComposerProps) {
   const [value, setValue] = useState('');
   const [round, setRound] = useState(0);
   const [attached, setAttached] = useState(NO_FILES);
   const [state, formAction, pending] = useActionState(async (prev: ActionState, form: FormData) => {
+    onStop?.();
     const result = await action(prev, form);
     if (result === null) {
       setValue('');
@@ -39,13 +43,18 @@ export function Composer({ action, fields, members, submit, label, placeholder, 
   }, null);
   const fileOnly = files?.kind === 'attachment' && attached.ready > 0;
   const empty = value.trim() === '' && !fileOnly;
+  const edit = (next: string) => {
+    setValue(next);
+    if (next.trim() === '') onStop?.();
+    else onType?.();
+  };
   return (
     <form action={formAction} className={styles.stacked}>
       {Object.entries(fields).map(([name, v]) => (
         <input key={name} type="hidden" name={name} value={v} />
       ))}
       <input type="hidden" name="body" value={value} />
-      <MentionTextarea value={value} onChange={setValue} members={members} rows={rows} placeholder={placeholder} aria-label={label} />
+      <MentionTextarea value={value} onChange={edit} onBlur={onStop} members={members} rows={rows} placeholder={placeholder} aria-label={label} />
       {files ? <CommunityFiles key={round} {...files} onChange={setAttached} /> : null}
       <div>
         <Button type="submit" size="sm" loading={pending} disabled={empty || attached.busy}>

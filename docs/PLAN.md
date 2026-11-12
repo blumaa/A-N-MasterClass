@@ -174,8 +174,7 @@ Launch 2 as built:
 - Grant uniqueness widened to one active grant per (product, profile, group): a member may hold several groups of one community. `fulfil_order` now carries `offer_products.access_group_id`; drip counts from the earliest grant.
 - Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
 - DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
-- Live updates: polling at first; Supabase Realtime since Launch 6 item 5 (see there).
-- Not yet: typing indicators.
+- Live updates: polling at first; Supabase Realtime since Launch 6 item 5 (see there). Typing indicators: Launch 6 item 7.
 
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 
@@ -275,7 +274,7 @@ Launch 6 item 5 as built:
 - For item 7: `privateChannel(host, topic, bind)` takes any listeners (broadcast, presence). Typing needs an insert policy on `realtime.messages`.
 - Caveats: Realtime caches the join check per connection, so lost access keeps hints flowing until the token refreshes or the page reloads (hints are empty). `realtime.messages` is partitioned by day and the Realtime service makes the partitions while clients are connected; with no partition the send only warns (nobody is listening then). The SQL suite skips the round trip then.
 - Free plan limits: 200 concurrent connections, 100 messages/s, 100 channel joins/s, 2M messages/month. Pro: 500 connections, 5M messages, then $2.50 per million.
-- Not yet: community nav badges (unread DMs) refresh only on pages that listen; block/unblock and channel or membership changes are not live; typing = item 7.
+- Not yet: community nav badges (unread DMs) refresh only on pages that listen; block/unblock and channel or membership changes are not live.
 
 Launch 6 item 6 as built:
 - Migration `20261112120000_push_subscriptions.sql` + `supabase/tests/160-push-subscriptions.test.sql` (14 asserts), applied to ksb 2026-11-12.
@@ -287,6 +286,17 @@ Launch 6 item 6 as built:
 - UI: switch on /notifications per device (MDS `Switch`). iPhone/iPad Safari outside the home-screen app gets install steps instead (push needs iOS 16.4+ home-screen app); unsupported and blocked browsers get a note. `PushHeal` in the space layout re-subscribes when the browser or server lost the subscription.
 - Shared device: space sign-out (`SignOutForm`) first deletes this browser's row and unsubscribes it (`leavePush`), then ends the session; a push failure is reported and sign-out goes on. The local hint `push-on:v2` holds the profile id that turned push on, so `PushHeal` re-subscribes only that account; for anyone else it unsubscribes a subscription the server does not keep for them (`healPlan` `drop`). Signed-out visitors: `PushHeal` unsubscribes whatever is left (`dropPush`). Leak window when sign-out cleanup failed or the session switched without sign-out (claim link, checkout, dev login): until the next space page load. The old row goes on the next 410. Platform host serves no worker, so its sign-out is unchanged.
 - Not yet: per-type push settings; KSG's iOS tap parking; notification icon (spaces have no icons yet). A new action that writes notifications must use `pushingRepo` too (today all go through `communityActions.ts`).
+
+Launch 6 item 7 as built:
+- Migration `20261112130000_typing_topics.sql` + `supabase/tests/170-typing.test.sql` (20 asserts), applied to ksb 2026-11-12.
+- Broadcast, not presence: presence would also show who is online. Own topics `typing-channel:<id>` and `typing-dm:<thread>`, so clients never send on the data topics (those stay database-only `stale` hints).
+- Receive: `can_join_live` takes the typing topics = `can_read_channel` / `is_dm_participant`. Send: insert policy `live_typing_send` on `realtime.messages` (broadcast only), `can_send_live` = `can_post_in` / `can_send_dm`. Read-only channel readers see staff typing but cannot send.
+- Events `typing` and `typing_stop`, payload `{ profileId }` only. Names come from data the page already has (channel members, DM other side); unknown ids are dropped, self never shown.
+- Client: `useTyping` (`src/components/Typing`) over `joinTyping` (`src/lib/realtime/typingChannel.ts`). Sends only after join, at most once per 2.5 s while typing; a typer expires 5 s after the last event. Stop on send, blur, emptied box and unmount. Line under the composer (`TypingIndicator`, `aria-live="polite"`): "X is typing…", "X and Y are typing…", "Several people are typing…".
+- `DATA_SOURCE=fake` or signed out: no typing config, nothing joins.
+- `check:realtime` now also fails when a client sends the `stale` event.
+- Caveat: payloads are not verified. A member who may post could send another member's id. Low harm (a wrong "typing" line); fix would need a server relay.
+- G0: help.kajabi.com documents no typing indicator in Community chat or DMs (checked 2026-11-12). Kept as planned (PLAN item 7): extra over Kajabi.
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 
