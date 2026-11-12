@@ -2,8 +2,8 @@
 import { notFound } from 'next/navigation';
 import { NavLink } from '@/components/ui/links';
 import { SideNav } from '@/components/ui/mds';
+import { SectionLayout } from '@/components/SectionLayout/SectionLayout';
 import { currentViewer } from '@/lib/auth/currentViewer';
-import styles from './layout.module.css';
 import { studioNav } from './nav';
 
 export default async function StudioLayout({ children, params }: LayoutProps<'/[space]/studio'>) {
@@ -11,13 +11,17 @@ export default async function StudioLayout({ children, params }: LayoutProps<'/[
   const nav = studioNav(viewer?.role ?? null);
   if (nav.length === 0) notFound();
   return (
-    <div className={styles.layout}>
-      <SideNav label="Studio">
-        {nav.map((item) => (
-          <NavLink key={item.href} href={item.href} label={item.label} />
-        ))}
-      </SideNav>
-      <div className={styles.body}>{children}</div>
-    </div>
+    <SectionLayout
+      label="Studio"
+      nav={
+        <SideNav label="Studio">
+          {nav.map((item) => (
+            <NavLink key={item.href} href={item.href} label={item.label} />
+          ))}
+        </SideNav>
+      }
+    >
+      {children}
+    </SectionLayout>
   );
 }

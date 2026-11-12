@@ -20,18 +20,6 @@
   border-inline-start: 2px solid var(--mds-border-subtle);
 }
 
-.layout {
-  display: grid;
-  gap: var(--mds-space-6, 1.5rem);
-}
-
-@media (min-width: 900px) {
-  .layout {
-    grid-template-columns: 14rem 1fr;
-    align-items: start;
-  }
-}
-
 .rows {
   display: grid;
   gap: var(--mds-space-3);

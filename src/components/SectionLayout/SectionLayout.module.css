@@ -1,0 +1,33 @@
+.layout {
+  display: grid;
+  gap: var(--mds-space-6, 1.5rem);
+}
+
+.side {
+  display: none;
+}
+
+.body {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: 14rem 1fr;
+    align-items: start;
+  }
+
+  .wide {
+    grid-template-columns: minmax(16rem, 20rem) 1fr;
+  }
+
+  .side {
+    display: block;
+    position: sticky;
+    top: var(--mds-space-4, 1rem);
+  }
+
+  .narrow {
+    display: none;
+  }
+}

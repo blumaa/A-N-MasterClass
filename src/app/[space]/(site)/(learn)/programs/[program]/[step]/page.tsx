@@ -1,6 +1,7 @@
 // Step page (G6/G7): outline beside, parts, Complete & Continue, lesson comments, prev/next.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { SectionLayout } from '@/components/SectionLayout/SectionLayout';
 import { ButtonLink } from '@/components/ui/links';
 import { EmptyState, Heading, Stack, Text } from '@/components/ui/mds';
 import { communityAction } from '@/app/[space]/communityActions';
@@ -43,11 +44,12 @@ export default async function StepPage({ params }: Props) {
   const slug = outline.program.slug;
   const blocked = accessLabel(access, now);
   return (
-    <div className={styles.layout}>
-      <aside className={styles.side}>
-        <ProgramOutline outline={outline} currentStepId={step.id} now={now} />
-      </aside>
-      <article className={styles.body}>
+    <SectionLayout
+      label={outline.program.title}
+      wide
+      nav={<ProgramOutline outline={outline} currentStepId={step.id} now={now} />}
+    >
+      <article>
         <Stack gap="loose">
           <Heading level={1} variant="title">
             {step.title}
@@ -87,6 +89,6 @@ export default async function StepPage({ params }: Props) {
           </nav>
         </Stack>
       </article>
-    </div>
+    </SectionLayout>
   );
 }

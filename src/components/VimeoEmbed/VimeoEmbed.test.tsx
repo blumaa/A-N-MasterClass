@@ -11,7 +11,8 @@ describe('VimeoEmbed', () => {
     const frame = screen.getByTitle('Kihon no kata');
     expect(frame.tagName).toBe('IFRAME');
     expect(frame).toHaveAttribute('src', SRC);
-    expect(frame).toHaveAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+    expect(frame).toHaveAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
+    expect(frame).not.toHaveAttribute('allowfullscreen');
   });
 
   it('asks the player to start when the reader has said so', () => {

@@ -1,9 +1,10 @@
-// Community shell: channel nav (plus Messages / Members extras) beside the content.
+// Community shell: channel nav (plus Messages / Members extras) beside the content; on phones the
+// nav sits behind a button named after the community.
 import type { ReactNode } from 'react';
+import { SectionLayout } from '@/components/SectionLayout/SectionLayout';
 import type { Channel, Product } from '@/lib/data/types';
 import type { CommunityNav } from '../api/nav';
 import { ChannelNav } from './ChannelNav';
-import styles from './community.module.css';
 
 type Props = {
   community: Product;
@@ -16,11 +17,11 @@ type Props = {
 
 export function CommunityFrame({ community, channels, activeId, extras, children }: Props) {
   return (
-    <div className={styles.layout}>
-      <aside>
-        <ChannelNav community={community.slug} title={community.title} channels={channels} activeId={activeId} extras={extras} />
-      </aside>
-      <div>{children}</div>
-    </div>
+    <SectionLayout
+      label={community.title}
+      nav={<ChannelNav community={community.slug} title={community.title} channels={channels} activeId={activeId} extras={extras} />}
+    >
+      {children}
+    </SectionLayout>
   );
 }

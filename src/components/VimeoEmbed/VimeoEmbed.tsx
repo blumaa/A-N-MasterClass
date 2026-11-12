@@ -29,8 +29,8 @@ export function VimeoEmbed({ src, title, aspect, autoPlay = false, className }: 
         className={styles.frame}
         src={url.href}
         title={title}
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowFullScreen
+        // encrypted-media: Vimeo DRM playback; fullscreen here replaces the legacy allowFullScreen.
+        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
         onLoad={() => setLoaded(true)}
       />
     </div>
