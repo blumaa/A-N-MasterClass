@@ -207,7 +207,7 @@ Launch 5 as built:
 - Download = list of files; holders read the list. Every file and audio request goes through a server route that returns a 302 to a short signed URL (`signedRedirect`, `cache-control: no-store`).
 - Files in private bucket `resources` (no object policies = service role only). Bucket limit 250 MB; Supabase Free caps uploads at 50 MB, Pro allows up to 500 GB (https://supabase.com/docs/guides/storage/uploads/file-limits).
 - Client: Podcasts + Downloads tiles in the library, podcast page (episodes, feed URL, reset), downloads page. Studio: Podcasts + Downloads nav (products.edit).
-- Not yet: "Download all" zip, download parts in program steps through the same signed route.
+- Not yet: "Download all" zip.
 
 **Launch 5** — podcast + download products.
 **Launch 6 — finish the deferred gaps** (no outside service needed; decided 2026-11-12). External setup (email provider, PayPal app, platform domain, paid plans) waits until this is done. Order:
@@ -234,6 +234,14 @@ Launch 6 item 1 as built:
 - CSP: `media-src` now allows the Supabase origin (episode `<audio>` follows the 302). Upload XHR is covered by `connect-src`.
 - Fake repos (media, coaching) now replace rows on update instead of mutating them, like the Supabase repo. Other fake repos still mutate rows in place.
 - Not yet: cleanup of orphaned objects (uploaded, never saved); size is what the browser reports, not read back from Storage; uploads do nothing with `DATA_SOURCE=fake` (fake upload URL points nowhere). Supabase Free caps one upload at 50 MB; the bucket allows 250 MB on Pro.
+
+Launch 6 item 2 as built:
+- Studio download part: `FileUpload` (upload kind `program`, same checks: products.edit, product in Host space, right kind, 1 byte..250 MB). Form saves `filePath` + `fileSize`; blank path clears both.
+- `updatePart` refuses a path outside `<spaceId>/<programId>/` (not_found). An unchanged legacy path still saves.
+- Student step page: download part shows title + type + size, links to `/programs/[program]/[step]/files/[part]`. Route reuses `stepView` (grant + module lock + drip; RLS `can_read_step` on parts again), then 302 to a signed URL named after the part title. Path never rendered.
+- Delete part, step or module, or replace a part file: old objects removed after the DB write. Storage errors thrown.
+- `parts.file_size` now used (column existed, no migration). Fake parts replaced on update, not mutated.
+- Not yet: program delete has no op, so no cleanup there; orphaned uploads; size is what the browser reports.
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

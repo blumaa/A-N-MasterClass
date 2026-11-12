@@ -153,6 +153,8 @@ describe.skipIf(!enabled)('core repo (Supabase contract)', () => {
       expect((await repo.updatePart(text.id, { text: 'Hello' })).text).toBe('Hello');
       expect((await repo.updatePart(video.id, { vimeoId: '123456' })).vimeoId).toBe('123456');
       await expect(repo.updatePart(video.id, { vimeoId: 'abc' })).rejects.toBeInstanceOf(ConstraintError);
+      expect(await repo.updatePart(text.id, { filePath: 'x/y/z.pdf', fileSize: 42 })).toMatchObject({ filePath: 'x/y/z.pdf', fileSize: 42 });
+      await expect(repo.updatePart(text.id, { fileSize: -1 })).rejects.toBeInstanceOf(ConstraintError);
 
       await repo.deletePart(video.id);
       expect((await repo.parts(s1.id)).map((p) => p.id)).toEqual([text.id]);

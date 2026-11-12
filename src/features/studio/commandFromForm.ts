@@ -2,7 +2,7 @@
 // Only fields present in the form go into a patch; blank optional fields become null.
 import type { Direction } from '@/lib/data/repo';
 import { FormError, formReader, optional, parseForm, type FormReader as Reader } from '@/lib/forms/formReader';
-import { titleAndSlug } from '@/lib/forms/commands';
+import { readWhole, titleAndSlug } from '@/lib/forms/commands';
 import { PART_KINDS, PUBLISH_STATUSES, type PartKind } from '@/lib/data/types';
 import { vimeoIdOf } from '@/lib/video/vimeo';
 import type { CurriculumCommand } from './api/curriculum';
@@ -27,6 +27,13 @@ function asVimeoId(v: string): string {
   const id = vimeoIdOf(v);
   if (!id) throw new FormError('Paste a Vimeo link or video id.');
   return id;
+}
+
+// Upload field (FileUpload): path + size travel together; a blank path clears both.
+function fileFields(r: Reader) {
+  const path = r.raw('filePath');
+  if (path === undefined) return {};
+  return path === '' ? { filePath: null, fileSize: null } : { filePath: path, fileSize: readWhole(r, 'fileSize', 'file size') };
 }
 
 function statusField(r: Reader) {
@@ -73,7 +80,7 @@ const PARSERS: Record<CurriculumCommand['op'], (r: Reader) => CurriculumCommand>
       patch: {
         ...optional(r, 'title', asText),
         ...optional(r, 'text', asText),
-        ...optional(r, 'filePath', asText),
+        ...fileFields(r),
         ...(video === undefined ? {} : { vimeoId: video === '' ? null : asVimeoId(video) }),
       },
     };

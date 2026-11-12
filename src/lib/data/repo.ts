@@ -65,7 +65,7 @@ export type ModulePatch = Partial<
 export type NewStep = Pick<Step, 'moduleId' | 'title'>;
 export type StepPatch = Partial<Pick<Step, 'title' | 'description' | 'status'>>;
 export type NewPart = Pick<Part, 'stepId' | 'kind'>;
-export type PartPatch = Partial<Pick<Part, 'title' | 'text' | 'vimeoId' | 'aspect' | 'filePath'>>;
+export type PartPatch = Partial<Pick<Part, 'title' | 'text' | 'vimeoId' | 'aspect' | 'filePath' | 'fileSize'>>;
 export type NewGrant = Pick<Grant, 'productId' | 'profileId' | 'source'> & {
   orderId?: string | null;
   accessGroupId?: string | null;

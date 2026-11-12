@@ -3,6 +3,7 @@ import type { Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { Part } from '@/lib/data/types';
 import type { StepAccess } from '@/lib/programs/access';
+import { downloadName } from '@/lib/format/bytes';
 import { programOutline, type Outline, type OutlineStep } from './outline';
 
 export type StepView = {
@@ -46,6 +47,24 @@ export async function stepOpen(repo: Repo, viewer: Viewer, stepId: string, now: 
   const program = mod ? await repo.product(mod.programId) : null;
   if (!program || program.spaceId !== viewer.space.id) return false;
   return (await stepView(repo, viewer, program.slug, stepId, now))?.access.kind === 'open';
+}
+
+/**
+ * Storage path + save-as name of a download part, or null unless the viewer may read its step
+ * (same rule as the step page: stepView gives parts only for an open step; RLS can_read_step again).
+ */
+export async function partDownload(
+  repo: Repo,
+  viewer: Viewer,
+  programSlug: string,
+  stepId: string,
+  partId: string,
+  now: Date,
+): Promise<{ path: string; name: string } | null> {
+  const view = await stepView(repo, viewer, programSlug, stepId, now);
+  const part = view?.parts.find((p) => p.id === partId);
+  if (part?.kind !== 'download' || !part.filePath) return null;
+  return { path: part.filePath, name: downloadName(part.title ?? 'Download', part.filePath) };
 }
 
 export type CompleteResult = { ok: true; nextStepId: string | null } | { ok: false; error: 'signed_out' | 'not_found' | 'not_open' };

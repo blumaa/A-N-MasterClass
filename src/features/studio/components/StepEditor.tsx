@@ -8,9 +8,9 @@ import { CommandForm } from './CommandForm';
 import { PartEditor } from './PartEditor';
 import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 
-type Props = { programSlug: string; step: CurriculumStep; previewHref: string };
+type Props = { programId: string; programSlug: string; step: CurriculumStep; previewHref: string };
 
-export function StepEditor({ programSlug, step, previewHref }: Props) {
+export function StepEditor({ programId, programSlug, step, previewHref }: Props) {
   const back = studioProgramHref(programSlug);
   return (
     <Stack gap="loose">
@@ -36,7 +36,7 @@ export function StepEditor({ programSlug, step, previewHref }: Props) {
         Content
       </Heading>
       {step.parts.map((part, i) => (
-        <PartEditor key={part.id} part={part} first={i === 0} last={i === step.parts.length - 1} />
+        <PartEditor key={part.id} programId={programId} part={part} first={i === 0} last={i === step.parts.length - 1} />
       ))}
       <CommandForm inline fields={{ op: 'createPart', stepId: step.id }} submit="Add block" variant="primary">
         <Field label="Block type">

@@ -101,6 +101,7 @@ export const toPart = (r: Row<'parts'>): Part => ({
   vimeoId: r.vimeo_id,
   aspect: r.aspect,
   filePath: r.file_path,
+  fileSize: r.file_size,
 });
 
 export const toGrant = (r: Row<'grants'>): Grant => ({

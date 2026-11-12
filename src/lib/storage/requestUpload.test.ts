@@ -27,6 +27,15 @@ describe('requestUpload', () => {
     expect(await ask(MP3)).toMatchObject({ ok: true, path: `${SEED_IDS.alexander}/${SEED_IDS.podcast}/u1-ep-1.mp3` });
   });
 
+  it('signs an upload into a program folder (download parts)', async () => {
+    expect(await ask({ ...PDF, productId: SEED_IDS.program, kind: 'program' })).toMatchObject({
+      ok: true,
+      path: `${SEED_IDS.alexander}/${SEED_IDS.program}/u1-hip-harness.pdf`,
+    });
+    expect(await ask({ ...PDF, productId: SEED_IDS.program, kind: 'program' }, SEED_IDS.student)).toMatchObject({ ok: false });
+    expect(await ask({ ...PDF, productId: SEED_IDS.program })).toMatchObject({ ok: false });
+  });
+
   it('refuses viewers without products.edit', async () => {
     expect(await ask(PDF, SEED_IDS.student)).toMatchObject({ ok: false });
     expect(await ask(PDF, null)).toMatchObject({ ok: false });
@@ -44,7 +53,7 @@ describe('requestUpload', () => {
   });
 
   it('rejects a malformed request (action arguments are untrusted)', async () => {
-    expect(await ask({ ...PDF, kind: 'program' as never })).toMatchObject({ ok: false });
+    expect(await ask({ ...PDF, kind: 'community' as never })).toMatchObject({ ok: false });
     expect(await ask({ ...PDF, sizeBytes: 1.5 })).toMatchObject({ ok: false });
     expect(await ask({ ...PDF, fileName: 7 as never })).toMatchObject({ ok: false });
   });

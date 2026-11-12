@@ -236,6 +236,7 @@ export function createFakeRepo(db: Db): FakeRepo {
         vimeoId: null,
         aspect: null,
         filePath: null,
+        fileSize: null,
         position: nextPosition(db.parts.filter((p) => p.stepId === input.stepId)),
       };
       db.parts.push(row);
@@ -243,7 +244,10 @@ export function createFakeRepo(db: Db): FakeRepo {
     },
     async updatePart(pid, patch) {
       if (patch.vimeoId != null && !VIMEO_ID.test(patch.vimeoId)) throw new ConstraintError('vimeo id must be digits');
-      return Object.assign(must(db.parts.find((p) => p.id === pid), 'part'), patch);
+      if (patch.fileSize != null && patch.fileSize < 0) throw new ConstraintError('file size >= 0');
+      const row = { ...must(db.parts.find((p) => p.id === pid), 'part'), ...patch };
+      db.parts = db.parts.map((p) => (p.id === pid ? row : p));
+      return row;
     },
     async deletePart(pid) {
       db.parts = db.parts.filter((p) => p.id !== pid);

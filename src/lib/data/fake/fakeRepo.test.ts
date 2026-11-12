@@ -98,6 +98,18 @@ describe('tree', () => {
     const part = await repo.createPart({ stepId: s.id, kind: 'video' });
     await expect(repo.updatePart(part.id, { vimeoId: 'abc' })).rejects.toThrow(/vimeo/);
   });
+
+  it('replaces a part on update (rows read earlier keep their values) and checks file size', async () => {
+    const p = await program();
+    const m = await repo.createModule({ programId: p.id, title: 'M' });
+    const s = await repo.createStep({ moduleId: m.id, title: 'S' });
+    const part = await repo.createPart({ stepId: s.id, kind: 'download' });
+    expect(part).toMatchObject({ filePath: null, fileSize: null });
+    const updated = await repo.updatePart(part.id, { filePath: 'a.pdf', fileSize: 3 });
+    expect(updated).toMatchObject({ filePath: 'a.pdf', fileSize: 3 });
+    expect(part.filePath).toBeNull();
+    await expect(repo.updatePart(part.id, { fileSize: -1 })).rejects.toThrow(/file size/);
+  });
 });
 
 describe('grants', () => {

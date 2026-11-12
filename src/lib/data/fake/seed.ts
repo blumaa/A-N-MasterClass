@@ -133,13 +133,14 @@ export function seedDb(now: Date = new Date()): Db {
     vimeoId: null,
     aspect: null,
     filePath: null,
+    fileSize: null,
     ...extra,
   });
   db.parts.push(
     part('part-intro-video', 'step-intro', 0, { kind: 'video', title: 'Welcome', vimeoId: '76979871', aspect: 16 / 9 }),
     part('part-intro-text', 'step-intro', 1, { text: 'Welcome to Shibari 101. Watch the video, then tick Complete & Continue.' }),
     part('part-safety-text', 'step-safety', 0, { text: 'Always keep safety shears within reach.' }),
-    part('part-safety-pdf', 'step-safety', 1, { kind: 'download', title: 'Safety checklist (PDF)', filePath: 'shibari-101/safety.pdf' }),
+    part('part-safety-pdf', 'step-safety', 1, { kind: 'download', title: 'Safety checklist (PDF)', filePath: 'shibari-101/safety.pdf', fileSize: 240_000 }),
     part('part-single', 'step-single-column', 0, { text: 'Single column tie walkthrough.' }),
   );
 

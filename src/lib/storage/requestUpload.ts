@@ -1,7 +1,8 @@
-// Studio upload ticket: checks the viewer may edit the product (products.edit, same space, right
-// kind) and the file fits, then signs an upload into the product's folder (uploadPath). The browser
-// sends the bytes straight to Storage; the form then saves the returned path, which the feature
-// command checks again with isProductPath.
+// Studio upload ticket (download files, podcast audio, files of program download parts): checks
+// the viewer may edit the product (products.edit, same space, right kind) and the file fits, then
+// signs an upload into the product's folder (uploadPath). The browser sends the bytes straight to
+// Storage; the form then saves the returned path, which the feature command checks again with
+// isProductPath.
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import { EPISODE_MAX_BYTES } from '@/lib/data/types';
@@ -9,7 +10,8 @@ import { formatBytes } from '@/lib/format/bytes';
 import { RESOURCE_MAX_BYTES, type FileStore } from './fileStore';
 import { uploadPath } from './uploadPath';
 
-export const UPLOAD_KINDS = ['download', 'podcast'] as const;
+/** Product kinds that take uploads. `program` = files of download parts in steps. */
+export const UPLOAD_KINDS = ['download', 'podcast', 'program'] as const;
 export type UploadKind = (typeof UPLOAD_KINDS)[number];
 
 export type UploadRequest = { productId: string; kind: UploadKind; fileName: string; sizeBytes: number };
@@ -19,6 +21,7 @@ export type UploadTicket = { ok: true; uploadUrl: string; path: string } | { ok:
 export const UPLOAD_RULES: Record<UploadKind, { maxBytes: number; accept?: string }> = {
   download: { maxBytes: RESOURCE_MAX_BYTES },
   podcast: { maxBytes: EPISODE_MAX_BYTES, accept: '.mp3,audio/mpeg' },
+  program: { maxBytes: RESOURCE_MAX_BYTES },
 };
 
 export const NO_UPLOAD = 'You do not have permission to upload files.';

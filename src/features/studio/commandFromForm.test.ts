@@ -41,6 +41,18 @@ describe('commandFromForm', () => {
     });
   });
 
+  it('reads an uploaded file path + size; blank path clears both', () => {
+    expect(commandFromForm(form({ op: 'updatePart', partId: 'p', filePath: 's/p/a.pdf', fileSize: '1200' }))).toEqual({
+      ok: true,
+      command: { op: 'updatePart', partId: 'p', patch: { filePath: 's/p/a.pdf', fileSize: 1200 } },
+    });
+    expect(commandFromForm(form({ op: 'updatePart', partId: 'p', filePath: '', fileSize: '' }))).toEqual({
+      ok: true,
+      command: { op: 'updatePart', partId: 'p', patch: { filePath: null, fileSize: null } },
+    });
+    expect(commandFromForm(form({ op: 'updatePart', partId: 'p', filePath: 's/p/a.pdf', fileSize: '-1' })).ok).toBe(false);
+  });
+
   it('refuses unknown ops, kinds, statuses and bad numbers', () => {
     expect(commandFromForm(form({ op: 'dropTable' })).ok).toBe(false);
     expect(commandFromForm(form({ op: 'createPart', stepId: 's', kind: 'quiz' })).ok).toBe(false);

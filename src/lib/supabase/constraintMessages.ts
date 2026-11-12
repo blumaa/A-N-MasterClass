@@ -42,6 +42,7 @@ const BY_NAME: Readonly<Record<string, string>> = {
   dm_threads_community_id_a_id_b_id_key: 'thread exists',
   modules_release_after_days_check: 'release_after_days >= 0',
   parts_vimeo_id_check: 'vimeo id must be digits',
+  parts_file_size_check: 'file size >= 0',
   posts_body_check: bodyRangeMessage(POST_MAX),
   comments_body_check: bodyRangeMessage(COMMENT_MAX),
   messages_body_check: bodyRangeMessage(MESSAGE_MAX),

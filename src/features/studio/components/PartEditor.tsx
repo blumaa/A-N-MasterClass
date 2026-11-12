@@ -1,11 +1,13 @@
 // One content block on a step (G6): fields by kind, reorder, delete.
+// Download: file goes straight to Storage in the program folder (FileUpload); the form saves path + size.
+import { FileUpload } from '@/components/FileUpload/FileUpload';
 import { Badge, Card, CardBody, Field, Input, Stack, Textarea } from '@/components/ui/mds';
 import type { Part } from '@/lib/data/types';
 import { CommandForm } from './CommandForm';
 import { MoveButtons } from './MoveButtons';
 import styles from './Curriculum.module.css';
 
-function KindFields({ part }: { part: Part }) {
+function KindFields({ part, programId }: { part: Part; programId: string }) {
   switch (part.kind) {
     case 'video':
       return (
@@ -14,11 +16,15 @@ function KindFields({ part }: { part: Part }) {
         </Field>
       );
     case 'download':
-      // OWES: file upload to private `resources` bucket (Supabase Storage).
       return (
-        <Field label="File path" hint="Upload arrives with storage. For now: path inside the resources bucket.">
-          <Input name="filePath" defaultValue={part.filePath ?? ''} />
-        </Field>
+        <FileUpload
+          productId={programId}
+          kind="program"
+          label={part.filePath ? 'Replace the file' : 'Choose or drop a file'}
+          pathName="filePath"
+          sizeName="fileSize"
+          current={part.filePath ? { path: part.filePath, bytes: part.fileSize ?? 0 } : undefined}
+        />
       );
     default:
       return (
@@ -29,7 +35,9 @@ function KindFields({ part }: { part: Part }) {
   }
 }
 
-export function PartEditor({ part, first, last }: { part: Part; first: boolean; last: boolean }) {
+type Props = { programId: string; part: Part; first: boolean; last: boolean };
+
+export function PartEditor({ programId, part, first, last }: Props) {
   return (
     <Card variant="sunken">
       <CardBody>
@@ -42,7 +50,7 @@ export function PartEditor({ part, first, last }: { part: Part; first: boolean; 
             <Field label="Title" hint="Optional.">
               <Input name="title" defaultValue={part.title ?? ''} />
             </Field>
-            <KindFields part={part} />
+            <KindFields part={part} programId={programId} />
           </CommandForm>
           <CommandForm
             inline

@@ -32,7 +32,7 @@ export default async function StudioStepPage({ params }: Props) {
       <Heading level={1} variant="title">
         {step.title}
       </Heading>
-      <StepEditor programSlug={program.slug} step={step} previewHref={stepHref(program.slug, step.id)} />
+      <StepEditor programId={program.id} programSlug={program.slug} step={step} previewHref={stepHref(program.slug, step.id)} />
     </Stack>
   );
 }

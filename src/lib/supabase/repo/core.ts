@@ -356,6 +356,7 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
               vimeo_id: patch.vimeoId,
               aspect: patch.aspect,
               file_path: patch.filePath,
+              file_size: patch.fileSize,
             }),
           )
           .eq('id', id)

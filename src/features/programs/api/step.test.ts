@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
-import { completeStep, stepOpen, stepView } from './step';
+import { completeStep, partDownload, stepOpen, stepView } from './step';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
@@ -78,5 +78,29 @@ describe('stepOpen', () => {
     expect(await stepOpen(repo, await as(SEED_IDS.student), 'nope', NOW)).toBe(false);
     const other = (await resolveViewer(repo, 'natasha', SEED_IDS.natashaOwner))!;
     expect(await stepOpen(repo, other, 'step-intro', NOW)).toBe(false);
+  });
+});
+
+describe('partDownload', () => {
+  const get = async (who: string | null, stepId = 'step-safety', partId = 'part-safety-pdf') =>
+    partDownload(repo, await as(who), 'shibari-101', stepId, partId, NOW);
+
+  it('gives the path + save-as name when the viewer can read the step', async () => {
+    expect(await get(SEED_IDS.student)).toEqual({ path: 'shibari-101/safety.pdf', name: 'Safety checklist (PDF).pdf' });
+    expect(await get(SEED_IDS.assistant)).not.toBeNull();
+  });
+
+  it('refuses a visitor without a grant, and a locked step', async () => {
+    expect(await get(null)).toBeNull();
+    const locked = await repo.createPart({ stepId: 'step-single-column', kind: 'download' });
+    await repo.updatePart(locked.id, { filePath: 'a/b/c.pdf' });
+    expect(await get(SEED_IDS.student, 'step-single-column', locked.id)).toBeNull();
+  });
+
+  it('refuses a part of another step, a non-download part and an empty download part', async () => {
+    expect(await get(SEED_IDS.student, 'step-intro', 'part-safety-pdf')).toBeNull();
+    expect(await get(SEED_IDS.student, 'step-safety', 'part-safety-text')).toBeNull();
+    await repo.updatePart('part-safety-pdf', { filePath: null });
+    expect(await get(SEED_IDS.student)).toBeNull();
   });
 });

@@ -57,7 +57,7 @@ export default async function StepPage({ params }: Props) {
             <EmptyState title="Locked" description={blocked} />
           ) : (
             <>
-              <StepParts parts={parts} />
+              <StepParts parts={parts} programSlug={slug} />
               {signedIn ? <CompleteButton programSlug={slug} stepId={step.id} done={step.done} /> : null}
               {thread ? (
                 <CommentThread

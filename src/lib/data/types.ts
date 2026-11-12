@@ -90,6 +90,8 @@ export type Part = {
   vimeoId: string | null;
   aspect: number | null;
   filePath: string | null;
+  /** Bytes as the browser reported at upload (download parts). */
+  fileSize: number | null;
 };
 
 export type Grant = {
