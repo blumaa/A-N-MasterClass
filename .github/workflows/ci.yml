@@ -14,8 +14,10 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Keep in sync with scripts/verify-ci.sh (local copy of this job). DATA_SOURCE is required.
     env:
       PLATFORM_HOST: localhost
+      DATA_SOURCE: fake
     steps:
       - uses: actions/checkout@v7
 

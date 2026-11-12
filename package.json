@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:contract": "vitest run -c vitest.contract.config.mts",
     "verify": "pnpm lint && pnpm gates && pnpm typecheck && pnpm test && pnpm build",
+    "verify:ci": "bash scripts/verify-ci.sh",
     "check:size": "node scripts/check-size.mjs",
     "check:deterministic": "node scripts/check-deterministic.mjs",
     "check:realtime": "node scripts/check-realtime.mjs",

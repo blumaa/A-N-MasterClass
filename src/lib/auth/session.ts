@@ -3,6 +3,7 @@
 import 'server-only';
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { connection } from 'next/server';
 import { cache } from 'react';
 import { dataSource, devAuthAllowed } from '@/config/dataSource';
 import { adminClient } from '@/lib/supabase/admin';
@@ -19,6 +20,9 @@ function assertDevAuth(): void {
 export const sessionsEnabled = (): boolean => dataSource() === 'supabase' || devAuthAllowed(process.env);
 
 export const sessionProfileId = cache(async (): Promise<string | null> => {
+  // Request data in every mode: without this, a mode that never reads cookies (fake data in a
+  // production build) lets Next prerender auth-gated pages at build time.
+  await connection();
   switch (dataSource()) {
     case 'fake':
       if (!devAuthAllowed(process.env)) return null;
