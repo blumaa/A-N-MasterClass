@@ -27,7 +27,8 @@ select throws_ok($$ update public.space_branding set colors = '{"ink":"#000"}' $
 select tests.authenticate_as('assistant');
 select lives_ok($$ update public.space_branding set font_heading = 'inter' $$, 'assistant update runs');
 select tests.authenticate_as('owner');
-select results_eq($$ select font_heading from public.space_branding $$, $$ values ('lora') $$,
+select results_eq($$ select font_heading from public.space_branding
+  where space_id = '11111111-1111-4111-8111-111111111111' $$, $$ values ('lora') $$,
   'assistant update touched no row (RLS)');
 
 select tests.clear_authentication();

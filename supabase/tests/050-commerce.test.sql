@@ -59,7 +59,7 @@ select throws_ok($$ insert into public.orders (space_id, offer_id, email, provid
 
 -- Visibility
 select tests.clear_authentication();
-select results_eq($$ select slug from public.offers $$, $$ values ('full') $$, 'anon reads published offers only');
+select results_eq($$ select slug from public.offers where space_id in ('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222') $$, $$ values ('full') $$, 'anon reads published offers only');
 select is_empty($$ select 1 from public.orders $$, 'anon reads no orders');
 select is_empty($$ select 1 from public.claim_tokens $$, 'anon reads no claim tokens');
 

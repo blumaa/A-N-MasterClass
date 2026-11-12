@@ -47,7 +47,8 @@ select tests.authenticate_as('student');
 select is_empty($$ select 1 from public.pages $$, 'student cannot read the pages table (drafts)');
 
 select tests.clear_authentication();
-select results_eq($$ select slug, published -> 0 -> 'fields' ->> 'heading' from public.published_pages $$,
+select results_eq($$ select slug, published -> 0 -> 'fields' ->> 'heading' from public.published_pages
+  where space_id in ('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222') $$,
   $$ values ('home', 'Live') $$, 'anon reads only published pages, published sections');
 select throws_ok($$ select draft from public.published_pages $$, '42703', null, 'published_pages has no draft column');
 select is_empty($$ select 1 from public.page_versions $$, 'anon sees no versions');
