@@ -8,8 +8,10 @@ import { CommentThread } from '@/features/community/components/CommentThread';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
 import { PostCard } from '@/features/community/components/PostCard';
 import { communityHref } from '@/features/community/paths';
+import { LiveRefresh } from '@/components/LiveRefresh/LiveRefresh';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { liveTopic } from '@/lib/realtime/topics';
 import { communityAction } from '@/app/[space]/communityActions';
 
 type Props = PageProps<'/[space]/community/[community]/posts/[post]'>;
@@ -37,6 +39,7 @@ export default async function PostRoute({ params }: Props) {
   return (
     <CommunityFrame community={community} channels={channels} activeId={channel.id} extras={nav}>
       <Stack gap="loose">
+        <LiveRefresh topics={signedIn ? [liveTopic.post(post.id)] : []} />
         <PostCard
           post={post}
           action={communityAction}

@@ -1,5 +1,6 @@
 // Shared body of the community home (first channel) and a channel route.
 import { notFound } from 'next/navigation';
+import { LiveRefresh } from '@/components/LiveRefresh/LiveRefresh';
 import { EmptyState } from '@/components/ui/mds';
 import { communityNav } from '@/features/community/api/nav';
 import { communityPage } from '@/features/community/api/feed';
@@ -8,6 +9,7 @@ import { ChannelFeed } from '@/features/community/components/ChannelFeed';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { liveTopic } from '@/lib/realtime/topics';
 import { chatAction } from '@/features/community/chatActions';
 import { communityAction } from '@/app/[space]/communityActions';
 
@@ -25,13 +27,15 @@ export async function ChannelPage({ space, community, channelId }: { space: stri
   if (page.kind === 'locked') {
     return <EmptyState title={page.community.title} description="This community is for members. Get access through one of its offers." />;
   }
+  const signedIn = viewer.profile !== null;
   const nav = await communityNav(getRepo(), viewer, page.community, page.access, new Date());
   return (
     <CommunityFrame community={page.community} channels={page.channels} activeId={page.channel.id} extras={nav}>
+      <LiveRefresh topics={signedIn ? [liveTopic.channel(page.channel.id)] : []} />
       {page.channel.kind === 'chat' ? (
-        <ChannelChat page={page} action={chatAction} signedIn={viewer.profile !== null} />
+        <ChannelChat page={page} action={chatAction} signedIn={signedIn} />
       ) : (
-        <ChannelFeed page={page} action={communityAction} signedIn={viewer.profile !== null} />
+        <ChannelFeed page={page} action={communityAction} signedIn={signedIn} />
       )}
     </CommunityFrame>
   );

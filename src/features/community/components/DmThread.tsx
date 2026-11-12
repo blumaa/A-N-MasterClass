@@ -3,7 +3,6 @@ import { ActionForm, type FormAction } from '@/components/ActionForm/ActionForm'
 import { Heading, Inline, Stack, Text } from '@/components/ui/mds';
 import type { DmThreadPage } from '../api/dms';
 import { Composer } from './Composer';
-import { LiveRefresh } from './LiveRefresh';
 import { MessageList } from './MessageList';
 
 type Props = { communityId: string; page: DmThreadPage; action: FormAction };
@@ -12,7 +11,6 @@ export function DmThread({ communityId, page, action }: Props) {
   const { threadId, other, messages, canSend, blocking } = page;
   return (
     <Stack gap="loose">
-      <LiveRefresh />
       <Inline gap="tight" justify="between">
         <Heading level={1} variant="title">
           {other.name}

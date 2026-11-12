@@ -2495,6 +2495,7 @@ export type Database = {
         Args: { target_community: string }
         Returns: boolean
       }
+      can_join_live: { Args: { topic: string }; Returns: boolean }
       can_moderate_channel: {
         Args: { target_channel: string }
         Returns: boolean
@@ -2667,6 +2668,9 @@ export type Database = {
       is_space_participant: { Args: { target_space: string }; Returns: boolean }
       is_space_staff: { Args: { target_space: string }; Returns: boolean }
       is_time_zone: { Args: { zone: string }; Returns: boolean }
+      live_post_topics: { Args: { target_post: string }; Returns: string[] }
+      live_send: { Args: { topic: string }; Returns: undefined }
+      live_topics: { Args: { r: Json; tbl: string }; Returns: string[] }
       meetup_join_url: { Args: { target_meetup: string }; Returns: string }
       meetup_rsvp_count: { Args: { target_meetup: string }; Returns: number }
       member_groups: { Args: { target_community: string }; Returns: string[] }

@@ -6,9 +6,10 @@ import { dmInbox } from '@/features/community/api/dms';
 import { communityShell } from '@/features/community/api/shell';
 import { CommunityFrame } from '@/features/community/components/CommunityFrame';
 import { DmInbox } from '@/features/community/components/DmInbox';
-import { LiveRefresh } from '@/features/community/components/LiveRefresh';
+import { LiveRefresh } from '@/components/LiveRefresh/LiveRefresh';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { liveTopic } from '@/lib/realtime/topics';
 
 export const metadata: Metadata = { title: 'Messages' };
 
@@ -25,7 +26,7 @@ export default async function MessagesRoute({ params }: PageProps<'/[space]/comm
   return (
     <CommunityFrame community={shell.community} channels={shell.channels} activeId="messages" extras={shell.nav}>
       <Stack gap="loose">
-        <LiveRefresh />
+        <LiveRefresh topics={viewer.profile ? [liveTopic.inbox(viewer.profile.id)] : []} />
         <Heading level={1} variant="title">
           Messages
         </Heading>

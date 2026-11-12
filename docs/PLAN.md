@@ -174,7 +174,7 @@ Launch 2 as built:
 - Grant uniqueness widened to one active grant per (product, profile, group): a member may hold several groups of one community. `fulfil_order` now carries `offer_products.access_group_id`; drip counts from the earliest grant.
 - Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
 - DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
-- Live updates: polling (`LiveRefresh`, `router.refresh` on an interval while visible). Supabase Realtime later.
+- Live updates: polling at first; Supabase Realtime since Launch 6 item 5 (see there).
 - Not yet: push, typing indicators.
 
 **Launch 3** — challenges, points, leaderboard, meetups/events.
@@ -264,6 +264,18 @@ Launch 6 item 4 as built:
 - Objects removed after the DB write: delete post, delete chat line, remove photo, report Remove, Studio delete channel (`channel_files` RPC, staff only).
 - G0 diff: Kajabi allows 40 MB photos and video in posts; here photos are resized and posts take no video.
 - Not yet: cleanup when a community, space or profile is deleted; orphaned uploads (picked, never sent); photo captions/reorder; thumbnails (full photo shown cropped in the grid); uploads do nothing with `DATA_SOURCE=fake`.
+
+Launch 6 item 5 as built:
+- Migration `20261112110000_live_topics.sql` + `supabase/tests/150-live-topics.test.sql` (28 asserts), applied to ksb 2026-11-12.
+- Private broadcast, not `postgres_changes`: postgres_changes sends row data and does not apply RLS to deletes. Here statement triggers on `messages`, `posts`, `post_photos`, `comments`, `reactions` call `live_send`, which sends an empty `stale` event (`realtime.send`) to each topic once per statement.
+- Topics (SSOT `src/lib/realtime/topics.ts` = `can_join_live` + `live_topics` in SQL): `channel:<id>` (chat lines, feed posts, comments, reactions, photos), `post:<id>`, `dm:<thread>`, `inbox:<profile>`.
+- Join: RLS select policy `live_topics_read` on `realtime.messages`, `can_join_live(realtime.topic())` = `can_read_channel` / `can_read_post` (hidden only for moderators) / `is_dm_participant` / own inbox. No insert policy, so clients cannot send. Anonymous viewers get no topics.
+- Client: `<LiveRefresh topics>` (server component, `src/components/LiveRefresh`) on channel (chat + feed), post, DM thread and inbox pages. Supabase: `RealtimeRefresh` opens the private channels (`listenStale`). Fake: `PollRefresh` every 5 s. Both feed the same scheduler: a burst gives one `router.refresh` (300 ms window), a hidden tab does nothing and refreshes once when visible again. Channels removed on unmount.
+- Invalidate only: the handler gets no payload. `check:realtime` now also fails on `postgres_changes` and on a channel without `private: true`.
+- For item 7: `privateChannel(host, topic, bind)` takes any listeners (broadcast, presence). Typing needs an insert policy on `realtime.messages`.
+- Caveats: Realtime caches the join check per connection, so lost access keeps hints flowing until the token refreshes or the page reloads (hints are empty). `realtime.messages` is partitioned by day and the Realtime service makes the partitions while clients are connected; with no partition the send only warns (nobody is listening then). The SQL suite skips the round trip then.
+- Free plan limits: 200 concurrent connections, 100 messages/s, 100 channel joins/s, 2M messages/month. Pro: 500 connections, 5M messages, then $2.50 per million.
+- Not yet: community nav badges (unread DMs) refresh only on pages that listen; block/unblock and channel or membership changes are not live; typing = item 7.
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

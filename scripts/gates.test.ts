@@ -86,13 +86,36 @@ describe('check:realtime — socket invalidates, never sets', () => {
 
   it('passes when the handler only invalidates', () => {
     const root = fixture({
-      'notifications.ts': `supabase.channel('n').on('INSERT', () => {\n  qc.invalidateQueries({ queryKey: ['n'] });\n});\n`,
+      'notifications.ts': `supabase.channel('n', { config: { private: true } }).on('INSERT', () => {\n  qc.invalidateQueries({ queryKey: ['n'] });\n});\n`,
     });
     expect(run('check-realtime.mjs', root).code).toBe(0);
   });
 
   it('allows setQueryData in a file with no channel', () => {
     const root = fixture({ 'cache.ts': `qc.setQueryData(['a'], 1);\n` });
+    expect(run('check-realtime.mjs', root).code).toBe(0);
+  });
+
+  it('fails on postgres_changes (row data, deletes skip RLS)', () => {
+    const root = fixture({
+      'feed.ts': `sb.channel('f', { config: { private: true } }).on('postgres_changes', { event: '*' }, poke);\n`,
+    });
+    const { code, output } = run('check-realtime.mjs', root);
+    expect(code).toBe(1);
+    expect(output).toContain('postgres_changes');
+  });
+
+  it('fails on a channel that is not private', () => {
+    const root = fixture({ 'feed.ts': `sb.channel('f').on('broadcast', { event: 'stale' }, poke);\n` });
+    const { code, output } = run('check-realtime.mjs', root);
+    expect(code).toBe(1);
+    expect(output).toContain('private');
+  });
+
+  it('passes a private broadcast channel', () => {
+    const root = fixture({
+      'feed.ts': `sb.channel(topic, { config: { private: true } }).on('broadcast', { event: 'stale' }, () => poke());\n`,
+    });
     expect(run('check-realtime.mjs', root).code).toBe(0);
   });
 });
