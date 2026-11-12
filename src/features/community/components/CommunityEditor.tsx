@@ -1,4 +1,5 @@
 // Studio > one community: settings, channels, access groups + messaging, staff ticks (G15).
+import { ROLE_LABELS } from '@/lib/labels';
 import { ProductFields, type ImageSrc } from '@/components/ProductFields/ProductFields';
 import { ButtonLink } from '@/components/ui/links';
 import { Badge, Heading, Stack, Text } from '@/components/ui/mds';
@@ -14,7 +15,7 @@ function StaffRow({ communityId, tick }: { communityId: string; tick: StaffTick 
   return (
     <li className={styles.channelRow}>
       <Text>{tick.name}</Text>
-      <Badge tone="neutral">{tick.role}</Badge>
+      <Badge tone="neutral">{ROLE_LABELS[tick.role]}</Badge>
       <CommunityForm
         inline
         variant={tick.ticked ? 'secondary' : 'primary'}

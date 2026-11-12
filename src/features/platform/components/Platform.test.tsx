@@ -14,7 +14,7 @@ describe('platform admin UI', () => {
     render(<SpacesTable spaces={[SPACE]} />);
     const row = screen.getByRole('row', { name: /Old-Time Fiddle/ });
     expect(within(row).getByRole('link', { name: 'Old-Time Fiddle' })).toHaveAttribute('href', '/spaces/fiddle');
-    expect(within(row).getByText('draft')).toBeInTheDocument();
+    expect(within(row).getByText('Draft')).toBeInTheDocument();
     expect(within(row).getByText('Test')).toBeInTheDocument();
   });
 
@@ -35,6 +35,7 @@ describe('platform admin UI', () => {
     expect(screen.getByText('fiddle.example.com')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Status' })).toHaveValue('draft');
+    expect(screen.getByRole('option', { name: 'Live' })).toHaveValue('live');
     expect(screen.getByLabelText('Domain')).toBeRequired();
     expect(screen.getByRole('link', { name: 'http://fiddle.localhost:3000' })).toHaveAttribute('href', 'http://fiddle.localhost:3000');
   });

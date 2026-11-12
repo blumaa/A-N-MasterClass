@@ -13,6 +13,7 @@ export const SEED_IDS = {
   natashaOwner: 'user-natasha',
   assistant: 'user-assistant',
   student: 'user-student',
+  platformAdmin: 'user-platform',
   program: 'prod-shibari-101',
   community: 'prod-community',
   general: 'chan-general',
@@ -37,6 +38,8 @@ export function seedDb(now: Date = new Date()): Db {
     { id: ids.natashaOwner, email: 'natasha@example.test', isPlatformAdmin: false },
     { id: ids.assistant, email: 'assistant@example.test', isPlatformAdmin: false },
     { id: ids.student, email: 'student@example.test', isPlatformAdmin: false },
+    // Platform admin owns no space; signs in on the platform host only.
+    { id: ids.platformAdmin, email: 'platform@example.test', isPlatformAdmin: true },
   );
   db.spaceProfiles.push(
     { spaceId: ids.alexander, profileId: ids.alexanderOwner, displayName: 'Alexander', avatarPath: null, bio: null },

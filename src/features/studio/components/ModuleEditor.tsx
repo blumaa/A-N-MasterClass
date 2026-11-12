@@ -1,5 +1,6 @@
 // One module: settings (lock G7, quiz lock G26, drip G8), steps list, add step.
-import { Badge, Card, CardBody, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
+import { PublishStatusBadge } from '@/components/PublishStatusBadge/PublishStatusBadge';
+import { Card, CardBody, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
 import { AppLink } from '@/components/ui/links';
 import type { Part, Step } from '@/lib/data/types';
 import type { CurriculumModule } from '../api/curriculum';
@@ -30,7 +31,7 @@ export function ModuleEditor({ programSlug, mod, earlierSteps, earlierQuizzes, f
             <Heading level={3} variant="subtitle">
               {mod.title}
             </Heading>
-            <Badge tone={mod.status === 'published' ? 'success' : 'warning'}>{mod.status}</Badge>
+            <PublishStatusBadge status={mod.status} />
             <MoveButtons table="modules" id={mod.id} first={first} last={last} />
           </div>
 
@@ -75,7 +76,7 @@ export function ModuleEditor({ programSlug, mod, earlierSteps, earlierQuizzes, f
             {mod.steps.map((step, i) => (
               <li key={step.id} className={styles.row}>
                 <AppLink href={studioStepHref(programSlug, step.id)}>{step.title}</AppLink>
-                <Badge tone={step.status === 'published' ? 'success' : 'warning'}>{step.status}</Badge>
+                <PublishStatusBadge status={step.status} />
                 <MoveButtons table="steps" id={step.id} first={i === 0} last={i === mod.steps.length - 1} />
               </li>
             ))}

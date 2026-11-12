@@ -1,5 +1,6 @@
 // Studio > Programs: list + create (Kajabi: new programs start as draft).
-import { Badge, EmptyState, Field, Input, ListGroup, Stack } from '@/components/ui/mds';
+import { PublishStatusBadge } from '@/components/PublishStatusBadge/PublishStatusBadge';
+import { EmptyState, Field, Input, ListGroup, Stack } from '@/components/ui/mds';
 import { LinkRow } from '@/components/ui/links';
 import type { Product } from '@/lib/data/types';
 import { studioProgramHref } from '../paths';
@@ -18,7 +19,7 @@ export function ProgramList({ programs }: { programs: Product[] }) {
               title={p.title}
               description={p.subtitle ?? undefined}
               href={studioProgramHref(p.slug)}
-              trailing={<Badge tone={p.status === 'published' ? 'success' : 'warning'}>{p.status}</Badge>}
+              trailing={<PublishStatusBadge status={p.status} />}
             />
           ))}
         </ListGroup>

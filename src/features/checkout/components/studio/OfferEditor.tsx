@@ -1,11 +1,12 @@
 // Studio > Offers > one offer: settings, linked products, bump/upsell, publish, checkout link, delete.
+import { PRODUCT_KIND_LABELS } from '@/lib/labels';
+import { PublishStatusBadge } from '@/components/PublishStatusBadge/PublishStatusBadge';
 import { AppLink } from '@/components/ui/links';
 import { Checkbox, Field, Heading, Input, Select, Stack, Text, Textarea } from '@/components/ui/mds';
 import type { StudioOfferDetail } from '../../api/offers';
 import { checkoutPath } from '../../paths';
 import { PriceFields, PriceTypeFields } from './OfferFields';
 import { OfferLinks } from './OfferLinks';
-import { OfferStatus } from './OfferStatus';
 import { OfferForm } from './StudioForms';
 import styles from './Studio.module.css';
 
@@ -17,7 +18,7 @@ export function OfferEditor({ detail }: { detail: StudioOfferDetail }) {
   return (
     <Stack gap="loose">
       <div className={styles.actions}>
-        <OfferStatus status={offer.status} />
+        <PublishStatusBadge status={offer.status} />
         {published ? (
           <Text variant="note">
             Checkout link: <AppLink href={checkoutPath(offer.slug)}>{checkoutPath(offer.slug)}</AppLink>
@@ -53,7 +54,7 @@ export function OfferEditor({ detail }: { detail: StudioOfferDetail }) {
             <legend>Buyers get access to</legend>
             {products.map((p) => (
               <div key={p.id} className={styles.product}>
-                <Checkbox name="productId" value={p.id} defaultChecked={linked.has(p.id)} label={`${p.title} (${p.kind})`} />
+                <Checkbox name="productId" value={p.id} defaultChecked={linked.has(p.id)} label={`${p.title} (${PRODUCT_KIND_LABELS[p.kind]})`} />
                 {p.groups.length > 0 ? (
                   <Field label={`Access group in ${p.title}`}>
                     <Select name={`group:${p.id}`} defaultValue={linked.get(p.id) ?? ''}>

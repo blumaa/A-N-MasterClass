@@ -8,6 +8,14 @@
   border-bottom: 1px solid var(--mds-border-subtle);
 }
 
+/* Same look as the space header brand name. */
+.brand {
+  font-family: var(--mds-font-display);
+  font-size: var(--mds-text-xl);
+  font-weight: 600;
+  color: var(--mds-text-primary);
+}
+
 .main {
   padding-block: var(--mds-space-6, 1.5rem);
 }

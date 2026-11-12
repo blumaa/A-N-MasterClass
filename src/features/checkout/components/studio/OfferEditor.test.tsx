@@ -32,8 +32,8 @@ describe('OfferEditor', () => {
 
   it('ticks linked products', () => {
     render(<OfferEditor detail={detail()} />);
-    expect(screen.getByLabelText('Shibari 101 (program)')).toBeChecked();
-    expect(screen.getByLabelText('Circle (community)')).not.toBeChecked();
+    expect(screen.getByLabelText('Shibari 101 (Program)')).toBeChecked();
+    expect(screen.getByLabelText('Circle (Community)')).not.toBeChecked();
   });
 
   it('offers an access group pick only for communities with extra groups', () => {

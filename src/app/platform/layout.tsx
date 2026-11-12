@@ -15,7 +15,11 @@ export default async function PlatformLayout({ children }: LayoutProps<'/platfor
   return (
     <>
       <header className={styles.header}>
-        <AppLink href={platformHomeHref}>Platform</AppLink>
+        <span className={styles.brand}>
+          <AppLink href={platformHomeHref} variant="plain">
+            Platform
+          </AppLink>
+        </span>
         {signedIn ? (
           <form action={signOutAction}>
             <SubmitButton variant="ghost" size="sm">

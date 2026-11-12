@@ -75,7 +75,7 @@ function ChannelRow({ channel, group, first, last, members, picked, moderators }
     <li className={styles.channelRow}>
       <Stack gap="tight">
         <div className={styles.rowActions}>
-          <Badge tone="neutral">{channel.kind}</Badge>
+          <Badge tone="neutral">{KIND_LABELS[channel.kind]}</Badge>
           <Badge tone="neutral">{group}</Badge>
         </div>
         <CommunityForm inline fields={{ op: 'updateChannel', ...id }} submit="Save">

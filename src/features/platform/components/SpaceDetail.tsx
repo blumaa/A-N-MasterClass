@@ -1,11 +1,13 @@
 'use client';
 // Platform > one space: owners + claim link, status, domains (G1, G17).
 import { ActionForm } from '@/components/ActionForm/ActionForm';
+import { ChoiceSelect } from '@/components/fields/fields';
 import { AppLink } from '@/components/ui/links';
 import { Badge, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
 import { SPACE_STATUSES } from '@/lib/data/types';
 import { platformAction } from '../actions';
 import type { PlatformSpaceDetail } from '../api/spaces';
+import { SPACE_STATUS_LABELS } from '../spaceStatus';
 import { OwnerClaimForm } from './ClaimForms';
 import styles from './Platform.module.css';
 
@@ -47,15 +49,7 @@ export function SpaceDetail({ detail, spaceUrl }: { detail: PlatformSpaceDetail;
           Draft: only staff and platform admins see the site. Live: open to everyone.
         </Text>
         <ActionForm action={platformAction} done="Saved" fields={{ op: 'setStatus', ...slug }} submit="Save status" inline>
-          <Field label="Status">
-            <Select name="status" defaultValue={space.status}>
-              {SPACE_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <ChoiceSelect name="status" label="Status" value={space.status} options={SPACE_STATUSES} labels={SPACE_STATUS_LABELS} />
         </ActionForm>
       </Section>
 

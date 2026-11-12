@@ -1,10 +1,10 @@
 // Studio > Offers: list + create (G13). Checkout link lives on each offer's page.
+import { PublishStatusBadge } from '@/components/PublishStatusBadge/PublishStatusBadge';
 import { LinkRow } from '@/components/ui/links';
 import { EmptyState, Field, Heading, Input, ListGroup, Stack } from '@/components/ui/mds';
 import { formatMoney } from '@/lib/commerce/money';
 import type { StudioOfferRow } from '../../api/offers';
 import { studioOfferHref } from '../../paths';
-import { OfferStatus } from './OfferStatus';
 import { PriceFields } from './OfferFields';
 import { OfferForm } from './StudioForms';
 
@@ -23,7 +23,7 @@ export function OffersOverview({ offers, locale }: { offers: StudioOfferRow[]; l
               href={studioOfferHref(offer.id)}
               title={offer.title}
               description={[formatMoney(offer.priceCents, offer.currency, locale), plural(productCount, 'product'), `${sold} sold`].join(' · ')}
-              trailing={<OfferStatus status={offer.status} />}
+              trailing={<PublishStatusBadge status={offer.status} />}
             />
           ))}
         </ListGroup>
