@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { Heading, Stack } from '@/components/ui/mds';
-import { AppLink } from '@/components/ui/links';
+import { BackLink } from '@/components/ui/links';
 import { sectionChoices, studioPage } from '@/features/site/api/site';
 import { PageEditor } from '@/features/site/components/PageEditor';
 import { studioSiteHref } from '@/features/site/paths';
@@ -33,7 +33,7 @@ export default async function StudioPageEditor({ params }: Props) {
   if (!data) notFound();
   return (
     <Stack gap="loose">
-      <AppLink href={studioSiteHref}>Back to site</AppLink>
+      <BackLink href={studioSiteHref}>site</BackLink>
       <Heading level={1} variant="title">
         {data.page.title}
       </Heading>

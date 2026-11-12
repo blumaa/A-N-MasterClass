@@ -1,7 +1,7 @@
 // Studio > one meetup: its events (occurrences) with edit and cancel per Kajabi scope.
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { ButtonLink } from '@/components/ui/links';
+import { BackLink } from '@/components/ui/links';
 import { Heading, Stack } from '@/components/ui/mds';
 import { studioMeetup } from '@/features/community/api/studioEvents';
 import { MeetupSessions } from '@/features/community/components/MeetupSessions';
@@ -24,9 +24,7 @@ export default async function StudioMeetupPage({ params }: PageProps<'/[space]/s
         {view.meetup.title}
       </Heading>
       <div>
-        <ButtonLink href={studioEventsHref(id)} variant="ghost">
-          Back to challenges and meetups
-        </ButtonLink>
+        <BackLink href={studioEventsHref(id)}>challenges and meetups</BackLink>
       </div>
       <MeetupSessions meetup={view.meetup} past={view.past} upcoming={view.upcoming} />
     </Stack>

@@ -1,6 +1,6 @@
 // Studio > Lesson: title, description, status, content blocks.
 import { Field, Heading, Input, Stack, Textarea } from '@/components/ui/mds';
-import { ButtonLink } from '@/components/ui/links';
+import { BackLink, ButtonLink } from '@/components/ui/links';
 import { ChoiceSelect } from '@/components/fields/fields';
 import { PART_KINDS } from '@/lib/data/types';
 import { PART_KIND_LABELS } from '../partKinds';
@@ -23,9 +23,7 @@ export function StepEditor({ programId, programSlug, step, previewHref, quizzes 
   return (
     <Stack gap="loose">
       <div>
-        <ButtonLink href={back} variant="ghost">
-          Back to curriculum
-        </ButtonLink>{' '}
+        <BackLink href={back}>curriculum</BackLink>{' '}
         <ButtonLink href={previewHref} variant="ghost">
           Preview as student
         </ButtonLink>

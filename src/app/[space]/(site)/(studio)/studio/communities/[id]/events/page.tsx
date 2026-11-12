@@ -1,7 +1,7 @@
 // Studio > one community > challenges and meetups.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ButtonLink } from '@/components/ui/links';
+import { BackLink } from '@/components/ui/links';
 import { Heading, Stack } from '@/components/ui/mds';
 import { studioEvents } from '@/features/community/api/studioEvents';
 import { ChallengeEditor } from '@/features/community/components/ChallengeEditor';
@@ -23,9 +23,7 @@ export default async function StudioEventsPage({ params }: PageProps<'/[space]/s
         Challenges and meetups
       </Heading>
       <div>
-        <ButtonLink href={studioCommunityHref(id)} variant="ghost">
-          Back to community settings
-        </ButtonLink>
+        <BackLink href={studioCommunityHref(id)}>community settings</BackLink>
       </div>
       <ChallengeEditor communityId={id} groups={view.groups} challenges={view.challenges} />
       <MeetupEditor communityId={id} groups={view.groups} channels={view.channels} meetups={view.meetups} />

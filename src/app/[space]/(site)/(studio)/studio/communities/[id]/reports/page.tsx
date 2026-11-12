@@ -1,7 +1,7 @@
 // Studio > one community > reports queue (staff with community.moderate).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ButtonLink } from '@/components/ui/links';
+import { BackLink } from '@/components/ui/links';
 import { Heading, Stack } from '@/components/ui/mds';
 import { studioReportQueue } from '@/features/community/api/reports';
 import { ReportQueue } from '@/features/community/components/ReportQueue';
@@ -22,9 +22,7 @@ export default async function StudioReportsPage({ params }: PageProps<'/[space]/
         Reports
       </Heading>
       <div>
-        <ButtonLink href={studioCommunityHref(id)} variant="ghost">
-          Back to community settings
-        </ButtonLink>
+        <BackLink href={studioCommunityHref(id)}>community settings</BackLink>
       </div>
       <ReportQueue queue={queue} />
     </Stack>

@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Heading, Stack } from '@/components/ui/mds';
-import { AppLink } from '@/components/ui/links';
+import { BackLink } from '@/components/ui/links';
 import { studioSite } from '@/features/site/api/site';
 import { NavEditor } from '@/features/site/components/NavEditor';
 import { studioSiteHref } from '@/features/site/paths';
@@ -17,7 +17,7 @@ export default async function StudioNavPage({ params }: PageProps<'/[space]/stud
   if (!site) notFound();
   return (
     <Stack gap="loose">
-      <AppLink href={studioSiteHref}>Back to site</AppLink>
+      <BackLink href={studioSiteHref}>site</BackLink>
       <Heading level={1} variant="title">
         Navigation
       </Heading>

@@ -51,6 +51,18 @@ export function ButtonLink({
   );
 }
 
+/** The one "go up a level" link on editor pages. `children` names the parent page. */
+export function BackLink({ href, children }: { href: string; children: string }) {
+  return (
+    // The span keeps the button its own width inside a stretching Stack.
+    <span>
+      <ButtonLink href={href} variant="ghost" size="sm">
+        {`Back to ${children}`}
+      </ButtonLink>
+    </span>
+  );
+}
+
 export function NavLink({ href, label, active }: { href: string; label: string; active?: boolean }) {
   return <SideNavItem as={NextLink} href={href} label={label} active={active} />;
 }

@@ -1,6 +1,6 @@
 // One coaching session for the client: time, join link, add to calendar, and move or cancel
 // while still before the coach's cutoff. Times in the client's zone, the coach's as secondary.
-import { AppLink, ButtonLink } from '@/components/ui/links';
+import { BackLink, ButtonLink } from '@/components/ui/links';
 import { Badge, Heading, Inline, Stack, Text } from '@/components/ui/mds';
 import { zonedText } from '@/lib/time/zonedText';
 import type { ClientSession } from '../api/booking';
@@ -49,7 +49,7 @@ export function ClientSessionDetail(props: Props) {
   const time = zonedText([s.startsAt, s.endsAt], viewerZone, coachZone);
   return (
     <Stack gap="loose">
-      <AppLink href={coachingHref(product.slug)}>{`← ${product.title}`}</AppLink>
+      <BackLink href={coachingHref(product.slug)}>{product.title}</BackLink>
       <Stack gap="tight">
         <Heading level={1} variant="title">
           {s.title}

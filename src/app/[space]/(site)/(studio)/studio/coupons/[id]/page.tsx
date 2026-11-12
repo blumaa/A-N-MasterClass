@@ -1,7 +1,7 @@
 // Studio > Coupons > one coupon (G23).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { AppLink } from '@/components/ui/links';
+import { BackLink } from '@/components/ui/links';
 import { Heading, Stack } from '@/components/ui/mds';
 import { studioCoupon } from '@/features/checkout/api/coupons';
 import { CouponEditor } from '@/features/checkout/components/studio/CouponEditor';
@@ -18,7 +18,7 @@ export default async function StudioCouponPage({ params }: PageProps<'/[space]/s
   if (!detail) notFound();
   return (
     <Stack gap="loose">
-      <AppLink href={studioCouponsHref}>← Coupons</AppLink>
+      <BackLink href={studioCouponsHref}>coupons</BackLink>
       <Heading level={1} variant="title">
         {detail.coupon.code}
       </Heading>

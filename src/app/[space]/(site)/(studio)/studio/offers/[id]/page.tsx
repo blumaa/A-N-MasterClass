@@ -1,7 +1,7 @@
 // Studio > Offers > one offer.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { AppLink } from '@/components/ui/links';
+import { BackLink } from '@/components/ui/links';
 import { Heading, Stack } from '@/components/ui/mds';
 import { studioOffer } from '@/features/checkout/api/offers';
 import { OfferEditor } from '@/features/checkout/components/studio/OfferEditor';
@@ -18,7 +18,7 @@ export default async function StudioOfferPage({ params }: PageProps<'/[space]/st
   if (!detail) notFound();
   return (
     <Stack gap="loose">
-      <AppLink href={studioOffersHref}>← Offers</AppLink>
+      <BackLink href={studioOffersHref}>offers</BackLink>
       <Heading level={1} variant="title">
         {detail.offer.title}
       </Heading>
