@@ -252,11 +252,6 @@ Launch 6 item 3 as built:
 - G0 diff: Kajabi moderators are channel-scoped teammates with hide/restore/lock/approve, Review Feed, View Logs; mobile has user reports without detail. Here (G15) moderators are trusted students, reports target content, no lock/approval queue/logs yet.
 - Not yet: restore from the queue, post lock, approval queue, audit log, report a user, notify moderators of new reports.
 
-Launch 6 item 10 as built:
-- "Download all" button on the member's download page, only with 2+ files. Client component `DownloadAll`: clicks a temporary `<a download>` per file, one every 500 ms (`DOWNLOAD_GAP_MS`), each pointing at the existing signed-redirect route. Browser may ask once to allow multiple downloads. Access is still checked per file by that route; no new route, no DB change.
-- Decision (user, 2026-11-12): NO zip. A zip route would stream every file through Vercel (function duration limit, transfer cost). `<a download>` is the standard script-started download (MDN); hidden iframe is legacy.
-- Not yet: no progress per file; a browser that blocks multiple downloads blocks the later ones until the member allows it.
-
 Launch 6 item 4 as built:
 - Migrations `20261112100000_community_files.sql` + `20261112100100_messages_attachment_not_null.sql`, `supabase/tests/140-community-files.test.sql`, applied to ksb 2026-11-12.
 - Private bucket `community` (25 MB, type allow-list), apart from Studio `resources`. Folders: `<space>/<community>/<channel>/` (feed photos, chat files), `<space>/<community>/dm/<thread>/` (DM files). DB triggers keep each row inside its own folder.
@@ -321,6 +316,11 @@ Launch 6 item 9 as built:
 - Booking still posts the UTC instant; server checks unchanged. Studio stays in the coach zone.
 - Limit: the very first request on a host has no cookie yet and shows the coach zone (labelled). A changed device zone applies from the next full page load.
 - Follow-up, meetups (G0: Kajabi shows meetups in the member's device zone, link above): member meetup list, detail and every recurring occurrence use the same `tz` cookie. The meetup's own zone stays as secondary text ("Meetup's time: ...") when it reads differently; the repeat line names the meetup zone then (weekdays are in that zone). Shared helper `zonedText` (`src/lib/time`) for coaching and meetups; `currentViewerZone()` returns null without a valid cookie, the caller falls back to the event zone. Studio and `.ics` unchanged. No meetup reminders are rendered yet (email pending).
+
+Launch 6 item 10 as built:
+- "Download all" button on the member's download page, only with 2+ files. Client component `DownloadAll`: clicks a temporary `<a download>` per file, one every 500 ms (`DOWNLOAD_GAP_MS`), each pointing at the existing signed-redirect route. Browser may ask once to allow multiple downloads. Access is still checked per file by that route; no new route, no DB change.
+- Decision (user, 2026-11-12): NO zip. A zip route would stream every file through Vercel (function duration limit, transfer cost). `<a download>` is the standard script-started download (MDN); hidden iframe is legacy.
+- Not yet: no progress per file; a browser that blocks multiple downloads blocks the later ones until the member allows it.
 
 Launch 6 item 11 as built:
 - G0: Kajabi quizzes (multiple choice and checkboxes, pass mark, retakes), assessments vs quizzes, completion certificates at 100%. https://help.kajabi.com/en/articles/12695109-course-quizzes, https://help.kajabi.com/en/articles/12695432-differences-between-quizzes-and-assessments, https://help.kajabi.com/en/articles/17174484-course-completion-certificates, https://help.kajabi.com/hc/en-us/articles/360048709013 (checked 2026-11-12).
