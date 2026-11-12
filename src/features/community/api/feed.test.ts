@@ -50,7 +50,7 @@ describe('communityPage', () => {
     if (page?.kind !== 'open') throw new Error('expected open');
     expect(page.channels.map((c) => c.title)).toEqual(['General', 'Announcements', 'Lounge']);
     expect(page.channel.id).toBe(SEED_IDS.general);
-    expect(page.canPost).toBe(true);
+    expect(page.rules.post).toBe(true);
     expect(page.posts).toEqual([
       expect.objectContaining({
         body: 'hello',
@@ -66,9 +66,9 @@ describe('communityPage', () => {
     const student = await communityPage(repo, await as(SEED_IDS.student), 'community', SEED_IDS.announcements, NOW);
     const owner = await communityPage(repo, await as(SEED_IDS.alexanderOwner), 'community', SEED_IDS.announcements, NOW);
     if (student?.kind !== 'open' || owner?.kind !== 'open') throw new Error('expected open');
-    expect(student.canPost).toBe(false);
+    expect(student.rules.post).toBe(false);
     expect(student.posts.map((p) => [p.pinned, p.canDelete])).toEqual([[true, false]]);
-    expect(owner.canPost).toBe(true);
+    expect(owner.rules.post).toBe(true);
     expect(owner.posts[0]?.canDelete).toBe(true);
   });
 
@@ -84,6 +84,22 @@ describe('communityPage', () => {
     if (student?.kind !== 'open' || owner?.kind !== 'open') throw new Error('expected open');
     expect(student.posts).toEqual([]);
     expect(owner.posts.map((x) => x.hidden)).toEqual([true]);
+  });
+
+  it('channel moderators see hidden posts and delete in their channel; items flag the viewer\'s own', async () => {
+    const p = await post(SEED_IDS.general, SEED_IDS.alexanderOwner, 'spam');
+    await post(SEED_IDS.general, SEED_IDS.student, 'mine', 1);
+    await repo.updatePost(p.id, { hiddenAt: NOW });
+    await repo.setChannelModerator(SEED_IDS.general, SEED_IDS.student, true);
+    const page = await communityPage(repo, await as(SEED_IDS.student), 'community', SEED_IDS.general, NOW);
+    if (page?.kind !== 'open') throw new Error('expected open');
+    expect(page.rules).toMatchObject({ moderatePosts: true, moderateComments: true });
+    expect(page.posts.map((x) => [x.body, x.hidden, x.canDelete, x.mine])).toEqual([
+      ['spam', true, true, false],
+      ['mine', false, true, true],
+    ]);
+    const postView = await postPage(repo, await as(SEED_IDS.student), 'community', p.id, NOW);
+    expect(postView?.rules.moderatePosts).toBe(true);
   });
 });
 
@@ -126,7 +142,7 @@ describe('communityPage: groups, privacy and chat', () => {
     const owner = await communityPage(repo, await as(SEED_IDS.alexanderOwner), 'community', SEED_IDS.lounge, NOW);
     if (student?.kind !== 'open' || owner?.kind !== 'open') throw new Error('expected open');
     expect(student.posts).toEqual([]);
-    expect(student.canPost).toBe(true);
+    expect(student.rules.post).toBe(true);
     expect(student.messages.map((m) => [m.body, m.author.name, m.canDelete])).toEqual([
       ['Hello everyone, say hi here.', 'Alexander', false],
       ['hi!', 'Robin (student)', true],

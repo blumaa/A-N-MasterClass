@@ -43,10 +43,15 @@ const view = (over: Partial<StudioCommunity> = {}): StudioCommunity => ({
     { id: 'p2', name: 'Kim', staff: false },
   ],
   channelMembers: { w: ['p1'] },
+  channelModerators: { g: ['p2'], w: [] },
   staff: [{ profileId: 'a', name: 'Sam', role: 'assistant', ticked: true }],
   canManageStaff: true,
+  canModerate: true,
   ...over,
 });
+
+/** Channel rows only (rows hold nested member and moderator lists). */
+const channelRows = (): HTMLElement[] => [...screen.getByRole('list', { name: 'Channels' }).children] as HTMLElement[];
 
 describe('CommunityList', () => {
   it('links each community to its editor', () => {
@@ -59,7 +64,7 @@ describe('CommunityList', () => {
 describe('CommunityEditor', () => {
   it('shows each channel with move buttons only where it can move', () => {
     render(<CommunityEditor view={view()} />);
-    const rows = within(screen.getByRole('list', { name: 'Channels' })).getAllByRole('listitem');
+    const rows = channelRows();
     expect(within(rows[0]!).queryByRole('button', { name: 'Move up' })).toBeNull();
     expect(within(rows[0]!).getByRole('button', { name: 'Move down' })).toBeInTheDocument();
     expect(within(rows[1]!).getByRole('button', { name: 'Move up' })).toBeInTheDocument();
@@ -68,13 +73,29 @@ describe('CommunityEditor', () => {
 
   it('private channels pick members: picked ones can be removed, the rest added', () => {
     render(<CommunityEditor view={view()} />);
-    const rows = within(screen.getByRole('list', { name: 'Channels' })).getAllByRole('listitem');
+    const rows = channelRows();
     expect(within(rows[0]!).queryByRole('list', { name: 'Members of General' })).toBeNull();
     const picked = within(rows[1]!).getByRole('list', { name: 'Members of Wins' });
     expect(within(picked).getByText('Robin')).toBeInTheDocument();
     expect(within(picked).getByRole('button', { name: 'Remove' })).toBeInTheDocument();
-    expect(within(rows[1]!).getByRole('option', { name: 'Kim' })).toBeInTheDocument();
-    expect(within(rows[1]!).queryByRole('option', { name: 'Robin' })).toBeNull();
+    const invite = within(rows[1]!).getByRole('combobox', { name: 'Invite member' });
+    expect(within(invite).getAllByRole('option').map((o) => o.textContent)).toEqual(['Kim']);
+  });
+
+  it('picks channel moderators from those who read the channel; hidden without community.moderate', () => {
+    const { rerender } = render(<CommunityEditor view={view()} />);
+    const rows = channelRows();
+    const mods = within(rows[0]!).getByRole('list', { name: 'Moderators of General' });
+    expect(within(mods).getByText('Kim')).toBeInTheDocument();
+    expect(within(rows[0]!).getByRole('button', { name: 'Add moderator' })).toBeInTheDocument();
+    // Wins is private with Robin picked: only Robin can moderate it.
+    expect(within(rows[1]!).getByText('No moderators picked yet.')).toBeInTheDocument();
+    const pick = within(rows[1]!).getByRole('combobox', { name: 'Pick moderator' });
+    expect(within(pick).getAllByRole('option').map((o) => o.textContent)).toEqual(['Robin']);
+    expect(screen.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', '/studio/communities/c1/reports');
+    rerender(<CommunityEditor view={view({ canModerate: false })} />);
+    expect(screen.queryByText('No moderators picked yet.')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Reports' })).toBeNull();
   });
 
   it('lists access groups; only non-default groups can be deleted', () => {

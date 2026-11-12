@@ -9,13 +9,13 @@ import { PostCard } from './PostCard';
 type Props = { page: Extract<CommunityPage, { kind: 'open' }>; action: FormAction; signedIn: boolean };
 
 export function ChannelFeed({ page, action, signedIn }: Props) {
-  const { community, channel, canPost, posts, members, access } = page;
+  const { community, channel, rules, posts, members } = page;
   return (
     <Stack gap="loose">
       <Heading level={1} variant="title">
         {channel.title}
       </Heading>
-      {canPost ? (
+      {rules.post ? (
         <Composer
           action={action}
           fields={{ op: 'createPost', channelId: channel.id }}
@@ -37,7 +37,7 @@ export function ChannelFeed({ page, action, signedIn }: Props) {
             post={p}
             action={action}
             href={postHref(community.slug, p.id)}
-            moderate={access.moderatePosts}
+            moderate={rules.moderatePosts}
             signedIn={signedIn}
           />
         ))

@@ -43,6 +43,8 @@ import type {
   Product,
   Profile,
   Reaction,
+  Report,
+  ReportStatus,
   ReactionTarget,
   SiteNav,
   Space,
@@ -104,6 +106,8 @@ export type NewChannel = Pick<Channel, 'communityId' | 'accessGroupId' | 'title'
 export type ChannelPatch = Partial<Pick<Channel, 'title' | 'privacy' | 'readOnly'>>;
 export type NewMessage = Pick<Message, 'channelId' | 'threadId' | 'authorId' | 'body' | 'createdAt'>;
 export type MessageWhere = { channelId: string } | { threadId: string };
+export type NewReport = Pick<Report, 'targetType' | 'targetId' | 'reason' | 'createdAt'> & { reporterId: string };
+export type ReportResolution = { status: Exclude<ReportStatus, 'open'>; resolvedBy: string; resolvedAt: Date };
 export type NewPost = Pick<Post, 'channelId' | 'authorId' | 'body' | 'createdAt'>;
 export type PostPatch = Partial<Pick<Post, 'pinned' | 'hiddenAt'>>;
 export type NewComment = Pick<Comment, 'spaceId' | 'targetType' | 'targetId' | 'parentId' | 'authorId' | 'body' | 'createdAt'>;
@@ -277,6 +281,19 @@ export interface Repo {
   /** Profile ids invited to a private channel. */
   channelMembers(channelId: string): Promise<string[]>;
   setChannelMember(channelId: string, profileId: string, on: boolean): Promise<void>;
+
+  // moderation (G15): channel moderators (community members picked by staff) and reports
+  channelModerators(channelId: string): Promise<string[]>;
+  setChannelModerator(channelId: string, profileId: string, on: boolean): Promise<void>;
+  /** Newest first. */
+  reports(communityId: string): Promise<Report[]>;
+  report(id: string): Promise<Report | null>;
+  /** Once per reporter and target; reason null or 1..REPORT_REASON_MAX; target must exist (post, post comment, channel line). */
+  createReport(input: NewReport): Promise<void>;
+  /** Resolves the reports among ids that are still open. */
+  resolveReports(ids: readonly string[], resolution: ReportResolution): Promise<void>;
+  /** Report id -> reporter id. Empty unless the caller moderates the whole community (SQL: report_reporters). */
+  reportReporters(communityId: string): Promise<Record<string, string>>;
 
   /** The latest `limit` messages, returned oldest first. */
   messages(where: MessageWhere, limit: number): Promise<Message[]>;

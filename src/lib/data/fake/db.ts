@@ -52,6 +52,7 @@ import type {
   Step,
   StepProgress,
 } from '../types';
+import type { FakeReport } from './fakeModerationRepo';
 
 export type Db = {
   spaces: Space[];
@@ -80,6 +81,8 @@ export type Db = {
   accessGroups: AccessGroup[];
   channels: Channel[];
   channelMembers: ChannelMember[];
+  channelModerators: ChannelMember[];
+  reports: FakeReport[];
   messages: Message[];
   dmThreads: DmThread[];
   dmReads: DmRead[];
@@ -136,6 +139,8 @@ export const emptyDb = (): Db => ({
   accessGroups: [],
   channels: [],
   channelMembers: [],
+  channelModerators: [],
+  reports: [],
   messages: [],
   dmThreads: [],
   dmReads: [],

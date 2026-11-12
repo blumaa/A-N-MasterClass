@@ -1,5 +1,5 @@
 // Who may read and moderate a community (G13, G15), and which of its channels.
-// Mirrored in SQL by can_read_community() / can_read_channel().
+// Mirrored in SQL by can_read_community() / can_read_channel() / can_moderate_channel().
 // Members = active grant holders of a published community; each grant joins one access group
 // (null = the default group). Owner/admin reach every community; assistant/support only the
 // ones they are ticked for (space_member_communities). Staff read every channel.
@@ -71,19 +71,37 @@ export async function communityAccess(
   };
 }
 
-export type ChannelAccess = { read: boolean; post: boolean };
+export type ChannelAccess = {
+  read: boolean;
+  post: boolean;
+  /** Hide, delete, pin posts; delete chat lines. Staff with community.moderate, or a channel moderator. */
+  moderatePosts: boolean;
+  /** Hide and delete comments on posts. Staff with comments.moderate, or a channel moderator. */
+  moderateComments: boolean;
+};
 
-/** invited = the viewer is a member of the (private) channel. */
-const channelRule = (access: CommunityAccess, channel: Channel, invited: boolean): ChannelAccess => {
-  const read =
-    access.read &&
-    (access.staff || (access.groupIds.includes(channel.accessGroupId) && (channel.privacy === 'public' || invited)));
-  // Read-only: only moderators post (feed) or send (chat); members still comment and react.
-  return { read, post: read && (!channel.readOnly || access.moderatePosts) };
+const canRead = (access: CommunityAccess, channel: Channel, invited: boolean): boolean =>
+  access.read &&
+  (access.staff || (access.groupIds.includes(channel.accessGroupId) && (channel.privacy === 'public' || invited)));
+
+/** invited = member of the (private) channel; moderator = picked for it (G15). Mirrors can_moderate_channel(). */
+const channelRule = (access: CommunityAccess, channel: Channel, invited: boolean, moderator: boolean): ChannelAccess => {
+  const read = canRead(access, channel, invited);
+  const mod = read && moderator;
+  return {
+    read,
+    // Read-only: only staff moderators post (feed) or send (chat); members still comment and react.
+    post: read && (!channel.readOnly || access.moderatePosts),
+    moderatePosts: read && (access.moderatePosts || mod),
+    moderateComments: read && (access.moderateComments || mod),
+  };
 };
 
 const needsInvite = (access: CommunityAccess, channel: Channel): boolean =>
   access.read && !access.staff && channel.privacy === 'private';
+
+const isInvited = async (repo: Repo, access: CommunityAccess, channel: Channel, profileId: string) =>
+  needsInvite(access, channel) && (await repo.channelMembers(channel.id)).includes(profileId);
 
 export async function channelAccess(
   repo: Repo,
@@ -91,8 +109,10 @@ export async function channelAccess(
   channel: Channel,
   profileId: string,
 ): Promise<ChannelAccess> {
-  const invited = needsInvite(access, channel) && (await repo.channelMembers(channel.id)).includes(profileId);
-  return channelRule(access, channel, invited);
+  const invited = await isInvited(repo, access, channel, profileId);
+  const askModerator = canRead(access, channel, invited) && !(access.moderatePosts && access.moderateComments);
+  const moderator = askModerator && (await repo.channelModerators(channel.id)).includes(profileId);
+  return channelRule(access, channel, invited, moderator);
 }
 
 /** Channels the viewer reads, order kept. */
@@ -102,8 +122,30 @@ export async function readableChannels(
   channels: readonly Channel[],
   profileId: string,
 ): Promise<Channel[]> {
+  const read = await Promise.all(channels.map(async (c) => canRead(access, c, await isInvited(repo, access, c, profileId))));
+  return channels.filter((_, i) => read[i]);
+}
+
+/** Channels the viewer moderates posts in (staff: all readable; channel moderators: theirs). */
+export async function moderatedChannels(
+  repo: Repo,
+  access: CommunityAccess,
+  channels: readonly Channel[],
+  profileId: string,
+): Promise<Channel[]> {
   const rules = await Promise.all(channels.map((c) => channelAccess(repo, access, c, profileId)));
-  return channels.filter((_, i) => rules[i]?.read);
+  return channels.filter((_, i) => rules[i]!.moderatePosts);
+}
+
+export type ChannelScope = { channel: Channel; community: Product; access: CommunityAccess; rules: ChannelAccess };
+
+/** A channel of the viewer's space, with the viewer's rules there. Null when missing or foreign. */
+export async function channelScope(repo: Repo, viewer: Viewer, channelId: string, now: Date): Promise<ChannelScope | null> {
+  const channel = await repo.channel(channelId);
+  const community = channel ? await repo.product(channel.communityId) : null;
+  if (!channel || !community || community.spaceId !== viewer.space.id || !viewer.profile) return null;
+  const access = await communityAccess(repo, viewer, community, now);
+  return { channel, community, access, rules: await channelAccess(repo, access, channel, viewer.profile.id) };
 }
 
 /** A group-scoped item (challenge, meetup) is for staff and the members of its group. */

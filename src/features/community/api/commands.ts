@@ -7,7 +7,7 @@ import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import { REACTION_EMOJIS, type Comment, type Post, type Product, type ReactionEmoji } from '@/lib/data/types';
 import { mentionIdsFromBody } from '@/lib/mentions/parse';
-import { channelAccess, communityAccess, type CommunityAccess } from './access';
+import { channelScope as findChannel, type ChannelAccess } from './access';
 import { directory } from './feed';
 import { buildNotifications, type Candidate, type NotificationBase } from './notify';
 
@@ -32,27 +32,21 @@ type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date; gate: StepGate }
 
 /** Where a comment lives: a post of a community, or a step of a program. */
 type Scope =
-  | { kind: 'post'; post: Post; community: Product; access: CommunityAccess }
+  | { kind: 'post'; post: Post; community: Product; rules: ChannelAccess }
   | { kind: 'step'; stepId: string; moderate: boolean };
 
 type Found<T> = { ok: true; value: T } | { ok: false; result: CommandResult };
 const fail = <T>(result: CommandResult): Found<T> => ({ ok: false, result });
 
-async function channelScope(ctx: Ctx, channelId: string) {
-  const channel = await ctx.repo.channel(channelId);
-  const community = channel ? await ctx.repo.product(channel.communityId) : null;
-  if (!channel || !community || community.spaceId !== ctx.viewer.space.id) return null;
-  const access = await communityAccess(ctx.repo, ctx.viewer, community, ctx.now);
-  return { channel, community, access, rules: await channelAccess(ctx.repo, access, channel, ctx.me) };
-}
+const channelScope = (ctx: Ctx, channelId: string) => findChannel(ctx.repo, ctx.viewer, channelId, ctx.now);
 
 async function postScope(ctx: Ctx, postId: string): Promise<Found<Extract<Scope, { kind: 'post' }>>> {
   const post = await ctx.repo.post(postId);
   const found = post ? await channelScope(ctx, post.channelId) : null;
   if (!post || !found) return fail(NOT_FOUND);
   if (!found.rules.read) return fail(FORBIDDEN);
-  if (post.hiddenAt !== null && !found.access.moderatePosts) return fail(NOT_FOUND);
-  return { ok: true, value: { kind: 'post', post, community: found.community, access: found.access } };
+  if (post.hiddenAt !== null && !found.rules.moderatePosts) return fail(NOT_FOUND);
+  return { ok: true, value: { kind: 'post', post, community: found.community, rules: found.rules } };
 }
 
 async function targetScope(ctx: Ctx, type: 'post' | 'step', id: string): Promise<Found<Scope>> {
@@ -70,7 +64,7 @@ async function commentScope(ctx: Ctx, commentId: string): Promise<Found<{ commen
   return { ok: true, value: { comment, scope: scope.value } };
 }
 
-const moderatesComments = (scope: Scope): boolean => (scope.kind === 'post' ? scope.access.moderateComments : scope.moderate);
+const moderatesComments = (scope: Scope): boolean => (scope.kind === 'post' ? scope.rules.moderateComments : scope.moderate);
 
 const notificationBase = (ctx: Ctx, scope: Scope): NotificationBase => ({
   spaceId: ctx.viewer.space.id,
@@ -111,7 +105,7 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
       if (found.channel.kind !== 'feed') return { ok: false, error: 'invalid', message: 'Chat channels take messages.' };
       if (!found.rules.post) return FORBIDDEN;
       const post = await repo.createPost({ channelId: cmd.channelId, authorId: ctx.me, body: cmd.body, createdAt: ctx.now });
-      await notify(ctx, { kind: 'post', post, community: found.community, access: found.access }, mentions(cmd.body));
+      await notify(ctx, { kind: 'post', post, community: found.community, rules: found.rules }, mentions(cmd.body));
       return { ok: true, id: post.id };
     }
     case 'deletePost':
@@ -119,13 +113,13 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
     case 'pinPost': {
       const found = await postScope(ctx, cmd.postId);
       if (!found.ok) return found.result;
-      const { post, access } = found.value;
+      const { post, rules } = found.value;
       if (cmd.op === 'deletePost') {
-        if (!access.moderatePosts && post.authorId !== ctx.me) return FORBIDDEN;
+        if (!rules.moderatePosts && post.authorId !== ctx.me) return FORBIDDEN;
         await repo.deletePost(post.id);
         return OK;
       }
-      if (!access.moderatePosts) return FORBIDDEN;
+      if (!rules.moderatePosts) return FORBIDDEN;
       await repo.updatePost(post.id, cmd.op === 'pinPost' ? { pinned: cmd.pinned } : { hiddenAt: cmd.hidden ? ctx.now : null });
       return OK;
     }

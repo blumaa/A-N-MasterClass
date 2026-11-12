@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chatCommandFromForm, communityCommandFromForm, studioCommunityCommandFromForm } from './commandFromForm';
+import { chatCommandFromForm, communityCommandFromForm, reportCommandFromForm, studioCommunityCommandFromForm } from './commandFromForm';
 
 const form = (fields: Record<string, string>): FormData => {
   const f = new FormData();
@@ -99,6 +99,13 @@ describe('studioCommunityCommandFromForm', () => {
     });
   });
 
+  it('reads channel moderator picks', () => {
+    expect(studioCommunityCommandFromForm(form({ op: 'setChannelModerator', channelId: 'ch', profileId: 'p', on: 'false' }))).toEqual({
+      ok: true,
+      command: { op: 'setChannelModerator', channelId: 'ch', profileId: 'p', on: false },
+    });
+  });
+
   it('reads group feature toggles', () => {
     const f = form({ op: 'updateGroup', groupId: 'g', challenges: 'false', meetups: 'true', leaderboard: 'false' });
     expect(studioCommunityCommandFromForm(f)).toEqual({
@@ -133,5 +140,26 @@ describe('chatCommandFromForm', () => {
       ok: true,
       command: { op: 'block', communityId: 'c', profileId: 'p', on: true },
     });
+  });
+});
+
+describe('reportCommandFromForm', () => {
+  it('reads a report; blank reason is none', () => {
+    expect(reportCommandFromForm(form({ op: 'report', targetType: 'comment', targetId: 'c', reason: ' rude ' }))).toEqual({
+      ok: true,
+      command: { op: 'report', targetType: 'comment', targetId: 'c', reason: 'rude' },
+    });
+    expect(reportCommandFromForm(form({ op: 'report', targetType: 'message', targetId: 'm', reason: '' }))).toMatchObject({
+      command: { reason: null },
+    });
+    expect(reportCommandFromForm(form({ op: 'report', targetType: 'step', targetId: 's' }))).toMatchObject({ ok: false });
+  });
+
+  it('reads a resolution', () => {
+    expect(reportCommandFromForm(form({ op: 'resolveReport', reportId: 'r', action: 'remove' }))).toEqual({
+      ok: true,
+      command: { op: 'resolveReport', reportId: 'r', action: 'remove' },
+    });
+    expect(reportCommandFromForm(form({ op: 'resolveReport', reportId: 'r', action: 'ban' }))).toMatchObject({ ok: false });
   });
 });

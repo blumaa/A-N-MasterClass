@@ -29,7 +29,7 @@ export async function ChannelPage({ space, community, channelId }: { space: stri
   return (
     <CommunityFrame community={page.community} channels={page.channels} activeId={page.channel.id} extras={nav}>
       {page.channel.kind === 'chat' ? (
-        <ChannelChat page={page} action={chatAction} />
+        <ChannelChat page={page} action={chatAction} signedIn={viewer.profile !== null} />
       ) : (
         <ChannelFeed page={page} action={communityAction} signedIn={viewer.profile !== null} />
       )}

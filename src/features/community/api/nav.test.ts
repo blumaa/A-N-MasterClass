@@ -33,9 +33,16 @@ describe('communityNav', () => {
       challenges: true,
       meetups: true,
       leaderboard: true,
+      reports: true,
     });
     await repo.saveCommunitySettings({ communityId: SEED_IDS.community, ...DEFAULT_COMMUNITY_SETTINGS, dmsEnabled: false, leaderboard: 'off' });
     expect(await nav(SEED_IDS.alexanderOwner)).toMatchObject({ dms: null, leaderboard: false });
+  });
+
+  it('shows Reports to moderators of any channel only', async () => {
+    expect(await nav(SEED_IDS.student)).toMatchObject({ reports: false });
+    await repo.setChannelModerator(SEED_IDS.lounge, SEED_IDS.student, true);
+    expect(await nav(SEED_IDS.student)).toMatchObject({ reports: true });
   });
 
   it('follows the member group toggles', async () => {

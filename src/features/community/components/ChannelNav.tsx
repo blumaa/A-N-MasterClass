@@ -1,13 +1,13 @@
 // Channel list of one community (side nav): chat, private and read-only channels are labelled;
 // Messages (with unread count) when the viewer has DMs, then Members, Challenges, Meetups and
-// Leaderboard as the viewer's access groups switch them on.
+// Leaderboard as the viewer's access groups switch them on, and Reports for moderators.
 import { NavLink } from '@/components/ui/links';
 import { SideNav } from '@/components/ui/mds';
 import type { Channel } from '@/lib/data/types';
 import type { CommunityNav } from '../api/nav';
-import { challengesHref, channelHref, leaderboardHref, meetupsHref, membersHref, messagesHref } from '../paths';
+import { challengesHref, channelHref, leaderboardHref, meetupsHref, membersHref, messagesHref, reportsHref } from '../paths';
 
-/** A channel id, or 'members' / 'messages' / 'challenges' / 'meetups' / 'leaderboard'. */
+/** A channel id, or 'members' / 'messages' / 'challenges' / 'meetups' / 'leaderboard' / 'reports'. */
 type Props = { community: string; title: string; channels: Channel[]; activeId: string; extras: CommunityNav };
 
 export const channelLabel = (c: Channel): string => {
@@ -32,6 +32,7 @@ export function ChannelNav({ community, title, channels, activeId, extras }: Pro
       {extras.leaderboard ? (
         <NavLink href={leaderboardHref(community)} label="Leaderboard" active={activeId === 'leaderboard'} />
       ) : null}
+      {extras.reports ? <NavLink href={reportsHref(community)} label="Reports" active={activeId === 'reports'} /> : null}
     </SideNav>
   );
 }

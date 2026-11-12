@@ -27,6 +27,9 @@ describe('toDataError', () => {
     ['23514', 'new row for relation "posts" violates check constraint "posts_body_check"', /^body must be 1\.\.10000 chars$/],
     ['23P01', 'conflicting key value violates exclusion constraint "coaching_sessions_no_overlap"', /^overlaps another session$/],
     ['23514', 'new row for relation "modules" violates check constraint "modules_title_check"', /^title required$/],
+    ['23505', 'duplicate key value violates unique constraint "reports_once"', /^already reported$/],
+    ['23514', 'new row for relation "reports" violates check constraint "reports_reason"', /^reason must be 1\.\.500 chars$/],
+    ['23503', 'new row for relation "reports" violates constraint "reports_target_missing"', /^content not found$/],
   ])('gives %s on %s the same text as the fake repo', (code, message, expected) => {
     expect(toDataError(pg(code, message)).message).toMatch(expected);
   });

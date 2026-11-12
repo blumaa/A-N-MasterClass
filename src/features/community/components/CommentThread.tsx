@@ -8,6 +8,7 @@ import type { CommentItem, CommentNode } from '../api/present';
 import { Composer } from './Composer';
 import { MentionBody } from './MentionBody';
 import { ReactionBar } from './ReactionBar';
+import { ReportForm } from './ReportForm';
 import styles from './community.module.css';
 
 type Props = {
@@ -21,7 +22,7 @@ type Props = {
 
 type ItemProps = Omit<Props, 'comments' | 'target'> & { comment: CommentItem; target: Props['target'] };
 
-function Comment({ comment, action, moderate, canComment }: ItemProps) {
+function Comment({ comment, action, moderate, canComment, target }: ItemProps) {
   const id = { commentId: comment.id };
   return (
     <Stack gap="tight">
@@ -41,6 +42,8 @@ function Comment({ comment, action, moderate, canComment }: ItemProps) {
         {comment.canDelete ? (
           <ActionForm action={action} inline variant="ghost" submit="Delete" confirm="Delete this comment?" fields={{ op: 'deleteComment', ...id }} />
         ) : null}
+        {/* Only comments on posts are reportable (lesson comments have no channel). */}
+        {target.type === 'post' && canComment && !comment.mine ? <ReportForm targetType="comment" targetId={comment.id} /> : null}
       </Inline>
     </Stack>
   );

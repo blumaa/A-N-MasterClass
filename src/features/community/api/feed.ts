@@ -6,7 +6,7 @@ import { spaceNames } from '@/lib/data/names';
 import type { Repo } from '@/lib/data/repo';
 import type { Channel, Post, Product } from '@/lib/data/types';
 import type { MentionOption } from '@/lib/mentions/markup';
-import { channelAccess, communityAccess, readableChannels, type CommunityAccess } from './access';
+import { channelAccess, communityAccess, readableChannels, type ChannelAccess, type CommunityAccess } from './access';
 import {
   authorOf,
   buildThread,
@@ -30,6 +30,8 @@ export type PostItem = {
   reactions: ReactionCount[];
   commentCount: number;
   canDelete: boolean;
+  /** Written by the viewer (others may report it). */
+  mine: boolean;
 };
 
 export type DirectoryEntry = { id: string; name: string; staff: boolean };
@@ -42,8 +44,8 @@ export type CommunityPage =
       access: CommunityAccess;
       channels: Channel[];
       channel: Channel;
-      /** Post in a feed channel, send in a chat channel. */
-      canPost: boolean;
+      /** The viewer's rules in this channel (post = post in a feed, send in a chat). */
+      rules: ChannelAccess;
       /** Feed channels only. */
       posts: PostItem[];
       /** Chat channels only: the latest CHAT_LIMIT lines, oldest first. */
@@ -57,6 +59,7 @@ export type PostPage = {
   /** Channels the viewer reads (side nav). */
   channels: Channel[];
   channel: Channel;
+  rules: ChannelAccess;
   post: PostItem;
   comments: CommentNode[];
   members: MentionOption[];
@@ -72,8 +75,8 @@ export async function loadCommunity(repo: Repo, viewer: Viewer, slug: string, no
   return { community, access };
 }
 
-async function postItems(repo: Repo, viewer: Viewer, posts: readonly Post[], access: CommunityAccess): Promise<PostItem[]> {
-  const visible = access.moderatePosts ? posts : posts.filter((p) => p.hiddenAt === null);
+async function postItems(repo: Repo, viewer: Viewer, posts: readonly Post[], rules: ChannelAccess): Promise<PostItem[]> {
+  const visible = rules.moderatePosts ? posts : posts.filter((p) => p.hiddenAt === null);
   const ids = visible.map((p) => p.id);
   const [who, reactions, comments] = await Promise.all([
     spaceNames(repo, viewer.space.id),
@@ -90,8 +93,9 @@ async function postItems(repo: Repo, viewer: Viewer, posts: readonly Post[], acc
     pinned: p.pinned,
     hidden: p.hiddenAt !== null,
     reactions: reactionCounts(reactions, p.id, me),
-    commentCount: comments.filter((c) => c.targetId === p.id && (access.moderateComments || c.hiddenAt === null)).length,
-    canDelete: access.moderatePosts || p.authorId === me,
+    commentCount: comments.filter((c) => c.targetId === p.id && (rules.moderateComments || c.hiddenAt === null)).length,
+    canDelete: rules.moderatePosts || p.authorId === me,
+    mine: p.authorId === me,
   }));
 }
 
@@ -113,10 +117,10 @@ export async function communityPage(
   const channel = channelId === null ? channels[0] : channels.find((c) => c.id === channelId);
   if (!channel) return null;
   const isChat = channel.kind === 'chat';
-  const [rules, posts, messages, members] = await Promise.all([
-    channelAccess(repo, access, channel, me),
-    isChat ? [] : repo.posts(channel.id).then((rows) => postItems(repo, viewer, rows, access)),
-    isChat ? chatLines(repo, viewer, { channelId: channel.id }, access.moderatePosts) : [],
+  const rules = await channelAccess(repo, access, channel, me);
+  const [posts, messages, members] = await Promise.all([
+    isChat ? [] : repo.posts(channel.id).then((rows) => postItems(repo, viewer, rows, rules)),
+    isChat ? chatLines(repo, viewer, { channelId: channel.id }, rules.moderatePosts) : [],
     directory(repo, community, now),
   ]);
   return {
@@ -125,7 +129,7 @@ export async function communityPage(
     access,
     channels,
     channel,
-    canPost: rules.post,
+    rules,
     posts,
     messages,
     members: mentionOptions(members),
@@ -148,16 +152,16 @@ export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId:
   if (!found?.access.read) return null;
   const { community, access } = found;
   const row = await repo.post(postId);
-  if (!row || (row.hiddenAt !== null && !access.moderatePosts)) return null;
-  const channel = await repo.channel(row.channelId);
-  if (!channel || channel.communityId !== community.id) return null;
+  const channel = row ? await repo.channel(row.channelId) : null;
+  if (!row || !channel || channel.communityId !== community.id) return null;
   const me = viewer.profile!.id;
-  if (!(await channelAccess(repo, access, channel, me)).read) return null;
+  const rules = await channelAccess(repo, access, channel, me);
+  if (!rules.read || (row.hiddenAt !== null && !rules.moderatePosts)) return null;
   const commentsWithReactions = repo
     .comments('post', [row.id])
     .then(async (cs) => ({ cs, reactions: await repo.reactions('comment', cs.map((c) => c.id)) }));
   const [[post], { cs: comments, reactions }, who, members, channels] = await Promise.all([
-    postItems(repo, viewer, [row], access),
+    postItems(repo, viewer, [row], rules),
     commentsWithReactions,
     spaceNames(repo, viewer.space.id),
     directory(repo, community, now),
@@ -168,8 +172,9 @@ export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId:
     access,
     channels,
     channel,
+    rules,
     post: post!,
-    comments: buildThread(comments, reactions, who, viewer.profile?.id ?? null, access.moderateComments),
+    comments: buildThread(comments, reactions, who, viewer.profile?.id ?? null, rules.moderateComments),
     members: mentionOptions(members),
   };
 }

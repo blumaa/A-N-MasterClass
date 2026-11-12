@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/format/date';
 import type { PostItem } from '../api/feed';
 import { MentionBody } from './MentionBody';
 import { ReactionBar } from './ReactionBar';
+import { ReportForm } from './ReportForm';
 
 type Props = {
   post: PostItem;
@@ -57,6 +58,7 @@ export function PostCard({ post, action, href, moderate, signedIn, afterDelete }
                 fields={{ op: 'deletePost', ...id, ...(afterDelete ? { redirectTo: afterDelete } : {}) }}
               />
             ) : null}
+            {signedIn && !post.mine ? <ReportForm targetType="post" targetId={post.id} /> : null}
           </Inline>
         </Stack>
       </CardBody>

@@ -3,6 +3,7 @@ import type { LeaderboardPeriod } from './api/points';
 export const communityHref = (community: string): string => `/community/${community}`;
 export const channelHref = (community: string, channel: string): string => `/community/${community}/channels/${channel}`;
 export const postHref = (community: string, post: string): string => `/community/${community}/posts/${post}`;
+export const reportsHref = (community: string): string => `/community/${community}/reports`;
 export const membersHref = (community: string): string => `/community/${community}/members`;
 export const notificationsHref = '/notifications';
 export const studioCommunitiesHref = '/studio/communities';
@@ -20,3 +21,4 @@ export const meetupIcsHref = (community: string, meetup: string): string => `${m
 export const leaderboardHref = (community: string, period?: LeaderboardPeriod): string =>
   `/community/${community}/leaderboard${period && period !== 'all' ? `?period=${period}` : ''}`;
 export const studioEventsHref = (community: string): string => `${studioCommunityHref(community)}/events`;
+export const studioReportsHref = (community: string): string => `${studioCommunityHref(community)}/reports`;

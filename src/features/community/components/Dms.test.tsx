@@ -6,6 +6,7 @@ import { DmThread } from './DmThread';
 import { MemberList } from './MemberList';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
 
 const action = vi.fn();
 const AT = new Date('2026-11-10T12:00:00Z');
@@ -32,7 +33,7 @@ describe('DmThread', () => {
   const page = (over: Partial<DmThreadPage> = {}): DmThreadPage => ({
     threadId: 't1',
     other: { id: 'p1', name: 'Robin' },
-    messages: [{ id: 'm1', body: 'hi there', author: { id: 'p1', name: 'Robin' }, createdAt: AT, canDelete: false }],
+    messages: [{ id: 'm1', body: 'hi there', author: { id: 'p1', name: 'Robin' }, createdAt: AT, canDelete: false, mine: false }],
     canSend: true,
     blocking: false,
     ...over,

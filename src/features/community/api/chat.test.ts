@@ -49,6 +49,14 @@ describe('chat channel messages', () => {
     expect((await run(SEED_IDS.alexanderOwner, { op: 'deleteMessage', messageId: 'msg-hello' })).ok).toBe(true);
     expect(repo.db.messages).toEqual([]);
   });
+
+  it('a channel moderator deletes any line in their channel only', async () => {
+    await repo.setChannelModerator(SEED_IDS.lounge, SEED_IDS.student, true);
+    expect((await run(SEED_IDS.student, { op: 'deleteMessage', messageId: 'msg-hello' })).ok).toBe(true);
+    await repo.setChannelModerator(SEED_IDS.lounge, SEED_IDS.student, false);
+    const other = createdId(await run(SEED_IDS.alexanderOwner, { op: 'sendMessage', channelId: SEED_IDS.lounge, body: 'x' }));
+    expect(await run(SEED_IDS.student, { op: 'deleteMessage', messageId: other })).toEqual(FORBIDDEN);
+  });
 });
 
 describe('direct messages', () => {

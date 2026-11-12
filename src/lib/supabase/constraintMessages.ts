@@ -1,8 +1,16 @@
 // Postgres constraint name -> the text the fake repo throws for the same rule (src/lib/data/fake).
 // Features show ConstraintError.message or match it (e.g. checkout/api/offers.ts), so both data
 // sources must say the same thing. Names: supabase/migrations. Unknown names keep Postgres' text.
-import { ALREADY_MEMBER, HOST_TAKEN, ONE_PRIMARY_DOMAIN, SESSION_OVERLAP, SLUG_RESERVED } from '@/lib/data/errors';
-import { bodyRangeMessage, COMMENT_MAX, ENTRY_MAX, MESSAGE_MAX, POST_MAX } from '@/lib/data/limits';
+import {
+  ALREADY_MEMBER,
+  ALREADY_REPORTED,
+  HOST_TAKEN,
+  ONE_PRIMARY_DOMAIN,
+  REPORT_TARGET_MISSING,
+  SESSION_OVERLAP,
+  SLUG_RESERVED,
+} from '@/lib/data/errors';
+import { bodyRangeMessage, COMMENT_MAX, ENTRY_MAX, MESSAGE_MAX, POST_MAX, REPORT_REASON_RANGE } from '@/lib/data/limits';
 
 const SLUG_TAKEN = 'slug taken';
 const INVALID_SLUG = 'invalid slug';
@@ -51,6 +59,10 @@ const BY_NAME: Readonly<Record<string, string>> = {
   coaching_sessions_range: END_AFTER_START,
   meetups_window: END_AFTER_START,
   challenges_window: END_AFTER_START,
+  reports_once: ALREADY_REPORTED,
+  reports_reason: REPORT_REASON_RANGE,
+  // Raised by the reports_target trigger: no post, post comment or channel line with that id.
+  reports_target_missing: REPORT_TARGET_MISSING,
 };
 
 const TITLE_CHECK = /_title(_check)?$/;

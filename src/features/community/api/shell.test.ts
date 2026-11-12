@@ -26,7 +26,7 @@ describe('communityShell', () => {
     const shell = await communityShell(repo, await viewer(SEED_IDS.student), 'community', NOW);
     expect(shell?.community.id).toBe(SEED_IDS.community);
     expect(shell?.channels.map((c) => c.title)).not.toContain('Secret');
-    expect(shell?.nav).toEqual({ directory: true, dms: { unread: 0 }, challenges: true, meetups: true, leaderboard: true });
+    expect(shell?.nav).toEqual({ directory: true, dms: { unread: 0 }, challenges: true, meetups: true, leaderboard: true, reports: false });
   });
 
   it('is null for visitors without access and unknown slugs', async () => {

@@ -10,6 +10,14 @@ describe('ActionForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('got p1');
   });
 
+  it('shows a success message as status, not alert', async () => {
+    const action = vi.fn(async () => ({ message: 'Thanks', ok: true as const }));
+    render(<ActionForm action={action} fields={{}} submit="Send" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Thanks');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('does not submit when confirm is declined', async () => {
     const action = vi.fn(async () => null);
     vi.spyOn(window, 'confirm').mockReturnValue(false);

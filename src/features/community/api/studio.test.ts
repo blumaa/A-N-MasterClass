@@ -112,6 +112,21 @@ describe('editCommunity', () => {
     expect(view?.channelMembers).toEqual({ [SEED_IDS.general]: [SEED_IDS.student] });
   });
 
+  it('picks trusted members as channel moderators; staff with community.moderate only', async () => {
+    const pick = { op: 'setChannelModerator', channelId: SEED_IDS.general, profileId: SEED_IDS.student, on: true } as const;
+    expect(await run(SEED_IDS.student, pick)).toEqual({ ok: false, error: 'forbidden' });
+    expect((await run(OWNER, pick)).ok).toBe(true);
+    expect(await repo.channelModerators(SEED_IDS.general)).toEqual([SEED_IDS.student]);
+    expect(await run(OWNER, { ...pick, profileId: OWNER })).toMatchObject({ error: 'invalid' });
+    expect(await run(OWNER, { ...pick, profileId: SEED_IDS.natashaOwner })).toMatchObject({ error: 'invalid' });
+    const view = await studioCommunity(repo, await as(OWNER), SEED_IDS.community, NOW);
+    expect(view?.channelModerators[SEED_IDS.general]).toEqual([SEED_IDS.student]);
+    expect(view?.channelModerators[SEED_IDS.lounge]).toEqual([]);
+    expect(view?.canModerate).toBe(true);
+    expect((await run(OWNER, { ...pick, on: false })).ok).toBe(true);
+    expect(await repo.channelModerators(SEED_IDS.general)).toEqual([]);
+  });
+
   it('merges settings patches, point values per reason', async () => {
     const save = (patch: CommunitySettingsPatch) => run(OWNER, { op: 'saveSettings', communityId: SEED_IDS.community, patch });
     expect((await save({ dmsEnabled: false })).ok).toBe(true);

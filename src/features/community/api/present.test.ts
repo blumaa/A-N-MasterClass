@@ -46,7 +46,7 @@ describe('buildThread', () => {
     const thread = buildThread(rows, [], names, 'u1', false);
     expect(thread.map((n) => [n.id, n.replies.map((r) => r.id)])).toEqual([['a', ['a1']]]);
     expect(thread[0]?.author).toEqual({ id: 'u1', name: 'Robin' });
-    expect(thread[0]?.canDelete).toBe(true);
+    expect(thread[0]).toMatchObject({ canDelete: true, mine: true });
     expect(thread[0]?.replies[0]).toMatchObject({ author: { name: 'Member' }, canDelete: false });
   });
 

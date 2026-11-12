@@ -6,18 +6,18 @@ import { Composer } from './Composer';
 import { LiveRefresh } from './LiveRefresh';
 import { MessageList } from './MessageList';
 
-type Props = { page: Extract<CommunityPage, { kind: 'open' }>; action: FormAction };
+type Props = { page: Extract<CommunityPage, { kind: 'open' }>; action: FormAction; signedIn: boolean };
 
-export function ChannelChat({ page, action }: Props) {
-  const { channel, canPost, messages, members } = page;
+export function ChannelChat({ page, action, signedIn }: Props) {
+  const { channel, rules, messages, members } = page;
   return (
     <Stack gap="loose">
       <LiveRefresh />
       <Heading level={1} variant="title">
         {channel.title}
       </Heading>
-      <MessageList messages={messages} action={action} />
-      {canPost ? (
+      <MessageList messages={messages} action={action} report={signedIn} />
+      {rules.post ? (
         <Composer
           action={action}
           fields={{ op: 'sendMessage', channelId: channel.id }}

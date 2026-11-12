@@ -30,8 +30,12 @@ export type StudioCommunity = {
   members: DirectoryEntry[];
   /** Picked members per private channel. */
   channelMembers: Record<string, string[]>;
+  /** Picked moderators per channel (trusted members, G15). */
+  channelModerators: Record<string, string[]>;
   staff: StaffTick[];
   canManageStaff: boolean;
+  /** community.moderate: picks channel moderators, works the reports queue. */
+  canModerate: boolean;
 };
 
 const tickable = (role: Role): boolean => !ALWAYS_REACH.includes(role);
@@ -69,7 +73,10 @@ export async function studioCommunity(
     directory(repo, community, now),
   ]);
   const privates = channels.filter((c) => c.privacy === 'private');
-  const picked = await Promise.all(privates.map((c) => repo.channelMembers(c.id)));
+  const [picked, moderators] = await Promise.all([
+    Promise.all(privates.map((c) => repo.channelMembers(c.id))),
+    Promise.all(channels.map((c) => repo.channelModerators(c.id))),
+  ]);
   return {
     community,
     channels,
@@ -77,6 +84,7 @@ export async function studioCommunity(
     settings,
     members: people,
     channelMembers: Object.fromEntries(privates.map((c, i) => [c.id, picked[i] ?? []])),
+    channelModerators: Object.fromEntries(channels.map((c, i) => [c.id, moderators[i] ?? []])),
     staff: members
       .filter((m) => tickable(m.role))
       .map((m) => ({
@@ -86,6 +94,7 @@ export async function studioCommunity(
         ticked: ticked.includes(m.profileId),
       })),
     canManageStaff: viewerCan(viewer, 'staff.manage'),
+    canModerate: viewerCan(viewer, 'community.moderate'),
   };
 }
 
@@ -106,6 +115,7 @@ export type StudioCommunityCommand =
   | { op: 'deleteChannel'; channelId: string }
   | { op: 'moveChannel'; channelId: string; direction: Direction }
   | { op: 'setChannelMember'; channelId: string; profileId: string; on: boolean }
+  | { op: 'setChannelModerator'; channelId: string; profileId: string; on: boolean }
   | { op: 'createGroup'; communityId: string; title: string }
   | { op: 'updateGroup'; groupId: string; patch: AccessGroupPatch }
   | { op: 'deleteGroup'; groupId: string }
@@ -134,6 +144,7 @@ const targetOf = (repo: Repo, c: StudioCommunityCommand): Promise<string | null>
     case 'deleteChannel':
     case 'moveChannel':
     case 'setChannelMember':
+    case 'setChannelModerator':
       return communityOfChannel(repo, c.channelId);
     case 'updateGroup':
     case 'deleteGroup':
@@ -162,6 +173,17 @@ async function setChannelMember(repo: Repo, c: Extract<StudioCommunityCommand, {
     throw new ConstraintError('not a member of this community');
   }
   await repo.setChannelMember(c.channelId, c.profileId, c.on);
+}
+
+/** Staff already moderate every channel; picks are trusted members (G15). */
+async function setChannelModerator(repo: Repo, c: Extract<StudioCommunityCommand, { op: 'setChannelModerator' }>, now: Date) {
+  const channel = await repo.channel(c.channelId);
+  const community = channel && (await repo.product(channel.communityId));
+  if (!channel || !community) throw new ConstraintError('channel not found');
+  if (c.on && !(await directory(repo, community, now)).some((m) => m.id === c.profileId && !m.staff)) {
+    throw new ConstraintError('pick a member of this community who is not staff');
+  }
+  await repo.setChannelModerator(c.channelId, c.profileId, c.on);
 }
 
 type Ctx = { repo: Repo; viewer: Viewer; me: string; now: Date };
@@ -214,6 +236,8 @@ async function run({ repo, viewer, me, now }: Ctx, c: StudioCommunityCommand): P
       return void (await repo.move('channels', c.channelId, c.direction));
     case 'setChannelMember':
       return void (await setChannelMember(repo, c, now));
+    case 'setChannelModerator':
+      return void (await setChannelModerator(repo, c, now));
     case 'createGroup':
       return (await repo.createAccessGroup({ communityId: c.communityId, title: c.title })).id;
     case 'updateGroup':
@@ -239,6 +263,7 @@ export async function editCommunity(
 ): Promise<CommandResult> {
   if (!viewer.profile || !viewerCan(viewer, 'products.edit')) return FORBIDDEN;
   if (c.op === 'setStaff' && !viewerCan(viewer, 'staff.manage')) return FORBIDDEN;
+  if (c.op === 'setChannelModerator' && !viewerCan(viewer, 'community.moderate')) return FORBIDDEN;
   const pending = targetOf(repo, c);
   if (pending) {
     const communityId = await pending;

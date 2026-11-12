@@ -14,11 +14,13 @@ export type CommentItem = {
   hidden: boolean;
   reactions: ReactionCount[];
   canDelete: boolean;
+  /** Written by the viewer (others may report it). */
+  mine: boolean;
 };
 export type CommentNode = CommentItem & { replies: CommentItem[] };
 
 /** A chat line in a chat channel or a DM thread. */
-export type MessageItem = { id: string; body: string; author: Author; createdAt: Date; canDelete: boolean };
+export type MessageItem = { id: string; body: string; author: Author; createdAt: Date; canDelete: boolean; mine: boolean };
 
 /** Chat and DM views load the latest messages only, oldest first. */
 export const CHAT_LIMIT = 100;
@@ -63,6 +65,7 @@ export function buildThread(
     hidden: c.hiddenAt !== null,
     reactions: reactionCounts(reactions, c.id, me),
     canDelete: moderate || c.authorId === me,
+    mine: c.authorId === me,
   });
   const visible = visibleComments(rows, moderate);
   return visible
@@ -78,4 +81,5 @@ export const messageItems = (rows: readonly Message[], names: Names, me: string 
     author: authorOf(names, m.authorId),
     createdAt: m.createdAt,
     canDelete: moderate || m.authorId === me,
+    mine: m.authorId === me,
   }));

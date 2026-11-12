@@ -1,4 +1,5 @@
-// Studio > community > channels: add, rename, privacy, read-only, members of private channels, reorder, delete.
+// Studio > community > channels: add, rename, privacy, read-only, members of private channels,
+// channel moderators (G15), reorder, delete.
 import { Badge, Field, Heading, Input, Select, Stack, Text } from '@/components/ui/mds';
 import { CHANNEL_KINDS, CHANNEL_PRIVACIES, type AccessGroup, type Channel } from '@/lib/data/types';
 import type { DirectoryEntry } from '../api/feed';
@@ -7,19 +8,28 @@ import { ChoiceSelect, YesNoSelect } from '@/components/fields/fields';
 import { KIND_LABELS, PRIVACY_LABELS } from './labels';
 import styles from './community.module.css';
 
-type MemberPickerProps = { channel: Channel; members: readonly DirectoryEntry[]; picked: readonly string[] };
+type PickerKind = 'members' | 'moderators';
 
-function MemberPicker({ channel, members, picked }: MemberPickerProps) {
+const PICKERS = {
+  members: { op: 'setChannelMember', list: 'Members of', empty: 'No members invited yet.', field: 'Invite member', add: 'Add member' },
+  moderators: { op: 'setChannelModerator', list: 'Moderators of', empty: 'No moderators picked yet.', field: 'Pick moderator', add: 'Add moderator' },
+} as const;
+
+type PickerProps = { kind: PickerKind; channel: Channel; candidates: readonly DirectoryEntry[]; picked: readonly string[] };
+
+/** Picked people of one channel (private members or moderators), from non-staff candidates. */
+function Picker({ kind, channel, candidates, picked }: PickerProps) {
+  const text = PICKERS[kind];
   const ids = new Set(picked);
-  const inside = members.filter((m) => ids.has(m.id));
-  const outside = members.filter((m) => !ids.has(m.id) && !m.staff);
-  const base = { op: 'setChannelMember', channelId: channel.id };
+  const inside = candidates.filter((m) => ids.has(m.id));
+  const outside = candidates.filter((m) => !ids.has(m.id) && !m.staff);
+  const base = { op: text.op, channelId: channel.id };
   return (
     <Stack gap="tight">
       {inside.length === 0 ? (
-        <Text tone="muted">No members invited yet.</Text>
+        <Text tone="muted">{text.empty}</Text>
       ) : (
-        <ul aria-label={`Members of ${channel.title}`} className={styles.rows}>
+        <ul aria-label={`${text.list} ${channel.title}`} className={styles.rows}>
           {inside.map((m) => (
             <li key={m.id} className={styles.channelRow}>
               <Text>{m.name}</Text>
@@ -29,8 +39,8 @@ function MemberPicker({ channel, members, picked }: MemberPickerProps) {
         </ul>
       )}
       {outside.length === 0 ? null : (
-        <CommunityForm inline fields={{ ...base, on: 'true' }} submit="Add member">
-          <Field label="Invite member">
+        <CommunityForm inline fields={{ ...base, on: 'true' }} submit={text.add}>
+          <Field label={text.field}>
             <Select name="profileId">
               {outside.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -52,9 +62,14 @@ type RowProps = {
   last: boolean;
   members: readonly DirectoryEntry[];
   picked: readonly string[];
+  /** Null when the viewer may not pick moderators. */
+  moderators: readonly string[] | null;
 };
 
-function ChannelRow({ channel, group, first, last, members, picked }: RowProps) {
+function ChannelRow({ channel, group, first, last, members, picked, moderators }: RowProps) {
+  const isPrivate = channel.privacy === 'private';
+  // A moderator must read the channel: in a private one, only its picked members.
+  const readers = isPrivate ? members.filter((m) => picked.includes(m.id)) : members;
   const id = { channelId: channel.id };
   return (
     <li className={styles.channelRow}>
@@ -70,7 +85,8 @@ function ChannelRow({ channel, group, first, last, members, picked }: RowProps) 
           <ChoiceSelect name="privacy" label="Who sees it" value={channel.privacy} options={CHANNEL_PRIVACIES} labels={PRIVACY_LABELS} />
           <YesNoSelect name="readOnly" label="Who can write" value={channel.readOnly} yes="Staff only" no="All who see it" />
         </CommunityForm>
-        {channel.privacy === 'private' ? <MemberPicker channel={channel} members={members} picked={picked} /> : null}
+        {isPrivate ? <Picker kind="members" channel={channel} candidates={members} picked={picked} /> : null}
+        {moderators ? <Picker kind="moderators" channel={channel} candidates={readers} picked={moderators} /> : null}
       </Stack>
       <div className={styles.rowActions}>
         {first ? null : <CommunityForm inline variant="ghost" submit="Move up" fields={{ op: 'moveChannel', ...id, direction: 'up' }} />}
@@ -93,9 +109,11 @@ type Props = {
   groups: readonly AccessGroup[];
   members: readonly DirectoryEntry[];
   channelMembers: Readonly<Record<string, string[]>>;
+  /** Null when the viewer may not pick moderators. */
+  channelModerators: Readonly<Record<string, string[]>> | null;
 };
 
-export function ChannelEditor({ communityId, channels, groups, members, channelMembers }: Props) {
+export function ChannelEditor({ communityId, channels, groups, members, channelMembers, channelModerators }: Props) {
   const groupTitle = new Map(groups.map((g) => [g.id, g.title]));
   return (
     <Stack gap="base">
@@ -112,6 +130,7 @@ export function ChannelEditor({ communityId, channels, groups, members, channelM
             last={i === channels.length - 1}
             members={members}
             picked={channelMembers[c.id] ?? []}
+            moderators={channelModerators ? (channelModerators[c.id] ?? []) : null}
           />
         ))}
       </ul>

@@ -1,6 +1,6 @@
 // Community forms -> commands. Member forms (posts, comments, reactions), chat forms (messages,
-// DMs, blocks) and Studio forms (communities, channels, groups, settings, staff ticks) each post
-// `op` plus their fields. Shared readers live in lib/forms/commands.
+// DMs, blocks), report forms and Studio forms (communities, channels, groups, settings, staff
+// ticks, moderators) each post `op` plus their fields. Shared readers live in lib/forms/commands.
 import type { Direction } from '@/lib/data/repo';
 import {
   CHANNEL_KINDS,
@@ -9,6 +9,7 @@ import {
   LEADERBOARD_VISIBILITIES,
   POINT_REASONS,
   POINT_VALUE_MAX,
+  REPORT_TARGETS,
   type GroupFeature,
   type PointReason,
 } from '@/lib/data/types';
@@ -16,6 +17,7 @@ import { body, field, flag, titleAndSlug, parser, productPatch } from '@/lib/for
 import { FormError, type FormReader as Reader } from '@/lib/forms/formReader';
 import type { ChatCommand } from './api/chat';
 import type { CommunityCommand } from './api/commands';
+import type { ReportCommand } from './api/reports';
 import type { StudioCommunityCommand } from './api/studio';
 
 const DIRECTIONS: readonly Direction[] = ['up', 'down'];
@@ -122,9 +124,29 @@ const STUDIO: Record<StudioCommunityCommand['op'], (r: Reader) => StudioCommunit
       ...pointValues(r),
     },
   }),
+  setChannelModerator: (r) => ({
+    op: 'setChannelModerator',
+    channelId: r.required('channelId'),
+    profileId: r.required('profileId'),
+    on: flag(r, 'on'),
+  }),
   setStaff: (r) => ({ op: 'setStaff', communityId: r.required('communityId'), profileId: r.required('profileId'), on: flag(r, 'on') }),
+};
+
+const RESOLUTIONS = ['dismiss', 'remove'] as const;
+
+/** Reason is optional; its length is the DB's job. */
+const REPORT: Record<ReportCommand['op'], (r: Reader) => ReportCommand> = {
+  report: (r) => ({
+    op: 'report',
+    targetType: r.oneOf('targetType', REPORT_TARGETS),
+    targetId: r.required('targetId'),
+    reason: r.raw('reason') || null,
+  }),
+  resolveReport: (r) => ({ op: 'resolveReport', reportId: r.required('reportId'), action: r.oneOf('action', RESOLUTIONS) }),
 };
 
 export const communityCommandFromForm = parser<CommunityCommand>(MEMBER);
 export const studioCommunityCommandFromForm = parser<StudioCommunityCommand>(STUDIO);
 export const chatCommandFromForm = parser<ChatCommand>(CHAT);
+export const reportCommandFromForm = parser<ReportCommand>(REPORT);

@@ -8,6 +8,7 @@ import { ChannelFeed } from './ChannelFeed';
 type Open = Extract<CommunityPage, { kind: 'open' }>;
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock('../reportActions', () => ({ reportAction: vi.fn() }));
 
 const community: Product = {
   id: 'c1',
@@ -38,7 +39,7 @@ const page = (over: Partial<Open>): Open => ({
   access: { read: true, staff: false, moderatePosts: false, moderateComments: false, groupIds: ['g1'], ...ALL_GROUP_FEATURES },
   channels: [channel()],
   channel: channel(),
-  canPost: false,
+  rules: { read: true, post: false, moderatePosts: false, moderateComments: false },
   posts: [],
   messages: [],
   members: [],
@@ -49,9 +50,30 @@ const action = vi.fn();
 
 describe('ChannelFeed', () => {
   it('shows the composer when the viewer may post', () => {
-    render(<ChannelFeed page={page({ canPost: true })} action={action} signedIn />);
+    render(<ChannelFeed page={page({ rules: { read: true, post: true, moderatePosts: false, moderateComments: false } })} action={action} signedIn />);
     expect(screen.getByLabelText('Write in News')).toBeTruthy();
     expect(screen.getByText('No posts yet')).toBeTruthy();
+  });
+
+  it('offers Report on posts by others to signed-in viewers', () => {
+    const post = {
+      id: 'p1',
+      channelId: 'ch1',
+      body: 'hello',
+      author: { id: 'u1', name: 'Robin' },
+      createdAt: new Date('2026-11-10T12:00:00Z'),
+      pinned: false,
+      hidden: false,
+      reactions: [],
+      commentCount: 0,
+      canDelete: false,
+      mine: false,
+    };
+    const posts = [post, { ...post, id: 'p2', mine: true }];
+    const { rerender } = render(<ChannelFeed page={page({ posts })} action={action} signedIn />);
+    expect(screen.getAllByText('Report')).toHaveLength(1);
+    rerender(<ChannelFeed page={page({ posts })} action={action} signedIn={false} />);
+    expect(screen.queryByText('Report')).toBeNull();
   });
 
   it('explains read-only channels instead of a composer', () => {
@@ -69,18 +91,20 @@ describe('ChannelChat', () => {
     author: { id: 'p1', name: 'Robin' },
     createdAt: new Date('2026-11-10T12:00:00Z'),
     canDelete: true,
+    mine: false,
   };
 
-  it('lists messages with delete where allowed, and a send box', () => {
-    render(<ChannelChat page={page({ channel: chat, canPost: true, messages: [line] })} action={action} />);
+  it('lists messages with delete and report where allowed, and a send box', () => {
+    render(<ChannelChat page={page({ channel: chat, rules: { read: true, post: true, moderatePosts: false, moderateComments: false }, messages: [line, { ...line, id: 'm2', body: 'mine', author: { id: 'p2', name: 'Me' }, mine: true }] })} action={action} signedIn />);
     expect(screen.getByText('hello')).toBeTruthy();
     expect(screen.getByText('Robin')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2);
+    expect(screen.getAllByText('Report')).toHaveLength(1);
     expect(screen.getByLabelText('Message Lounge')).toBeTruthy();
   });
 
   it('read-only chat: no send box', () => {
-    render(<ChannelChat page={page({ channel: { ...chat, readOnly: true }, messages: [] })} action={action} />);
+    render(<ChannelChat page={page({ channel: { ...chat, readOnly: true }, messages: [] })} action={action} signedIn={false} />);
     expect(screen.queryByLabelText('Message Lounge')).toBeNull();
     expect(screen.getByText('No messages yet')).toBeTruthy();
     expect(screen.getByText('Only staff send in this channel.')).toBeTruthy();

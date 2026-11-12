@@ -10,7 +10,7 @@ import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
 import type { Block, DmThread, Product } from '@/lib/data/types';
-import { channelAccess, communityAccess, type CommunityAccess } from './access';
+import { channelScope, communityAccess, type CommunityAccess } from './access';
 import { directory } from './feed';
 
 export type ChatCommand =
@@ -89,22 +89,14 @@ async function threadScope(ctx: Ctx, threadId: string) {
   return dm ? { thread, dm } : null;
 }
 
-async function channelScope(ctx: Ctx, channelId: string) {
-  const channel = await ctx.repo.channel(channelId);
-  const community = channel ? await ctx.repo.product(channel.communityId) : null;
-  if (!channel || !community || community.spaceId !== ctx.viewer.space.id) return null;
-  const access = await communityAccess(ctx.repo, ctx.viewer, community, ctx.now);
-  return { channel, access, rules: await channelAccess(ctx.repo, access, channel, ctx.me) };
-}
-
 async function deleteMessage(ctx: Ctx, messageId: string): Promise<CommandResult> {
   const message = await ctx.repo.message(messageId);
   if (!message) return NOT_FOUND;
   if (message.channelId !== null) {
-    const found = await channelScope(ctx, message.channelId);
+    const found = await channelScope(ctx.repo, ctx.viewer, message.channelId, ctx.now);
     if (!found) return NOT_FOUND;
     if (!found.rules.read) return FORBIDDEN;
-    if (message.authorId !== ctx.me && !found.access.moderatePosts) return FORBIDDEN;
+    if (message.authorId !== ctx.me && !found.rules.moderatePosts) return FORBIDDEN;
   } else {
     if (!message.threadId || !(await threadScope(ctx, message.threadId))) return NOT_FOUND;
     if (message.authorId !== ctx.me) return FORBIDDEN;
@@ -117,7 +109,7 @@ async function run(ctx: Ctx, cmd: ChatCommand): Promise<CommandResult> {
   const { repo, me, now } = ctx;
   switch (cmd.op) {
     case 'sendMessage': {
-      const found = await channelScope(ctx, cmd.channelId);
+      const found = await channelScope(ctx.repo, ctx.viewer, cmd.channelId, ctx.now);
       if (!found) return NOT_FOUND;
       if (found.channel.kind !== 'chat') return { ok: false, error: 'invalid', message: 'Feed channels take posts.' };
       if (!found.rules.post) return FORBIDDEN;

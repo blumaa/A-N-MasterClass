@@ -10,11 +10,13 @@ import {
   meetupIcsHref,
   meetupsHref,
   membersHref,
+  reportsHref,
   notificationsHref,
   postHref,
   studioCommunitiesHref,
   studioCommunityHref,
   studioEventsHref,
+  studioReportsHref,
 } from './paths';
 
 it('builds host-relative community paths', () => {
@@ -22,6 +24,7 @@ it('builds host-relative community paths', () => {
   expect(channelHref('circle', 'ch-1')).toBe('/community/circle/channels/ch-1');
   expect(postHref('circle', 'p-1')).toBe('/community/circle/posts/p-1');
   expect(membersHref('circle')).toBe('/community/circle/members');
+  expect(reportsHref('circle')).toBe('/community/circle/reports');
   expect(notificationsHref).toBe('/notifications');
   expect(studioCommunitiesHref).toBe('/studio/communities');
   expect(studioCommunityHref('c-1')).toBe('/studio/communities/c-1');
@@ -37,4 +40,5 @@ it('builds challenge, meetup and leaderboard paths', () => {
   expect(leaderboardHref('circle')).toBe('/community/circle/leaderboard');
   expect(leaderboardHref('circle', 'week')).toBe('/community/circle/leaderboard?period=week');
   expect(studioEventsHref('c-1')).toBe('/studio/communities/c-1/events');
+  expect(studioReportsHref('c-1')).toBe('/studio/communities/c-1/reports');
 });

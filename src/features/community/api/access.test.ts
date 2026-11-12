@@ -3,7 +3,7 @@ import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { ALL_GROUP_FEATURES, type Product } from '@/lib/data/types';
-import { channelAccess, communityAccess, readableChannels, type CommunityAccess } from './access';
+import { channelAccess, channelScope, communityAccess, readableChannels, type CommunityAccess } from './access';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
@@ -99,23 +99,25 @@ const member: CommunityAccess = {
 };
 const owner: CommunityAccess = { ...member, staff: true, moderatePosts: true, moderateComments: true, groupIds: [] };
 
+const R = (read: boolean, post: boolean, moderate = false) => ({ read, post, moderatePosts: moderate, moderateComments: moderate });
+
 describe('channelAccess', () => {
   it('members read and post in public channels of their group', async () => {
     const general = (await repo.channel(SEED_IDS.general))!;
-    expect(await channelAccess(repo, member, general, SEED_IDS.student)).toEqual({ read: true, post: true });
+    expect(await channelAccess(repo, member, general, SEED_IDS.student)).toEqual(R(true, true));
   });
 
   it('read-only channels: members read, only moderators post', async () => {
     const announcements = (await repo.channel(SEED_IDS.announcements))!;
-    expect(await channelAccess(repo, member, announcements, SEED_IDS.student)).toEqual({ read: true, post: false });
-    expect(await channelAccess(repo, owner, announcements, SEED_IDS.alexanderOwner)).toEqual({ read: true, post: true });
+    expect(await channelAccess(repo, member, announcements, SEED_IDS.student)).toEqual(R(true, false));
+    expect(await channelAccess(repo, owner, announcements, SEED_IDS.alexanderOwner)).toEqual(R(true, true, true));
   });
 
   it('channels of another group are closed to members, open to staff', async () => {
     const vip = await repo.createAccessGroup({ communityId: community.id, title: 'VIP' });
     const backstage = await repo.createChannel({ communityId: community.id, accessGroupId: vip.id, title: 'Backstage', kind: 'feed', privacy: 'public', readOnly: false });
-    expect(await channelAccess(repo, member, backstage, SEED_IDS.student)).toEqual({ read: false, post: false });
-    expect(await channelAccess(repo, owner, backstage, SEED_IDS.alexanderOwner)).toEqual({ read: true, post: true });
+    expect(await channelAccess(repo, member, backstage, SEED_IDS.student)).toEqual(R(false, false));
+    expect(await channelAccess(repo, owner, backstage, SEED_IDS.alexanderOwner)).toEqual(R(true, true, true));
   });
 
   it('private channels: only invited members of the group', async () => {
@@ -129,12 +131,24 @@ describe('channelAccess', () => {
     });
     expect((await channelAccess(repo, member, circle, SEED_IDS.student)).read).toBe(false);
     await repo.setChannelMember(circle.id, SEED_IDS.student, true);
-    expect(await channelAccess(repo, member, circle, SEED_IDS.student)).toEqual({ read: true, post: true });
+    expect(await channelAccess(repo, member, circle, SEED_IDS.student)).toEqual(R(true, true));
   });
 
   it('nothing without community read', async () => {
     const general = (await repo.channel(SEED_IDS.general))!;
-    expect(await channelAccess(repo, { ...member, read: false }, general, SEED_IDS.student)).toEqual({ read: false, post: false });
+    expect(await channelAccess(repo, { ...member, read: false }, general, SEED_IDS.student)).toEqual(R(false, false));
+  });
+
+  it('channel moderators moderate their channel only, and only while they read it', async () => {
+    const general = (await repo.channel(SEED_IDS.general))!;
+    const announcements = (await repo.channel(SEED_IDS.announcements))!;
+    await repo.setChannelModerator(general.id, SEED_IDS.student, true);
+    await repo.setChannelModerator(announcements.id, SEED_IDS.student, true);
+    expect(await channelAccess(repo, member, general, SEED_IDS.student)).toEqual(R(true, true, true));
+    // Read-only stays staff-only for posting.
+    expect(await channelAccess(repo, member, announcements, SEED_IDS.student)).toEqual({ ...R(true, false, true) });
+    expect(await channelAccess(repo, member, (await repo.channel(SEED_IDS.lounge))!, SEED_IDS.student)).toEqual(R(true, true));
+    expect(await channelAccess(repo, { ...member, read: false }, general, SEED_IDS.student)).toEqual(R(false, false));
   });
 });
 
@@ -149,5 +163,14 @@ describe('readableChannels', () => {
       'Lounge',
     ]);
     expect(await readableChannels(repo, owner, all, SEED_IDS.alexanderOwner)).toHaveLength(4);
+  });
+});
+
+describe('channelScope', () => {
+  it('resolves channel, community, access and rules in the viewer space only', async () => {
+    const found = await channelScope(repo, await as(SEED_IDS.student), SEED_IDS.general, NOW);
+    expect(found).toMatchObject({ channel: { id: SEED_IDS.general }, community: { id: SEED_IDS.community }, rules: { read: true } });
+    expect(await channelScope(repo, await as(SEED_IDS.student, 'natasha'), SEED_IDS.general, NOW)).toBeNull();
+    expect(await channelScope(repo, await as(SEED_IDS.student), 'nope', NOW)).toBeNull();
   });
 });

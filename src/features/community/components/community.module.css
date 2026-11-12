@@ -59,3 +59,13 @@
   padding-block-end: var(--mds-space-2);
   border-block-end: 1px solid var(--mds-border-subtle);
 }
+
+.report > summary {
+  cursor: pointer;
+  color: var(--mds-text-muted);
+  font-size: 0.875rem;
+}
+
+.report[open] {
+  flex-basis: 100%;
+}

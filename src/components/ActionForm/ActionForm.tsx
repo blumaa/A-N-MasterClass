@@ -5,7 +5,8 @@ import { useActionState, type FormEvent, type ReactNode } from 'react';
 import { Button, Text } from '@/components/ui/mds';
 import styles from './ActionForm.module.css';
 
-export type ActionState = { message: string } | null;
+/** A message is an error unless ok (then a success note). */
+export type ActionState = { message: string; ok?: true } | null;
 export type FormAction = (prev: ActionState, form: FormData) => Promise<ActionState>;
 
 export type ActionFormProps = {
@@ -35,7 +36,7 @@ export function ActionForm({ action, fields, submit, children, confirm, variant 
         </Button>
       </div>
       {state ? (
-        <Text role="alert" tone="danger" variant="note">
+        <Text role={state.ok ? 'status' : 'alert'} tone={state.ok ? 'success' : 'danger'} variant="note">
           {state.message}
         </Text>
       ) : null}

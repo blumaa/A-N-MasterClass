@@ -12,3 +12,7 @@ export const SLUG_RESERVED = 'slug reserved';
 export const HOST_TAKEN = 'host taken';
 export const ONE_PRIMARY_DOMAIN = 'space already has a primary domain';
 export const ALREADY_MEMBER = 'already a member';
+
+// Report texts, shared by the fake repo and constraintMessages (moderation).
+export const ALREADY_REPORTED = 'already reported';
+export const REPORT_TARGET_MISSING = 'content not found';

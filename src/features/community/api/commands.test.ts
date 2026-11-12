@@ -65,6 +65,24 @@ describe('posts', () => {
   });
 });
 
+describe('channel moderators', () => {
+  it('hide, pin, delete posts and hide comments in their channel only', async () => {
+    await repo.setChannelModerator(SEED_IDS.general, SEED_IDS.student, true);
+    const own = createdId(await run(SEED_IDS.alexanderOwner, { op: 'createPost', channelId: SEED_IDS.general, body: 'a' }));
+    const away = createdId(await run(SEED_IDS.alexanderOwner, { op: 'createPost', channelId: SEED_IDS.announcements, body: 'b' }));
+    const comment = createdId(
+      await run(SEED_IDS.alexanderOwner, { op: 'createComment', target: { type: 'post', id: own }, parentId: null, body: 'c' }),
+    );
+    expect((await run(SEED_IDS.student, { op: 'hideComment', commentId: comment, hidden: true })).ok).toBe(true);
+    expect((await run(SEED_IDS.student, { op: 'pinPost', postId: own, pinned: true })).ok).toBe(true);
+    expect((await run(SEED_IDS.student, { op: 'hidePost', postId: own, hidden: true })).ok).toBe(true);
+    // Still reaches the hidden post.
+    expect((await run(SEED_IDS.student, { op: 'deletePost', postId: own })).ok).toBe(true);
+    expect(await run(SEED_IDS.student, { op: 'hidePost', postId: away, hidden: true })).toEqual({ ok: false, error: 'forbidden' });
+    expect(await run(SEED_IDS.student, { op: 'deletePost', postId: away })).toEqual({ ok: false, error: 'forbidden' });
+  });
+});
+
 describe('posts: groups, privacy, chat', () => {
   const vipChannel = async () => {
     const group = await repo.createAccessGroup({ communityId: SEED_IDS.community, title: 'VIP' });

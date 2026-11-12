@@ -1,12 +1,16 @@
-// Chat lines (channel or DM), oldest first, with delete where the viewer may.
+// Chat lines (channel or DM), oldest first, with delete where the viewer may. Channel lines
+// are reportable (`report`); DM lines are not.
 import { ActionForm, type FormAction } from '@/components/ActionForm/ActionForm';
 import { EmptyState, Inline, Stack, Text } from '@/components/ui/mds';
 import { formatDateTime } from '@/lib/format/date';
 import type { MessageItem } from '../api/present';
 import { MentionBody } from './MentionBody';
+import { ReportForm } from './ReportForm';
 import styles from './community.module.css';
 
-export function MessageList({ messages, action }: { messages: MessageItem[]; action: FormAction }) {
+type Props = { messages: MessageItem[]; action: FormAction; report?: boolean };
+
+export function MessageList({ messages, action, report = false }: Props) {
   if (messages.length === 0) return <EmptyState title="No messages yet" />;
   return (
     <ol aria-label="Messages" className={styles.rows}>
@@ -29,6 +33,7 @@ export function MessageList({ messages, action }: { messages: MessageItem[]; act
                     fields={{ op: 'deleteMessage', messageId: m.id }}
                   />
                 ) : null}
+                {report && !m.mine ? <ReportForm targetType="message" targetId={m.id} /> : null}
               </Inline>
             </Inline>
             <MentionBody body={m.body} />

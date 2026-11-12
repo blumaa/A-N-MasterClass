@@ -345,6 +345,36 @@ export type Database = {
           },
         ]
       }
+      channel_moderators: {
+        Row: {
+          channel_id: string
+          profile_id: string
+        }
+        Insert: {
+          channel_id: string
+          profile_id: string
+        }
+        Update: {
+          channel_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_moderators_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_moderators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           access_group_id: string
@@ -1869,6 +1899,77 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          channel_id: string
+          community_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          channel_id: string
+          community_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          channel_id?: string
+          community_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_capabilities: {
         Row: {
           capability: string
@@ -2350,6 +2451,10 @@ export type Database = {
         Args: { target_community: string }
         Returns: boolean
       }
+      can_moderate_channel: {
+        Args: { target_channel: string }
+        Returns: boolean
+      }
       can_moderate_comment_target: {
         Args: { t_id: string; t_type: string }
         Returns: boolean
@@ -2379,6 +2484,10 @@ export type Database = {
       }
       can_read_meetup: { Args: { target_meetup: string }; Returns: boolean }
       can_read_post: { Args: { target_post: string }; Returns: boolean }
+      can_read_report_target: {
+        Args: { t_id: string; t_type: string }
+        Returns: boolean
+      }
       can_read_step: { Args: { target_step: string }; Returns: boolean }
       can_reply_dm: {
         Args: { other: string; target_community: string }
@@ -2495,6 +2604,10 @@ export type Database = {
         Returns: boolean
       }
       is_brand_colors: { Args: { c: Json }; Returns: boolean }
+      is_channel_moderator: {
+        Args: { target_channel: string }
+        Returns: boolean
+      }
       is_community_member: {
         Args: { target_community: string; target_profile: string }
         Returns: boolean
@@ -2545,6 +2658,7 @@ export type Database = {
         Args: { reason: string; target_community: string }
         Returns: number
       }
+      post_channel: { Args: { target_post: string }; Returns: string }
       post_community: { Args: { target_post: string }; Returns: string }
       product_space: { Args: { target_product: string }; Returns: string }
       program_progress: {
@@ -2561,6 +2675,17 @@ export type Database = {
       reaches_group: {
         Args: { target_community: string; target_group: string }
         Returns: boolean
+      }
+      report_reporters: {
+        Args: { target_community: string }
+        Returns: {
+          report_id: string
+          reporter_id: string
+        }[]
+      }
+      report_target_channel: {
+        Args: { t_id: string; t_type: string }
+        Returns: string
       }
       reset_podcast_feed: { Args: { target_product: string }; Returns: string }
       save_calendar_connection: {

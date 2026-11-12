@@ -3,7 +3,7 @@ import { StatusSelect } from '@/components/StatusSelect/StatusSelect';
 import { ButtonLink } from '@/components/ui/links';
 import { Badge, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import type { StaffTick, StudioCommunity } from '../api/studio';
-import { studioEventsHref } from '../paths';
+import { studioEventsHref, studioReportsHref } from '../paths';
 import { ChannelEditor } from './ChannelEditor';
 import { CommunityForm } from './CommunityForm';
 import { GroupEditor } from './GroupEditor';
@@ -26,7 +26,7 @@ function StaffRow({ communityId, tick }: { communityId: string; tick: StaffTick 
 }
 
 export function CommunityEditor({ view }: { view: StudioCommunity }) {
-  const { community, channels, groups, members, channelMembers, staff, canManageStaff } = view;
+  const { community, channels, groups, members, channelMembers, channelModerators, staff, canManageStaff, canModerate } = view;
   const communityId = community.id;
   return (
     <Stack gap="loose">
@@ -46,13 +46,19 @@ export function CommunityEditor({ view }: { view: StudioCommunity }) {
         groups={groups}
         members={members}
         channelMembers={channelMembers}
+        channelModerators={canModerate ? channelModerators : null}
       />
       <GroupEditor communityId={communityId} groups={groups} settings={view.settings} />
       <PointsEditor communityId={communityId} settings={view.settings} />
-      <div>
+      <div className={styles.rowActions}>
         <ButtonLink href={studioEventsHref(communityId)} variant="secondary">
           Challenges and meetups
         </ButtonLink>
+        {canModerate ? (
+          <ButtonLink href={studioReportsHref(communityId)} variant="secondary">
+            Reports
+          </ButtonLink>
+        ) : null}
       </div>
 
       {canManageStaff ? (

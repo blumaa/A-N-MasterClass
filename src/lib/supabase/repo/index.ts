@@ -9,6 +9,7 @@ import type { RepoCtx } from './context';
 import { createCoreRepo } from './core';
 import { createEventsRepo } from './events';
 import { createMediaRepo } from './media';
+import { createModerationRepo } from './moderation';
 import { createSiteRepo } from './site';
 
 export type { RepoCtx };
@@ -23,5 +24,6 @@ export function createSupabaseRepo(ctx: RepoCtx): Repo {
     ...createEventsRepo(ctx),
     ...createCoachingRepo(ctx),
     ...createMediaRepo(ctx),
+    ...createModerationRepo(ctx),
   };
 }

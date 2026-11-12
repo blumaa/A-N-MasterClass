@@ -130,7 +130,7 @@ Phase 6 as built (Launch 1):
 - Notifications: comment notifies post author + mentioned; reply notifies parent author; step comment notifies everyone with `comments.moderate`; first reaction notifies author. Only directory members of the community receive. Mentions in step comments are not notified, and step comments have no mention autocomplete.
 - One reply level (Kajabi). Polymorphic targets have no FK; delete triggers on posts/steps/comments remove orphans.
 - `ALWAYS_REACH` (owner, admin) lives in `lib/auth/capabilities.ts`, mirrored by `reaches_community()`.
-- Not yet: push notifications, photo uploads, private channels + `channel_moderators`, reports queue. Chat/DMs/access groups = Launch 2.
+- Not yet: push notifications, photo uploads. Chat/DMs/access groups = Launch 2. Channel moderators + reports = Launch 6 item 3.
 
 ## Studio (instructor admin)
 
@@ -175,7 +175,7 @@ Launch 2 as built:
 - Channel read: staff, or member whose groups include the channel's group, and (public or invited via `channel_members`). Directory + DM-start toggles = union over the member's groups.
 - DMs: reply needs DMs on, both members, no block either way. Start also needs a group with DMs (staff always); members reach the owner only while `founder_dms` is on. Only the author deletes a DM; channel lines also by post moderators.
 - Live updates: polling (`LiveRefresh`, `router.refresh` on an interval while visible). Supabase Realtime later.
-- Not yet: `channel_moderators`, reports queue, push, typing indicators, attachments in chat.
+- Not yet: push, typing indicators, attachments in chat.
 
 **Launch 3** — challenges, points, leaderboard, meetups/events.
 
@@ -242,6 +242,17 @@ Launch 6 item 2 as built:
 - Delete part, step or module, or replace a part file: old objects removed after the DB write. Storage errors thrown.
 - `parts.file_size` now used (column existed, no migration). Fake parts replaced on update, not mutated.
 - Not yet: program delete has no op, so no cleanup there; orphaned uploads; size is what the browser reports.
+
+Launch 6 item 3 as built:
+- Migration `20261112090000_moderation.sql` + `supabase/tests/130-moderation.test.sql` (23 asserts), applied to ksb 2026-11-12.
+- `channel_moderators`: staff with `community.moderate` pick non-staff members per channel in Studio (private channel: invited members only). SSOT: `can_moderate_channel()` in SQL = `channelAccess().moderatePosts/moderateComments` in TS. A moderator must also read the channel.
+- Channel moderator hides/deletes posts and comments, deletes chat lines, pins, in their channels only. Cannot pick moderators.
+- Reports: post, comment on a post, channel chat line. Not step comments, not DMs. Any reader reports once (unique), reason optional, max 500 chars. Own content refused. Hidden content only reportable by its moderators.
+- Queue: Studio `communities/[id]/reports` (staff) and `community/[slug]/reports` (nav link for anyone moderating a channel). Same `ReportQueue` view. Preview cut to 280 chars.
+- Dismiss keeps content. Remove deletes it and closes every open report on it. Resolved rows stay with `resolved_by` + `resolved_at`.
+- Reporter hidden: column grant drops `reporter_id`; `report_reporters(community)` RPC for staff with `community.moderate` only.
+- G0 diff: Kajabi moderators are channel-scoped teammates with hide/restore/lock/approve, Review Feed, View Logs; mobile has user reports without detail. Here (G15) moderators are trusted students, reports target content, no lock/approval queue/logs yet.
+- Not yet: restore from the queue, post lock, approval queue, audit log, report a user, notify moderators of new reports.
 
 Waiting on outside setup: transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

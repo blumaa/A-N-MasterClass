@@ -286,6 +286,26 @@ export type Message = {
   createdAt: Date;
 };
 
+/** Reportable content: a feed post, a comment on a post, a chat line in a channel. */
+export const REPORT_TARGETS = ['post', 'comment', 'message'] as const;
+export type ReportTarget = (typeof REPORT_TARGETS)[number];
+export const REPORT_STATUSES = ['open', 'dismissed', 'removed'] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+/** A member's report. Channel and community come from the target. Reporter: reportReporters (staff only). */
+export type Report = {
+  id: string;
+  communityId: string;
+  channelId: string;
+  targetType: ReportTarget;
+  targetId: string;
+  reason: string | null;
+  status: ReportStatus;
+  createdAt: Date;
+  resolvedBy: string | null;
+  resolvedAt: Date | null;
+};
+
 /** 1:1 DM inside one community. aId < bId; unique per (community, aId, bId). */
 export type DmThread = { id: string; communityId: string; aId: string; bId: string };
 /** Last time a participant opened the thread; later messages by the other side are unread. */
