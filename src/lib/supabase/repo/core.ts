@@ -194,7 +194,14 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
         await (await db())
           .from('space_branding')
           .upsert(
-            { space_id: b.spaceId, colors: b.colors, font_heading: b.fontHeading, font_body: b.fontBody },
+            {
+              space_id: b.spaceId,
+              colors: b.colors,
+              font_heading: b.fontHeading,
+              font_body: b.fontBody,
+              logo_path: b.logoPath,
+              favicon_path: b.faviconPath,
+            },
             { onConflict: 'space_id' },
           )
           .select('*')

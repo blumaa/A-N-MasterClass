@@ -119,6 +119,8 @@ const BY_NAME: Readonly<Record<string, string>> = {
   modules_unlock_quiz_fk: 'quiz not found',
   products_certificates_program: CERTIFICATES_PROGRAM_ONLY,
   products_cover_path: FILE_OUTSIDE_FOLDER,
+  space_branding_logo_path: FILE_OUTSIDE_FOLDER,
+  space_branding_favicon_path: FILE_OUTSIDE_FOLDER,
   // Raised by issue_certificate.
   certificates_off: CERTIFICATES_OFF,
   certificate_not_earned: CERTIFICATE_NOT_EARNED,

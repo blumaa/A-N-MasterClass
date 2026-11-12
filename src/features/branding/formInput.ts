@@ -21,3 +21,10 @@ export function brandingFromForm(form: FormData) {
     fontBody: text(form, 'fontBody') || null,
   };
 }
+
+const pathOrNull = (form: FormData, name: string) => text(form, name) || null;
+
+export const marksFromForm = (form: FormData) => ({
+  logoPath: pathOrNull(form, 'logoPath'),
+  faviconPath: pathOrNull(form, 'faviconPath'),
+});

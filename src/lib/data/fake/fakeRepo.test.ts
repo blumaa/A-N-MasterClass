@@ -176,18 +176,27 @@ describe('progress', () => {
   });
 });
 
+const NO_BRAND = { colors: null, fontHeading: null, fontBody: null, logoPath: null, faviconPath: null };
+
 describe('branding', () => {
   it('has no row until saved, then upserts one row per space', async () => {
     expect(await repo.branding('s1')).toBeNull();
-    await repo.saveBranding({ spaceId: 's1', colors: null, fontHeading: 'lora', fontBody: null });
-    await repo.saveBranding({ spaceId: 's1', colors: null, fontHeading: null, fontBody: 'inter' });
+    await repo.saveBranding({ ...NO_BRAND, spaceId: 's1', fontHeading: 'lora' });
+    await repo.saveBranding({ ...NO_BRAND, spaceId: 's1', fontBody: 'inter' });
     expect(repo.db.branding).toHaveLength(1);
     expect((await repo.branding('s1'))?.fontBody).toBe('inter');
     expect(await repo.branding('s2')).toBeNull();
   });
 
   it('refuses a branding row for a missing space (fk)', async () => {
-    await expect(repo.saveBranding({ spaceId: 'nope', colors: null, fontHeading: null, fontBody: null })).rejects.toThrow();
+    await expect(repo.saveBranding({ ...NO_BRAND, spaceId: 'nope' })).rejects.toThrow();
+  });
+
+  it('refuses a logo or favicon outside the space site folder', async () => {
+    await expect(repo.saveBranding({ ...NO_BRAND, spaceId: 's1', logoPath: 's2/site/a.png' })).rejects.toThrow(FILE_OUTSIDE_FOLDER);
+    await expect(repo.saveBranding({ ...NO_BRAND, spaceId: 's1', faviconPath: 's1/site/x/a.png' })).rejects.toThrow(FILE_OUTSIDE_FOLDER);
+    await repo.saveBranding({ ...NO_BRAND, spaceId: 's1', logoPath: 's1/site/a.png', faviconPath: 's1/site/b.png' });
+    expect(await repo.branding('s1')).toMatchObject({ logoPath: 's1/site/a.png', faviconPath: 's1/site/b.png' });
   });
 
   it('stores a product theme override', async () => {

@@ -46,6 +46,19 @@ describe('SpaceHeader', () => {
     expect(within(sheet).getByRole('link', { name: 'Library' })).toBeInTheDocument();
   });
 
+  it('shows the logo in place of the name, still linking home', () => {
+    render(<SpaceHeader spaceName="Fiddle" logoSrc="/logo.png" site={site} account={null} signInHref="/login" signOut={null} />);
+    const home = screen.getByRole('link', { name: 'Fiddle' });
+    expect(home).toHaveAttribute('href', '/');
+    expect(within(home).getByRole('img', { name: 'Fiddle' })).toBeInTheDocument();
+  });
+
+  it('shows the logo while the space is hidden', () => {
+    render(<SpaceHeader spaceName="Fiddle" logoSrc="/logo.png" site={null} account={null} signInHref="/login" signOut={null} />);
+    expect(screen.getByRole('img', { name: 'Fiddle' })).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('shows only the name while the space is hidden', () => {
     render(<SpaceHeader spaceName="Fiddle" site={null} account={null} signInHref="/login" signOut={null} />);
     expect(screen.getByText('Fiddle')).toBeInTheDocument();

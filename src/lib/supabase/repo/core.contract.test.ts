@@ -108,9 +108,11 @@ describe.skipIf(!enabled)('core repo (Supabase contract)', () => {
   describe('branding', () => {
     it('upserts one row per space', async () => {
       const font = FONT_IDS[0]!;
-      await repo.saveBranding({ spaceId, colors: DEFAULT_BRAND, fontHeading: font, fontBody: null });
-      const saved = await repo.saveBranding({ spaceId, colors: null, fontHeading: null, fontBody: font });
-      expect(saved).toEqual({ spaceId, colors: null, fontHeading: null, fontBody: font });
+      const none = { colors: null, fontHeading: null, fontBody: null, logoPath: null, faviconPath: null };
+      await repo.saveBranding({ ...none, spaceId, colors: DEFAULT_BRAND, fontHeading: font });
+      const logoPath = `${spaceId}/site/a-logo.png`;
+      const saved = await repo.saveBranding({ ...none, spaceId, fontBody: font, logoPath });
+      expect(saved).toEqual({ ...none, spaceId, fontBody: font, logoPath });
       expect(await repo.branding(spaceId)).toEqual(saved);
     });
   });

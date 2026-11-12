@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui/mds";
 import { ViewerZoneScript } from "@/components/ViewerZoneScript/ViewerZoneScript";
-import { spaceTheme } from "@/features/branding/api/branding";
+import { spaceMarks, spaceTheme } from "@/features/branding/api/branding";
 import { ThemeStyle } from "@/features/branding/components/ThemeStyle";
 import { themeCss } from "@/features/branding/theme";
 import { notificationsHref } from "@/features/community/paths";
@@ -20,6 +20,7 @@ import { sessionsEnabled } from "@/lib/auth/session";
 import { canSeeSpace, viewerCan } from "@/lib/auth/viewer";
 import { getRepo } from "@/lib/data/getRepo";
 import { pushPublicKey } from "@/lib/push/getPushSender";
+import { siteImageSrc } from "@/lib/storage/siteImageSrc";
 import { accountSubscriptionsHref, signInHref } from "@/lib/routes";
 import styles from "./layout.module.css";
 import { PushHeal } from "./PushHeal";
@@ -30,16 +31,17 @@ export async function generateMetadata({
   params,
 }: LayoutProps<"/[space]">): Promise<Metadata> {
   const viewer = await currentViewer((await params).space);
-  return viewer
-    ? {
-        title: {
-          default: viewer.space.name,
-          template: `%s · ${viewer.space.name}`,
-        },
-        manifest: "/manifest.webmanifest",
-        icons: { icon: "/brand-icon.svg" },
-      }
-    : {};
+  if (!viewer) return {};
+  const { faviconPath } = await spaceMarks(getRepo(), viewer.space.id);
+  const icon = faviconPath ? siteImageSrc(faviconPath) : "/brand-icon.svg";
+  return {
+    title: {
+      default: viewer.space.name,
+      template: `%s · ${viewer.space.name}`,
+    },
+    manifest: "/manifest.webmanifest",
+    icons: { icon, apple: faviconPath ? icon : undefined },
+  };
 }
 
 export default async function SpaceLayout({
@@ -52,8 +54,9 @@ export default async function SpaceLayout({
   const repo = getRepo();
   const visible = canSeeSpace(viewer);
   const pushKey = pushPublicKey();
-  const [theme, chrome, unread] = await Promise.all([
+  const [theme, marks, chrome, unread] = await Promise.all([
     spaceTheme(repo, viewer.space.id),
+    spaceMarks(repo, viewer.space.id),
     visible ? siteChrome(repo, viewer.space.id) : null,
     unreadCount(repo, viewer),
   ]);
@@ -66,6 +69,7 @@ export default async function SpaceLayout({
       ) : null}
       <SpaceHeader
         spaceName={viewer.space.name}
+        logoSrc={marks.logoPath ? siteImageSrc(marks.logoPath) : null}
         site={chrome ? chrome.header : null}
         account={
           viewer.profile

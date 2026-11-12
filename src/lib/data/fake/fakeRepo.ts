@@ -158,6 +158,9 @@ export function createFakeRepo(db: Db): FakeRepo {
     branding: async (spaceId) => db.branding.find((b) => b.spaceId === spaceId) ?? null,
     async saveBranding(row) {
       must(db.spaces.find((s) => s.id === row.spaceId), 'space');
+      for (const path of [row.logoPath, row.faviconPath]) {
+        if (path && !isSiteImagePath(path, row.spaceId)) throw new ConstraintError(FILE_OUTSIDE_FOLDER);
+      }
       db.branding = [...db.branding.filter((b) => b.spaceId !== row.spaceId), row];
       return row;
     },

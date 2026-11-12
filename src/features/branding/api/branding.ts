@@ -3,7 +3,9 @@
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import type { Repo } from '@/lib/data/repo';
+import type { SpaceBranding } from '@/lib/data/types';
 import { isFontId } from '@/lib/fonts/catalog';
+import { isSiteImagePath } from '@/lib/storage/siteImages';
 import type { BrandColors } from '@/tokens/resolveBrand';
 import { contrastFailures } from '../contrast';
 import { parseBrandColors, type Theme } from '../theme';
@@ -13,6 +15,15 @@ const DEFAULTS: Theme = { colors: null, fontHeading: null, fontBody: null };
 export async function spaceTheme(repo: Repo, spaceId: string): Promise<Theme> {
   const row = await repo.branding(spaceId);
   return row ? { colors: row.colors, fontHeading: row.fontHeading, fontBody: row.fontBody } : DEFAULTS;
+}
+
+export type BrandMarks = Pick<SpaceBranding, 'logoPath' | 'faviconPath'>;
+const NO_MARKS: BrandMarks = { logoPath: null, faviconPath: null };
+
+/** Logo + favicon paths (public reads, like the theme). */
+export async function spaceMarks(repo: Repo, spaceId: string): Promise<BrandMarks> {
+  const row = await repo.branding(spaceId);
+  return row ? { logoPath: row.logoPath, faviconPath: row.faviconPath } : NO_MARKS;
 }
 
 /** Override colours for a program route, looked up within the space (never across). */
@@ -52,10 +63,32 @@ export async function saveBranding(repo: Repo, viewer: Viewer, input: BrandingIn
   const colors = checkColors(input.colors);
   if (!colors.ok) return colors;
   await repo.saveBranding({
+    ...(await spaceMarks(repo, viewer.space.id)),
     spaceId: viewer.space.id,
     colors: colors.value,
     fontHeading: input.fontHeading as Theme['fontHeading'],
     fontBody: input.fontBody as Theme['fontBody'],
+  });
+  return { ok: true };
+}
+
+export type BrandMarksInput = { logoPath: unknown; faviconPath: unknown };
+
+const checkMark = (path: unknown, spaceId: string) =>
+  path === null || (typeof path === 'string' && isSiteImagePath(path, spaceId));
+
+/** Saves logo + favicon; colours and fonts stay as they are. */
+export async function saveBrandMarks(repo: Repo, viewer: Viewer, input: BrandMarksInput): Promise<CommandResult> {
+  if (!viewerCan(viewer, 'branding.manage')) return { ok: false, error: 'forbidden' };
+  const spaceId = viewer.space.id;
+  if (!checkMark(input.logoPath, spaceId) || !checkMark(input.faviconPath, spaceId)) {
+    return invalid('Upload the image again.');
+  }
+  await repo.saveBranding({
+    ...(await spaceTheme(repo, spaceId)),
+    spaceId,
+    logoPath: input.logoPath as string | null,
+    faviconPath: input.faviconPath as string | null,
   });
   return { ok: true };
 }

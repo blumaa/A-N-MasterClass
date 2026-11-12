@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BRAND_INPUTS } from '@/tokens/brandInputs';
 import { DEFAULT_BRAND } from '@/tokens/resolveBrand';
-import { brandingFromForm, colorField, colorsFromForm } from './formInput';
+import { brandingFromForm, colorField, colorsFromForm, marksFromForm } from './formInput';
 
 function form(entries: Record<string, string>): FormData {
   const f = new FormData();
@@ -29,5 +29,12 @@ describe('brandingFromForm', () => {
       fontHeading: 'lora',
       fontBody: null,
     });
+  });
+});
+
+describe('marksFromForm', () => {
+  it('reads both paths; blank = none', () => {
+    expect(marksFromForm(form({ logoPath: 's/site/a.png', faviconPath: '' }))).toEqual({ logoPath: 's/site/a.png', faviconPath: null });
+    expect(marksFromForm(form({}))).toEqual({ logoPath: null, faviconPath: null });
   });
 });

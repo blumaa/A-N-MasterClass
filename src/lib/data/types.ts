@@ -35,6 +35,9 @@ export type SpaceBranding = {
   colors: BrandColors | null;
   fontHeading: FontId | null;
   fontBody: FontId | null;
+  /** Objects in the public `site` bucket (<space>/site/<name>); null = space name / brand-icon.svg. */
+  logoPath: string | null;
+  faviconPath: string | null;
 };
 
 export type Member = { spaceId: string; profileId: string; role: Role };

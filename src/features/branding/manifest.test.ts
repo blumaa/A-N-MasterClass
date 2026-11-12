@@ -16,6 +16,12 @@ describe('spaceManifest (G20)', () => {
     });
   });
 
+  it('installs with the uploaded browser icon', () => {
+    expect(spaceManifest('Natasha', null, '/icon.png').icons).toEqual([
+      { src: '/icon.png', sizes: '512x512', purpose: 'any' },
+    ]);
+  });
+
   it('falls back to the platform default brand', () => {
     expect(spaceManifest('Alexander', null)).toMatchObject({
       theme_color: DEFAULT_BRAND.accent,

@@ -19,6 +19,15 @@
   color: var(--mds-text-primary);
 }
 
+/* Logo keeps its own proportions at header height. */
+.logo {
+  display: block;
+  block-size: 2.5rem;
+  inline-size: auto;
+  max-inline-size: 12rem;
+  object-fit: contain;
+}
+
 .wide {
   display: flex;
   align-items: center;

@@ -2,6 +2,7 @@
 // Space header: name, site nav and the visitor's account. Wide screens show the site links inline
 // and the account in a popover; phones get one Menu button that opens a sheet with everything.
 // The layout decides which links a viewer gets; this only arranges them.
+import Image from 'next/image';
 import { useRef, useState, type ReactNode } from 'react';
 import { AppLink, ButtonLink } from '@/components/ui/links';
 import { Avatar, Badge, Button, Popover, PopoverBody, Sheet, SheetBody, SheetHeader, Text } from '@/components/ui/mds';
@@ -12,6 +13,8 @@ export type HeaderAccount = { displayName: string; unread: number; links: NavIte
 
 type Props = {
   spaceName: string;
+  /** Uploaded logo; shown in place of the name, which becomes its alt text. */
+  logoSrc?: string | null;
   /** null while the space is hidden from this viewer: name only. */
   site: NavItem[] | null;
   account: HeaderAccount | null;
@@ -31,6 +34,10 @@ function Links({ items, className }: { items: NavItem[]; className: string }) {
       ))}
     </>
   );
+}
+
+function BrandMark({ spaceName, logoSrc }: Pick<Props, 'spaceName' | 'logoSrc'>) {
+  return logoSrc ? <Image src={logoSrc} alt={spaceName} width={160} height={40} className={styles.logo} /> : spaceName;
 }
 
 function accountLabel(account: HeaderAccount): string {
@@ -63,7 +70,7 @@ function AccountPopover({ account, signOut }: { account: HeaderAccount; signOut:
   );
 }
 
-function PhoneMenu({ site, account, signInHref, signOut }: Omit<Props, 'spaceName' | 'site'> & { site: NavItem[] }) {
+function PhoneMenu({ site, account, signInHref, signOut }: Omit<Props, 'spaceName' | 'logoSrc' | 'site'> & { site: NavItem[] }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   return (
@@ -87,12 +94,12 @@ function PhoneMenu({ site, account, signInHref, signOut }: Omit<Props, 'spaceNam
   );
 }
 
-export function SpaceHeader({ spaceName, site, account, signInHref, signOut }: Props) {
+export function SpaceHeader({ spaceName, logoSrc, site, account, signInHref, signOut }: Props) {
   if (!site) {
     return (
       <header className={styles.header}>
         <Text as="span" className={styles.brand}>
-          {spaceName}
+          <BrandMark spaceName={spaceName} logoSrc={logoSrc} />
         </Text>
       </header>
     );
@@ -101,7 +108,7 @@ export function SpaceHeader({ spaceName, site, account, signInHref, signOut }: P
     <header className={styles.header}>
       <span className={styles.brand}>
         <AppLink href="/" variant="plain">
-          {spaceName}
+          <BrandMark spaceName={spaceName} logoSrc={logoSrc} />
         </AppLink>
       </span>
       <nav aria-label="Main" className={styles.wide}>

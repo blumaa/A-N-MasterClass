@@ -55,6 +55,8 @@ export const toBranding = (r: Row<'space_branding'>): SpaceBranding => ({
   colors: r.colors as BrandColors | null,
   fontHeading: r.font_heading as FontId | null,
   fontBody: r.font_body as FontId | null,
+  logoPath: r.logo_path,
+  faviconPath: r.favicon_path,
 });
 
 export const toProduct = (r: Row<'products'>): Product => ({

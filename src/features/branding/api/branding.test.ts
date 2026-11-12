@@ -3,7 +3,15 @@ import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { DEFAULT_BRAND } from '@/tokens/resolveBrand';
-import { programTheme, saveBranding, saveProgramTheme, spaceTheme, studioBranding } from './branding';
+import {
+  programTheme,
+  saveBranding,
+  saveBrandMarks,
+  saveProgramTheme,
+  spaceMarks,
+  spaceTheme,
+  studioBranding,
+} from './branding';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 let repo: FakeRepo;
@@ -85,5 +93,42 @@ describe('program theme override', () => {
     expect(await saveProgramTheme(repo, await as(SEED_IDS.alexanderOwner), SEED_IDS.program, PALE_INK)).toMatchObject({
       error: 'invalid',
     });
+  });
+});
+
+describe('brand marks (logo + favicon)', () => {
+  const LOGO = `${SEED_IDS.alexander}/site/a-logo.png`;
+  const ICON = `${SEED_IDS.alexander}/site/b-icon.png`;
+
+  it('are empty with no row', async () => {
+    expect(await spaceMarks(repo, SEED_IDS.alexander)).toEqual({ logoPath: null, faviconPath: null });
+  });
+
+  it('save for branding.manage and keep colours + fonts', async () => {
+    const owner = await as(SEED_IDS.alexanderOwner);
+    await saveBranding(repo, owner, { colors: RED, fontHeading: 'lora', fontBody: null });
+    expect(await saveBrandMarks(repo, owner, { logoPath: LOGO, faviconPath: ICON })).toEqual({ ok: true });
+    expect(await spaceMarks(repo, SEED_IDS.alexander)).toEqual({ logoPath: LOGO, faviconPath: ICON });
+    expect(await spaceTheme(repo, SEED_IDS.alexander)).toEqual({ colors: RED, fontHeading: 'lora', fontBody: null });
+  });
+
+  it('survive a later colour save', async () => {
+    const owner = await as(SEED_IDS.alexanderOwner);
+    await saveBrandMarks(repo, owner, { logoPath: LOGO, faviconPath: null });
+    await saveBranding(repo, owner, { colors: RED, fontHeading: null, fontBody: null });
+    expect(await spaceMarks(repo, SEED_IDS.alexander)).toEqual({ logoPath: LOGO, faviconPath: null });
+  });
+
+  it('forbid staff without branding.manage', async () => {
+    const r = await saveBrandMarks(repo, await as(SEED_IDS.assistant), { logoPath: LOGO, faviconPath: null });
+    expect(r).toEqual({ ok: false, error: 'forbidden' });
+  });
+
+  it('refuse a path outside the space site folder', async () => {
+    const owner = await as(SEED_IDS.alexanderOwner);
+    const other = `${SEED_IDS.natasha}/site/a-logo.png`;
+    expect(await saveBrandMarks(repo, owner, { logoPath: other, faviconPath: null })).toMatchObject({ error: 'invalid' });
+    expect(await saveBrandMarks(repo, owner, { logoPath: null, faviconPath: 7 })).toMatchObject({ error: 'invalid' });
+    expect(await repo.branding(SEED_IDS.alexander)).toBeNull();
   });
 });

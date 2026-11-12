@@ -233,6 +233,8 @@ export function seedDb(now: Date = new Date()): Db {
     },
     fontHeading: 'playfair-display',
     fontBody: 'source-sans-3',
+    logoPath: null,
+    faviconPath: null,
   });
 
   seedCoaching(db, now);
