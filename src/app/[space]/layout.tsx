@@ -21,7 +21,7 @@ import { sessionsEnabled } from "@/lib/auth/session";
 import { canSeeSpace, viewerCan } from "@/lib/auth/viewer";
 import { getRepo } from "@/lib/data/getRepo";
 import { pushPublicKey } from "@/lib/push/getPushSender";
-import { signInHref } from "@/lib/routes";
+import { accountSubscriptionsHref, signInHref } from "@/lib/routes";
 import styles from "./layout.module.css";
 import { PushHeal } from "./PushHeal";
 import { SignOutForm } from "./SignOutForm";
@@ -85,6 +85,7 @@ export default async function SpaceLayout({
                 <AppLink href={notificationsHref}>
                   {unread > 0 ? `Notifications (${unread})` : "Notifications"}
                 </AppLink>
+                <AppLink href={accountSubscriptionsHref}>Subscriptions</AppLink>
                 <Text as="span" variant="meta" tone="muted">
                   {viewer.displayName}
                 </Text>

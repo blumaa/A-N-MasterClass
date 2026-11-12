@@ -26,6 +26,24 @@ beforeEach(async () => {
     marketingConsent: true,
     createdAt: NOW,
   });
+  const monthly = await repo.updateOffer(offer.id, { kind: 'subscription', billingInterval: 'month' });
+  await repo.createSubscription({
+    spaceId: SEED_IDS.alexander,
+    offerId: monthly.id,
+    email: 'sub@test',
+    kind: 'subscription',
+    provider: 'fake',
+    providerSubscriptionId: 'FAKE-SUB-1',
+    amountCents: 4900,
+    currency: 'EUR',
+    billingInterval: 'month',
+    trialDays: null,
+    installments: null,
+    livemode: false,
+    waiverVersion: 'v1',
+    waiverAcceptedAt: NOW,
+    marketingConsent: false,
+  });
   await repo.upsertContact({ spaceId: SEED_IDS.alexander, email: 'buyer@test', profileId: null, consent: { source: 'checkout', at: NOW } });
 });
 
@@ -38,8 +56,11 @@ describe('studioCustomers', () => {
       expect.objectContaining({ email: 'buyer@test', offerTitle: 'Full access', amountCents: 4900, status: 'created', livemode: false }),
     ]);
     expect(view?.contacts.map((c) => c.email)).toEqual(['buyer@test']);
+    expect(view?.subscriptions).toEqual([
+      expect.objectContaining({ email: 'sub@test', offerTitle: 'Full access', status: 'pending', livemode: false }),
+    ]);
     expect(await studioCustomers(repo, await as(SEED_IDS.assistant))).toBeNull();
-    expect(await studioCustomers(repo, await as(SEED_IDS.natashaOwner, 'natasha'))).toEqual({ orders: [], contacts: [] });
+    expect(await studioCustomers(repo, await as(SEED_IDS.natashaOwner, 'natasha'))).toEqual({ orders: [], contacts: [], subscriptions: [] });
   });
 });
 

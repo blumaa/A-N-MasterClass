@@ -1,10 +1,11 @@
-// Studio customers DAL: orders + contacts (G16), CSV export for the instructor's mailing tool.
+// Studio customers DAL: orders, subscriptions (G5) + contacts (G16), CSV export for the instructor's mailing tool.
 // customers.manage only (owner, admin, support; G15).
 import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { Currency } from '@/lib/commerce/money';
 import { toCsv } from '@/lib/csv/csv';
 import type { Repo } from '@/lib/data/repo';
 import type { Contact, OrderStatus } from '@/lib/data/types';
+import { subscriptionRows, type SubscriptionRow } from './subscriptionRows';
 
 export type CustomerOrder = {
   id: string;
@@ -17,12 +18,17 @@ export type CustomerOrder = {
   createdAt: Date;
 };
 
-export type CustomersView = { orders: CustomerOrder[]; contacts: Contact[] };
+export type CustomersView = { orders: CustomerOrder[]; contacts: Contact[]; subscriptions: SubscriptionRow[] };
 
 export async function studioCustomers(repo: Repo, viewer: Viewer): Promise<CustomersView | null> {
   if (!viewerCan(viewer, 'customers.manage')) return null;
   const spaceId = viewer.space.id;
-  const [orders, offers, contacts] = await Promise.all([repo.orders(spaceId), repo.offers(spaceId), repo.contacts(spaceId)]);
+  const [orders, offers, contacts, subs] = await Promise.all([
+    repo.orders(spaceId),
+    repo.offers(spaceId),
+    repo.contacts(spaceId),
+    repo.subscriptions(spaceId),
+  ]);
   const titles = new Map(offers.map((o) => [o.id, o.title]));
   return {
     orders: orders.map((o) => ({
@@ -36,6 +42,7 @@ export async function studioCustomers(repo: Repo, viewer: Viewer): Promise<Custo
       createdAt: o.createdAt,
     })),
     contacts,
+    subscriptions: subscriptionRows(subs, offers),
   };
 }
 

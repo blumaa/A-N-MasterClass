@@ -12,6 +12,7 @@ import type { Repo } from '@/lib/data/repo';
 import type { Offer, Subscription, SubscriptionStatus } from '@/lib/data/types';
 import type { PaymentProvider, ProviderEvent } from '@/lib/payments/provider';
 import { buyerProfile, finishBuyer, giveGrants } from './buyer';
+import { canCancel } from './subscriptionRows';
 
 export type RecurringOffer = Pick<Offer, 'id' | 'title'> & RecurringTerms;
 
@@ -229,7 +230,7 @@ export async function cancelOwnSubscription(
 ): Promise<CancelOutcome> {
   const sub = await repo.subscription(subscriptionId);
   if (!sub || sub.spaceId !== spaceId || sub.profileId !== profileId) return 'not_found';
-  if (sub.kind !== 'subscription' || (sub.status !== 'active' && sub.status !== 'past_due')) return 'not_cancellable';
+  if (!canCancel(sub)) return 'not_cancellable';
   if (sub.provider !== provider.name) throw new Error(`subscription ${sub.id} belongs to ${sub.provider}`);
   await provider.cancelSubscription(sub.providerSubscriptionId, 'Cancelled by the member');
   await endSubscription(repo, sub, now);

@@ -1,11 +1,12 @@
 'use client';
-// Studio > Customers: orders + contacts (G16). Client: DataTable takes cell functions.
+// Studio > Customers: orders, subscriptions (G5) + contacts (G16). Client: DataTable takes cell functions.
 import { ButtonLink } from '@/components/ui/links';
 import { Badge, DataTable, Heading, Inline, Stack } from '@/components/ui/mds';
 import { formatMoney } from '@/lib/commerce/money';
 import type { Contact } from '@/lib/data/types';
 import type { CustomerOrder, CustomersView } from '../../api/customers';
 import { contactsCsvHref } from '../../paths';
+import { SubscriptionsTable } from './SubscriptionsTable';
 
 const date = (d: Date | null, locale: string) => (d ? d.toLocaleDateString(locale) : '');
 
@@ -38,6 +39,12 @@ export function CustomersTables({ view, locale }: { view: CustomersView; locale:
             },
           ]}
         />
+      </Stack>
+      <Stack gap="base">
+        <Heading level={2} variant="subtitle">
+          Subscriptions
+        </Heading>
+        <SubscriptionsTable rows={view.subscriptions} locale={locale} />
       </Stack>
       <Stack gap="base">
         <Inline gap="base">
