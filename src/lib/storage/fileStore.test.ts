@@ -18,4 +18,10 @@ describe('fake file store', () => {
     await store.remove(['s/p/b.pdf']);
     expect(store.removed).toEqual(['s/p/a.mp3', 's/p/b.pdf']);
   });
+
+  it('signs in the named bucket', async () => {
+    const store = createFakeFileStore(undefined, 'community');
+    expect(new URL(await store.signedUrl('s/c/a.jpg')).pathname).toBe('/community/s/c/a.jpg');
+    expect(new URL(await store.uploadUrl('s/c/a.jpg')).pathname).toBe('/upload/community/s/c/a.jpg');
+  });
 });

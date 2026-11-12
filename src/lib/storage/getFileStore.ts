@@ -3,13 +3,13 @@ import 'server-only';
 import { dataSource } from '@/config/dataSource';
 import { adminClient } from '@/lib/supabase/admin';
 import { createSupabaseFileStore } from '@/lib/supabase/fileStore';
-import { createFakeFileStore, type FileStore } from './fileStore';
+import { createFakeFileStore, type Bucket, type FileStore } from './fileStore';
 
-export function getFileStore(): FileStore {
+export function getFileStore(bucket: Bucket = 'resources'): FileStore {
   switch (dataSource()) {
     case 'fake':
-      return createFakeFileStore();
+      return createFakeFileStore(undefined, bucket);
     case 'supabase':
-      return createSupabaseFileStore(adminClient());
+      return createSupabaseFileStore(adminClient(), bucket);
   }
 }

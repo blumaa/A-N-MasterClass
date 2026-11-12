@@ -1042,6 +1042,10 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
+          attachment_type: string | null
           author_id: string
           body: string
           channel_id: string | null
@@ -1050,6 +1054,10 @@ export type Database = {
           thread_id: string | null
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
           author_id: string
           body: string
           channel_id?: string | null
@@ -1058,6 +1066,10 @@ export type Database = {
           thread_id?: string | null
         }
         Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
           author_id?: string
           body?: string
           channel_id?: string | null
@@ -1682,6 +1694,38 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_photos: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          position: number
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path: string
+          position?: number
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          position?: number
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_photos_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -2528,6 +2572,8 @@ export type Database = {
         }
       }
       channel_community: { Args: { target_channel: string }; Returns: string }
+      channel_files: { Args: { target_channel: string }; Returns: string[] }
+      channel_folder: { Args: { target_channel: string }; Returns: string }
       coaching_busy: {
         Args: { from_at: string; target_space: string; to_at: string }
         Returns: {
@@ -2603,6 +2649,7 @@ export type Database = {
         Args: { target_profile: string; target_space: string }
         Returns: boolean
       }
+      in_folder: { Args: { folder: string; path: string }; Returns: boolean }
       is_brand_colors: { Args: { c: Json }; Returns: boolean }
       is_channel_moderator: {
         Args: { target_channel: string }
@@ -2736,6 +2783,7 @@ export type Database = {
       }
       space_role: { Args: { target_space: string }; Returns: string }
       step_space: { Args: { target_step: string }; Returns: string }
+      thread_folder: { Args: { target_thread: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

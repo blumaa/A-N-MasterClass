@@ -28,10 +28,13 @@ export type UploadPathInput = { spaceId: string; productId: string; id: string; 
 export const uploadPath = ({ spaceId, productId, id, fileName }: UploadPathInput): string =>
   `${productFolder(spaceId, productId)}${id}-${safeFileName(fileName)}`;
 
-/** True when `path` is one object directly in the product's folder of that space. */
-export function isProductPath(path: string, spaceId: string, productId: string): boolean {
-  const folder = productFolder(spaceId, productId);
+/** True when `path` is one object directly in `folder` (ends with '/'). SQL: in_folder(). */
+export function inFolder(path: string, folder: string): boolean {
   if (!path.startsWith(folder)) return false;
   const rest = path.slice(folder.length);
   return rest.length > 0 && !rest.includes('/');
 }
+
+/** True when `path` is one object directly in the product's folder of that space. */
+export const isProductPath = (path: string, spaceId: string, productId: string): boolean =>
+  inFolder(path, productFolder(spaceId, productId));

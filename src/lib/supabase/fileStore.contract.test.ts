@@ -25,4 +25,18 @@ describe.skipIf(!contractEnabled)('Supabase file store (contract)', () => {
     await expect(store.signedUrl(path)).rejects.toThrow();
     await expect(store.remove([path])).resolves.toBeUndefined();
   });
+
+  it('community bucket takes allowed types only', async () => {
+    const store = createSupabaseFileStore(adminClient(), 'community');
+    const put = async (path: string, type: string) => {
+      const body = new FormData();
+      body.append('cacheControl', '3600');
+      body.append('', new Blob(['x'], { type }), 'x');
+      return (await fetch(await store.uploadUrl(path), { method: 'PUT', headers: { 'x-upsert': 'false' }, body })).status;
+    };
+    const ok = `contract-test/${randomUUID()}/a.txt`;
+    expect(await put(ok, 'text/plain')).toBe(200);
+    expect(await put(`contract-test/${randomUUID()}/a.exe`, 'application/x-msdownload')).not.toBe(200);
+    await store.remove([ok]);
+  });
 });
