@@ -144,7 +144,7 @@ describe.skipIf(!contractEnabled)('community repo (Supabase contract)', () => {
       await repo.setReaction({ targetType: 'post', targetId: p.id, profileId: other, emoji: '👍', createdAt: new Date() }, true);
       await repo.setReaction({ targetType: 'comment', targetId: c1.id, profileId: other, emoji: '🔥', createdAt: new Date() }, true);
       await repo.addNotifications([
-        { spaceId, recipientId: author, actorId: other, type: 'comment', postId: p.id, stepId: null, createdAt: new Date() },
+        { spaceId, recipientId: author, actorId: other, type: 'comment', postId: p.id, stepId: null, communityId: null, createdAt: new Date() },
       ]);
       await repo.deleteChannel(ch.id);
       expect(await repo.post(p.id)).toBeNull();
@@ -244,7 +244,7 @@ describe.skipIf(!contractEnabled)('community repo (Supabase contract)', () => {
       await repo.setReaction({ targetType: 'post', targetId: p.id, profileId: other, emoji: '❤️', createdAt: new Date() }, true);
       await repo.setReaction({ targetType: 'comment', targetId: reply.id, profileId: other, emoji: '🙏', createdAt: new Date() }, true);
       await repo.addNotifications([
-        { spaceId, recipientId: author, actorId: other, type: 'comment', postId: p.id, stepId: null, createdAt: new Date() },
+        { spaceId, recipientId: author, actorId: other, type: 'comment', postId: p.id, stepId: null, communityId: null, createdAt: new Date() },
       ]);
       await repo.deletePost(p.id);
       expect(await repo.comments('post', [p.id])).toEqual([]);
@@ -346,6 +346,7 @@ describe.skipIf(!contractEnabled)('community repo (Supabase contract)', () => {
         type: 'comment' as const,
         postId: p.id,
         stepId: null,
+        communityId: null,
         createdAt: new Date(at),
       });
       await repo.addNotifications([]);
@@ -378,7 +379,7 @@ describe.skipIf(!contractEnabled)('community repo (Supabase contract)', () => {
     it('refuses a self-notification', async () => {
       await expect(
         repo.addNotifications([
-          { spaceId, recipientId: author, actorId: author, type: 'mention', postId: null, stepId: null, createdAt: new Date() },
+          { spaceId, recipientId: author, actorId: author, type: 'mention', postId: null, stepId: null, communityId: null, createdAt: new Date() },
         ]),
       ).rejects.toBeInstanceOf(ConstraintError);
     });

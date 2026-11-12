@@ -1,24 +1,26 @@
 // Reports (G12, G15): a member reports a post, a comment on a post or a channel chat line they
 // can read, once. Moderators of the channel (staff with community.moderate, or a picked channel
-// moderator) dismiss it or remove the content. Resolved reports stay, signed. Only staff see
-// who reported. Mirrored in SQL by the reports policies and report_reporters().
-import { viewerCan, type Viewer } from '@/lib/auth/viewer';
+// moderator) dismiss it, hide the content (posts, comments) or remove it. Filing one notifies every
+// moderator of the channel. Resolved reports stay, signed. Only staff see who reported. Mirrored
+// in SQL by the reports policies, report_reporters() and notifications_insert.
+import { resolveViewer, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import { spaceNames } from '@/lib/data/names';
 import type { Repo } from '@/lib/data/repo';
-import type { Product, Report, ReportStatus, ReportTarget } from '@/lib/data/types';
+import type { Channel, Product, Report, ReportStatus, ReportTarget } from '@/lib/data/types';
 import { getPlainText } from '@/lib/mentions/markup';
 import type { FileStore } from '@/lib/storage/fileStore';
 import { channelHref, postHref } from '../paths';
-import { channelScope, communityAccess, moderatedChannels } from './access';
+import { channelAccess, channelScope, communityAccess, moderatedChannels } from './access';
+import { directory } from './feed';
+import { logModeration } from './moderationLog';
 import { authorOf } from './present';
-import { editable } from './studio';
-import { readsContent, removeContent, removesContent, reportContent, type ReportContent } from './reportTarget';
+import { hideContent, readsContent, removeContent, removesContent, reportContent, type ReportContent } from './reportTarget';
 
 export type ReportCommand =
   | { op: 'report'; targetType: ReportTarget; targetId: string; reason: string | null }
-  | { op: 'resolveReport'; reportId: string; action: 'dismiss' | 'remove' };
+  | { op: 'resolveReport'; reportId: string; action: 'dismiss' | 'remove' | 'hide' };
 
 const OK: CommandResult = { ok: true };
 const FORBIDDEN: CommandResult = { ok: false, error: 'forbidden' };
@@ -29,11 +31,39 @@ type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date
 async function report(ctx: Ctx, cmd: Extract<ReportCommand, { op: 'report' }>): Promise<CommandResult> {
   const content = await reportContent(ctx.repo, cmd.targetType, cmd.targetId);
   const scope = content ? await channelScope(ctx.repo, ctx.viewer, content.channelId, ctx.now) : null;
-  if (!content || !scope || !readsContent(scope.rules, content)) return NOT_FOUND;
+  if (!content || !scope || !readsContent(scope.rules, content, ctx.me)) return NOT_FOUND;
   if (content.authorId === ctx.me) return FORBIDDEN;
   const reason = cmd.reason?.trim() || null;
   await ctx.repo.createReport({ targetType: content.type, targetId: content.id, reporterId: ctx.me, reason, createdAt: ctx.now });
+  await notifyModerators(ctx, scope.community, scope.channel);
   return OK;
+}
+
+/** Staff and picked moderators of the channel, each checked with the same rule as can_moderate_channel(). */
+async function notifyModerators(ctx: Ctx, community: Product, channel: Channel): Promise<void> {
+  const [people, picked] = await Promise.all([directory(ctx.repo, community, ctx.now), ctx.repo.channelModerators(channel.id)]);
+  const candidates = people.filter((p) => p.id !== ctx.me && (p.staff || picked.includes(p.id)));
+  const moderates = await Promise.all(
+    candidates.map(async (p) => {
+      const viewer = await resolveViewer(ctx.repo, ctx.viewer.space.slug, p.id);
+      if (!viewer) return false;
+      const access = await communityAccess(ctx.repo, viewer, community, ctx.now);
+      return (await channelAccess(ctx.repo, access, channel, p.id)).moderatePosts;
+    }),
+  );
+  const rows = candidates
+    .filter((_, i) => moderates[i])
+    .map((p) => ({
+      spaceId: community.spaceId,
+      recipientId: p.id,
+      actorId: ctx.me,
+      type: 'report' as const,
+      postId: null,
+      stepId: null,
+      communityId: community.id,
+      createdAt: ctx.now,
+    }));
+  if (rows.length > 0) await ctx.repo.addNotifications(rows);
 }
 
 async function resolve(ctx: Ctx, cmd: Extract<ReportCommand, { op: 'resolveReport' }>): Promise<CommandResult> {
@@ -47,10 +77,17 @@ async function resolve(ctx: Ctx, cmd: Extract<ReportCommand, { op: 'resolveRepor
     await ctx.repo.resolveReports([row.id], { status: 'dismissed', ...signed });
     return OK;
   }
+  if (cmd.action === 'hide' && row.targetType === 'message') {
+    return { ok: false, error: 'invalid', message: 'Chat messages can only be removed.' };
+  }
   const content = await reportContent(ctx.repo, row.targetType, row.targetId);
   if (content) {
     if (!removesContent(scope.rules, content)) return FORBIDDEN;
-    await removeContent(ctx.repo, ctx.files, content);
+    if (cmd.action === 'remove') await removeContent(ctx.repo, ctx.files, content);
+    else {
+      await hideContent(ctx.repo, content, ctx.now);
+      await logModeration(ctx.repo, ctx.me, 'hide', content.type === 'comment' ? 'comment' : 'post', content.id, ctx.now);
+    }
   }
   // Every open report on the same content closes with it.
   const same = (await ctx.repo.reports(row.communityId)).filter(
@@ -58,7 +95,7 @@ async function resolve(ctx: Ctx, cmd: Extract<ReportCommand, { op: 'resolveRepor
   );
   await ctx.repo.resolveReports(
     same.map((r) => r.id),
-    { status: 'removed', ...signed },
+    { status: cmd.action === 'remove' ? 'removed' : 'hidden', ...signed },
   );
   return OK;
 }
@@ -136,11 +173,4 @@ export async function reportQueue(repo: Repo, viewer: Viewer, community: Product
     open: entries.filter((e) => e.status === 'open'),
     resolved: entries.filter((e) => e.status !== 'open'),
   };
-}
-
-/** Studio queue: staff with community.moderate, a community of the viewer's space. */
-export async function studioReportQueue(repo: Repo, viewer: Viewer, communityId: string, now: Date): Promise<ReportQueue | null> {
-  if (!viewerCan(viewer, 'community.moderate')) return null;
-  const community = await editable(repo, viewer, communityId);
-  return community ? reportQueue(repo, viewer, community, now) : null;
 }

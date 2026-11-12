@@ -114,9 +114,14 @@ export function createFakeCommunityRepo(db: Db, id: (prefix: string) => string):
         .toSorted((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt.getTime() - a.createdAt.getTime()),
     post: async (pid) => db.posts.find((p) => p.id === pid) ?? null,
     async createPost(input) {
-      must(db.channels.find((c) => c.id === input.channelId), 'channel');
+      const channel = must(db.channels.find((c) => c.id === input.channelId), 'channel');
       checkBody(input.body, POST_MAX);
-      const row: Post = { ...input, id: id('post'), pinned: false, hiddenAt: null };
+      // SQL: posts_status trigger.
+      const onApproval = db.postApprovalMembers.some(
+        (a) => a.communityId === channel.communityId && a.profileId === input.authorId,
+      );
+      const status = onApproval ? 'pending' : 'published';
+      const row: Post = { ...input, id: id('post'), pinned: false, hiddenAt: null, lockedAt: null, status };
       db.posts.push(row);
       return row;
     },

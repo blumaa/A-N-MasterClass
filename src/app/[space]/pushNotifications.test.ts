@@ -19,6 +19,7 @@ const stepRow: NewNotification = {
   type: 'step_comment',
   postId: null,
   stepId: 'step-intro',
+  communityId: null,
   createdAt: new Date('2026-11-12T12:00:00Z'),
 };
 

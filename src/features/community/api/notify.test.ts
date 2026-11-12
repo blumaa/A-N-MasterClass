@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildNotifications } from './notify';
 
-const base = { spaceId: 's', actorId: 'me', postId: 'p', stepId: null, createdAt: new Date('2026-11-10T12:00:00Z') };
+const base = { spaceId: 's', actorId: 'me', postId: 'p', stepId: null, communityId: null, createdAt: new Date('2026-11-10T12:00:00Z') };
 
 describe('buildNotifications', () => {
   it('drops the actor, dedupes with the first type winning, filters by canReceive', () => {

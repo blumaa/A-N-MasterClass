@@ -3,7 +3,7 @@ import { resolveViewer } from '@/lib/auth/viewer';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import { SEED_IDS, seedDb } from '@/lib/data/fake/seed';
 import { createFakeFileStore } from '@/lib/storage/fileStore';
-import { reportCommand, reportQueue, studioReportQueue, type ReportCommand } from './reports';
+import { reportCommand, reportQueue, type ReportCommand } from './reports';
 
 const NOW = new Date('2026-11-12T12:00:00Z');
 const FORBIDDEN = { ok: false, error: 'forbidden' };
@@ -62,6 +62,29 @@ describe('report', () => {
     const line = await repo.createMessage({ channelId: null, threadId: dm.id, authorId: SEED_IDS.alexanderOwner, body: 'a', createdAt: NOW });
     expect(await report(SEED_IDS.student, 'message', line.id)).toEqual(NOT_FOUND);
   });
+
+  it('pending posts are not reportable by members who cannot see them', async () => {
+    await repo.updatePost(post, { status: 'pending' });
+    expect(await report(SEED_IDS.student, 'post', post)).toEqual(NOT_FOUND);
+    expect(await report(SEED_IDS.assistant, 'post', post)).toEqual({ ok: true });
+  });
+
+  it('notifies everyone who moderates the channel, not the reporter', async () => {
+    const reportsOf = () => repo.db.notifications.map((n) => [n.recipientId, n.type, n.communityId, n.postId]);
+    await report(SEED_IDS.student, 'post', post);
+    expect(reportsOf()).toEqual([
+      [SEED_IDS.alexanderOwner, 'report', SEED_IDS.community, null],
+      [SEED_IDS.assistant, 'report', SEED_IDS.community, null],
+    ]);
+    repo.db.notifications.length = 0;
+    await repo.setChannelModerator(SEED_IDS.general, SEED_IDS.student, true);
+    await report(SEED_IDS.assistant, 'comment', comment);
+    expect(reportsOf().map(([who]) => who)).toEqual([SEED_IDS.alexanderOwner, SEED_IDS.student]);
+    repo.db.notifications.length = 0;
+    await repo.setCommunityStaff(SEED_IDS.community, SEED_IDS.assistant, false);
+    await report(SEED_IDS.student, 'message', 'msg-hello');
+    expect(reportsOf().map(([who]) => who)).toEqual([SEED_IDS.alexanderOwner]);
+  });
 });
 
 describe('resolve', () => {
@@ -88,6 +111,27 @@ describe('resolve', () => {
       ['removed', SEED_IDS.student],
       ['removed', SEED_IDS.student],
     ]);
+  });
+
+  it('hide keeps the content for moderators, logs it and closes every open report on it', async () => {
+    await report(SEED_IDS.student, 'post', post);
+    await report(SEED_IDS.assistant, 'post', post);
+    await report(SEED_IDS.student, 'comment', comment);
+    expect(await run(SEED_IDS.assistant, { op: 'resolveReport', reportId: firstId(), action: 'hide' })).toEqual({ ok: true });
+    expect((await repo.post(post))?.hiddenAt).toEqual(NOW);
+    expect(repo.db.reports.map((r) => r.status)).toEqual(['hidden', 'hidden', 'open']);
+    expect(await run(SEED_IDS.assistant, { op: 'resolveReport', reportId: repo.db.reports[2]!.id, action: 'hide' })).toEqual({ ok: true });
+    expect((await repo.comment(comment))?.hiddenAt).toEqual(NOW);
+    expect(repo.db.moderationLog.map((l) => [l.actorId, l.action, l.targetType])).toEqual([
+      [SEED_IDS.assistant, 'hide', 'post'],
+      [SEED_IDS.assistant, 'hide', 'comment'],
+    ]);
+  });
+
+  it('chat lines cannot be hidden, only removed', async () => {
+    await report(SEED_IDS.student, 'message', 'msg-hello');
+    expect(await run(SEED_IDS.assistant, { op: 'resolveReport', reportId: firstId(), action: 'hide' })).toMatchObject({ error: 'invalid' });
+    expect(repo.db.reports[0]!.status).toBe('open');
   });
 
   it('channel moderators resolve reports of their channels only', async () => {
@@ -128,15 +172,5 @@ describe('reportQueue', () => {
     const q = (await queue(SEED_IDS.student))!;
     expect(q.reporters).toBe(false);
     expect(q.open.map((r) => [r.targetType, r.reporter])).toEqual([['post', null]]);
-  });
-});
-
-describe('studioReportQueue', () => {
-  it('needs community.moderate and a community of the space', async () => {
-    expect(await studioReportQueue(repo, await viewer(SEED_IDS.alexanderOwner), SEED_IDS.community, NOW)).toMatchObject({ reporters: true });
-    await repo.setChannelModerator(SEED_IDS.general, SEED_IDS.student, true);
-    expect(await studioReportQueue(repo, await viewer(SEED_IDS.student), SEED_IDS.community, NOW)).toBeNull();
-    expect(await studioReportQueue(repo, await viewer(SEED_IDS.natashaOwner, 'natasha'), SEED_IDS.community, NOW)).toBeNull();
-    expect(await studioReportQueue(repo, await viewer(SEED_IDS.alexanderOwner), 'nope', NOW)).toBeNull();
   });
 });

@@ -21,16 +21,19 @@ import {
   REACTION_EMOJIS,
   REACTION_TARGETS,
   LEGAL_KINDS,
+  MODERATION_ACTIONS,
   ORDER_PROVIDERS,
   ORDER_STATUSES,
   PAGE_KINDS,
   PAYMENT_ENVS,
   PODCAST_ORDERS,
+  POST_STATUSES,
   POINT_REASONS,
   POINT_VALUE_MAX,
   REPEAT_COUNT_MAX,
   REPEAT_EVERY_MAX,
   REPEAT_FREQS,
+  REPORT_STATUSES,
 } from '@/lib/data/types';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { SECTION_KINDS } from '@/lib/site/sections';
@@ -188,6 +191,18 @@ describe('SQL mirrors: community', () => {
 
   it('notifications type check equals NOTIFICATION_TYPES', () => {
     expect(list(/notifications_type check \(type in \(([^)]+)\)\)/)).toEqual([...NOTIFICATION_TYPES]);
+  });
+
+  it('posts status check equals POST_STATUSES', () => {
+    expect(list(/posts_status check \(status in \(([^)]+)\)\)/)).toEqual([...POST_STATUSES]);
+  });
+
+  it('reports status check equals REPORT_STATUSES', () => {
+    expect(list(/reports_status check \(status in \(([^)]+)\)\)/)).toEqual([...REPORT_STATUSES]);
+  });
+
+  it('moderation_log action check equals MODERATION_ACTIONS', () => {
+    expect(list(/moderation_log_action check \(action in \(([^)]+)\)\)/)).toEqual([...MODERATION_ACTIONS]);
   });
 
   it('reaches_community role list equals ALWAYS_REACH', () => {

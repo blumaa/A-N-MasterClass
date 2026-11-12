@@ -188,3 +188,68 @@ describe('reactions', () => {
     });
   });
 });
+
+describe('moderation review (lock, approval, log)', () => {
+  const log = () => repo.db.moderationLog.map((l) => [l.actorId, l.action, l.targetType]);
+
+  it('moderators lock and unlock; locked posts take no comments, even from moderators', async () => {
+    const id = await studentPost();
+    expect(await run(SEED_IDS.student, { op: 'lockPost', postId: id, locked: true })).toEqual({ ok: false, error: 'forbidden' });
+    expect((await run(SEED_IDS.alexanderOwner, { op: 'lockPost', postId: id, locked: true })).ok).toBe(true);
+    expect(repo.db.posts.find((p) => p.id === id)?.lockedAt).toEqual(NOW);
+    const comment: CommunityCommand = { op: 'createComment', target: { type: 'post', id }, parentId: null, body: 'hi' };
+    expect(await run(SEED_IDS.student, comment)).toMatchObject({ ok: false, error: 'invalid', message: 'This post is locked.' });
+    expect(await run(SEED_IDS.alexanderOwner, comment)).toMatchObject({ ok: false, error: 'invalid' });
+    expect((await run(SEED_IDS.alexanderOwner, { op: 'lockPost', postId: id, locked: false })).ok).toBe(true);
+    expect((await run(SEED_IDS.student, comment)).ok).toBe(true);
+    expect(log()).toEqual([
+      [SEED_IDS.alexanderOwner, 'lock', 'post'],
+      [SEED_IDS.alexanderOwner, 'unlock', 'post'],
+    ]);
+  });
+
+  it('logs hide and unhide of posts and comments', async () => {
+    const id = await studentPost();
+    const comment = createdId(await run(SEED_IDS.student, { op: 'createComment', target: { type: 'post', id }, parentId: null, body: 'c' }));
+    await run(SEED_IDS.alexanderOwner, { op: 'hideComment', commentId: comment, hidden: true });
+    await run(SEED_IDS.alexanderOwner, { op: 'hidePost', postId: id, hidden: true });
+    await run(SEED_IDS.alexanderOwner, { op: 'hidePost', postId: id, hidden: false });
+    await run(SEED_IDS.alexanderOwner, { op: 'pinPost', postId: id, pinned: true });
+    expect(log()).toEqual([
+      [SEED_IDS.alexanderOwner, 'hide', 'comment'],
+      [SEED_IDS.alexanderOwner, 'hide', 'post'],
+      [SEED_IDS.alexanderOwner, 'unhide', 'post'],
+    ]);
+  });
+
+  it('approval members post pending, without mention notifications; moderators approve or reject', async () => {
+    await repo.setPostApproval(SEED_IDS.community, SEED_IDS.student, true);
+    const id = createdId(
+      await run(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: `hi @[A](${SEED_IDS.alexanderOwner})` }),
+    );
+    expect(repo.db.posts.find((p) => p.id === id)?.status).toBe('pending');
+    expect(types()).toEqual([]);
+    const comment: CommunityCommand = { op: 'createComment', target: { type: 'post', id }, parentId: null, body: 'x' };
+    expect(await run(SEED_IDS.student, comment)).toMatchObject({ ok: false, error: 'invalid' });
+    expect(await run(SEED_IDS.student, { op: 'reviewPost', postId: id, decision: 'approve' })).toEqual({ ok: false, error: 'forbidden' });
+    expect((await run(SEED_IDS.alexanderOwner, { op: 'reviewPost', postId: id, decision: 'reject' })).ok).toBe(true);
+    expect(repo.db.posts.find((p) => p.id === id)?.status).toBe('rejected');
+    expect((await run(SEED_IDS.alexanderOwner, { op: 'reviewPost', postId: id, decision: 'approve' })).ok).toBe(true);
+    expect(repo.db.posts.find((p) => p.id === id)?.status).toBe('published');
+    expect(await run(SEED_IDS.alexanderOwner, { op: 'reviewPost', postId: id, decision: 'approve' })).toMatchObject({ error: 'invalid' });
+    expect(log()).toEqual([
+      [SEED_IDS.alexanderOwner, 'reject', 'post'],
+      [SEED_IDS.alexanderOwner, 'approve', 'post'],
+    ]);
+    expect(types()).toEqual([]);
+  });
+
+  it('others cannot reach a pending post', async () => {
+    const id = createdId(await run(SEED_IDS.alexanderOwner, { op: 'createPost', channelId: SEED_IDS.general, body: 'p' }));
+    await repo.updatePost(id, { status: 'pending' });
+    expect(await run(SEED_IDS.student, { op: 'react', target: { type: 'post', id }, emoji: '🔥', on: true })).toEqual({
+      ok: false,
+      error: 'not_found',
+    });
+  });
+});

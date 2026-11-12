@@ -33,7 +33,7 @@ export default async function PostRoute({ params }: Props) {
   const data = await load(params);
   if (!data) notFound();
   const { page, viewer } = data;
-  const { community, access, rules, channels, channel, post, comments, members } = page;
+  const { community, access, rules, channels, channel, post, open, comments, members } = page;
   const signedIn = viewer.profile !== null;
   const nav = await communityNav(getRepo(), viewer, community, access, new Date());
   return (
@@ -55,6 +55,7 @@ export default async function PostRoute({ params }: Props) {
           comments={comments}
           members={members}
           canComment={signedIn}
+          closed={!open}
           moderate={rules.moderateComments}
         />
       </Stack>

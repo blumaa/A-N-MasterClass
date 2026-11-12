@@ -6,6 +6,7 @@ import type {
   CommunitySettings,
   Notification,
   Post,
+  PostStatus,
   Reaction,
 } from '@/lib/data/types';
 import { toDate, toDateOrNull, type Row } from './context';
@@ -51,6 +52,8 @@ export const toPost = (r: Row<'posts'>): Post => ({
   pinned: r.pinned,
   createdAt: toDate(r.created_at),
   hiddenAt: toDateOrNull(r.hidden_at),
+  lockedAt: toDateOrNull(r.locked_at),
+  status: r.status as PostStatus,
 });
 
 export const toComment = (r: Row<'comments'>): Comment => ({
@@ -81,6 +84,7 @@ export const toNotification = (r: Row<'notifications'>): Notification => ({
   type: r.type as Notification['type'],
   postId: r.post_id,
   stepId: r.step_id,
+  communityId: r.community_id,
   createdAt: toDate(r.created_at),
   readAt: toDateOrNull(r.read_at),
 });

@@ -26,6 +26,7 @@ import type {
   PointsEntry,
   Channel,
   ChannelMember,
+  ModerationLogEntry,
   CommunitySettings,
   DmRead,
   DmThread,
@@ -103,6 +104,8 @@ export type Db = {
   channelMembers: ChannelMember[];
   channelModerators: ChannelMember[];
   reports: FakeReport[];
+  postApprovalMembers: { communityId: string; profileId: string }[];
+  moderationLog: ModerationLogEntry[];
   messages: Message[];
   dmThreads: DmThread[];
   dmReads: DmRead[];
@@ -172,6 +175,8 @@ export const emptyDb = (): Db => ({
   channelMembers: [],
   channelModerators: [],
   reports: [],
+  postApprovalMembers: [],
+  moderationLog: [],
   messages: [],
   dmThreads: [],
   dmReads: [],

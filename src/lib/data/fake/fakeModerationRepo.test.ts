@@ -77,3 +77,35 @@ describe('reports', () => {
     expect(await repo.report(open!.id)).toMatchObject({ status: 'dismissed', resolvedBy: SEED_IDS.assistant, resolvedAt: later(1) });
   });
 });
+
+describe('post approval', () => {
+  it('sets and clears idempotently; approval member posts go pending', async () => {
+    await repo.setPostApproval(SEED_IDS.community, SEED_IDS.student, true);
+    await repo.setPostApproval(SEED_IDS.community, SEED_IDS.student, true);
+    expect(await repo.postApprovalMembers(SEED_IDS.community)).toEqual([SEED_IDS.student]);
+    const pending = await repo.createPost({ channelId: SEED_IDS.general, authorId: SEED_IDS.student, body: 'p', createdAt: NOW });
+    expect(pending).toMatchObject({ status: 'pending', lockedAt: null });
+    await repo.setPostApproval(SEED_IDS.community, SEED_IDS.student, false);
+    expect(await repo.postApprovalMembers(SEED_IDS.community)).toEqual([]);
+    const open = await repo.createPost({ channelId: SEED_IDS.general, authorId: SEED_IDS.student, body: 'p', createdAt: NOW });
+    expect(open.status).toBe('published');
+  });
+});
+
+describe('moderation log', () => {
+  it('takes channel and community from the target, newest first', async () => {
+    await repo.logModeration({ actorId: SEED_IDS.alexander, action: 'hide', targetType: 'post', targetId: postId, createdAt: NOW });
+    await repo.logModeration({ actorId: SEED_IDS.alexander, action: 'unhide', targetType: 'post', targetId: postId, createdAt: later(1000) });
+    const rows = await repo.moderationLog(SEED_IDS.community);
+    expect(rows.map((r) => [r.action, r.channelId, r.communityId, r.actorId])).toEqual([
+      ['unhide', SEED_IDS.general, SEED_IDS.community, SEED_IDS.alexander],
+      ['hide', SEED_IDS.general, SEED_IDS.community, SEED_IDS.alexander],
+    ]);
+  });
+
+  it('target must exist', async () => {
+    await expect(
+      repo.logModeration({ actorId: SEED_IDS.alexander, action: 'lock', targetType: 'post', targetId: 'nope', createdAt: NOW }),
+    ).rejects.toThrow(new ConstraintError(REPORT_TARGET_MISSING));
+  });
+});

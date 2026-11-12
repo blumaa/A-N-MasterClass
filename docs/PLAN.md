@@ -249,8 +249,21 @@ Launch 6 item 3 as built:
 - Queue: Studio `communities/[id]/reports` (staff) and `community/[slug]/reports` (nav link for anyone moderating a channel). Same `ReportQueue` view. Preview cut to 280 chars.
 - Dismiss keeps content. Remove deletes it and closes every open report on it. Resolved rows stay with `resolved_by` + `resolved_at`.
 - Reporter hidden: column grant drops `reporter_id`; `report_reporters(community)` RPC for staff with `community.moderate` only.
-- G0 diff: Kajabi moderators are channel-scoped teammates with hide/restore/lock/approve, Review Feed, View Logs; mobile has user reports without detail. Here (G15) moderators are trusted students, reports target content, no lock/approval queue/logs yet.
-- Not yet: restore from the queue, post lock, approval queue, audit log, report a user, notify moderators of new reports.
+- G0 diff: Kajabi moderators are channel-scoped teammates with hide/restore/lock/approve, Review Feed, View Logs; mobile has user reports without detail. Here (G15) moderators are trusted students, reports target content, lock, approval and logs added in the follow-up below.
+- Not yet: see follow-up below.
+
+Launch 6 item 3 follow-up as built:
+- Migration `20261114000000_moderation_review.sql` + `supabase/tests/280-moderation-review.test.sql` (31 asserts), applied to ksb 2026-11-12.
+- Hide/restore: hidden post leaves the feed for members (author too). Review Feed "Hidden" tab lists hidden posts; moderator unhides there. Hidden comments stay inline with a badge for moderators (no tab).
+- Lock/unlock: post menu (moderators). Locked post takes no new comments: `createComment` (TS `postOpen`) + comments insert RLS (`post_open`). Reactions and reports still work. Post page shows "Comments are closed."
+- Post approval: Studio community page, "Post approval" picker (`post_approval_members`, per member, per community, needs `community.moderate`). Their new posts start `pending` (trigger `posts_status`). Moderator approves or rejects; rejected can be approved later. Author not notified; author sees "Waiting for approval" / "Not approved" badge.
+- Visibility SSOT: SQL `can_read_post` = TS `seesPost` (moderator, or not hidden and (published or author)). Feed = `inFeed`.
+- Review Feed: existing reports pages, `?tab=reports|pending|rejected|hidden|locked|log`. No new route. Studio and member side share `ReviewFeed` (`review` / `studioReview`). Channel moderators see their channels only.
+- Report queue "Hide": hides the content, resolves every open report on it as `hidden`.
+- Logs (`moderation_log`): hide, unhide, lock, unlock, approve, reject. Moderator, action, timestamp, content preview + link (null once deleted). Filter by action and date range (`?action=&from=&to=`, UTC days, both ends included). Read: channel moderators for their channels, comment moderators (staff) all.
+- Report notifications: new type `report` to every channel moderator (`can_moderate_channel` recipients, SSOT), links to the Review Feed. In-app only, no web push.
+- G0 diff: no "report a user" (Kajabi mobile has it). Reports target content only.
+- Not yet: member data export does not include `moderation_log` or `post_approval_members`. Erase: approval row cascades; log keeps the row, actor null ("Someone").
 
 Launch 6 item 4 as built:
 - Migrations `20261112100000_community_files.sql` + `20261112100100_messages_attachment_not_null.sql`, `supabase/tests/140-community-files.test.sql`, applied to ksb 2026-11-12.

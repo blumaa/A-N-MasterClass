@@ -1,6 +1,6 @@
 // Community forms -> commands. Member forms (posts, comments, reactions), chat forms (messages,
 // DMs, blocks), report forms and Studio forms (communities, channels, groups, settings, staff
-// ticks, moderators) each post `op` plus their fields. Shared readers live in lib/forms/commands.
+// ticks, moderators, post approval) each post `op` plus their fields. Shared readers live in lib/forms/commands.
 import type { Direction } from '@/lib/data/repo';
 import type { Attachment } from '@/lib/data/types';
 import {
@@ -22,6 +22,7 @@ import type { ReportCommand } from './api/reports';
 import type { StudioCommunityCommand } from './api/studio';
 
 const DIRECTIONS: readonly Direction[] = ['up', 'down'];
+const REVIEW_DECISIONS = ['approve', 'reject'] as const;
 
 /** Whole number 0..POINT_VALUE_MAX. */
 function pointValue(v: string): number {
@@ -72,6 +73,8 @@ const MEMBER: Record<CommunityCommand['op'], (r: Reader) => CommunityCommand> = 
   deletePost: (r) => ({ op: 'deletePost', postId: r.required('postId') }),
   hidePost: (r) => ({ op: 'hidePost', postId: r.required('postId'), hidden: flag(r, 'hidden') }),
   pinPost: (r) => ({ op: 'pinPost', postId: r.required('postId'), pinned: flag(r, 'pinned') }),
+  lockPost: (r) => ({ op: 'lockPost', postId: r.required('postId'), locked: flag(r, 'locked') }),
+  reviewPost: (r) => ({ op: 'reviewPost', postId: r.required('postId'), decision: r.oneOf('decision', REVIEW_DECISIONS) }),
   createComment: (r) => ({
     op: 'createComment',
     target: { type: r.oneOf('targetType', ['post', 'step'] as const), id: r.required('targetId') },
@@ -160,10 +163,16 @@ const STUDIO: Record<StudioCommunityCommand['op'], (r: Reader) => StudioCommunit
     profileId: r.required('profileId'),
     on: flag(r, 'on'),
   }),
+  setPostApproval: (r) => ({
+    op: 'setPostApproval',
+    communityId: r.required('communityId'),
+    profileId: r.required('profileId'),
+    on: flag(r, 'on'),
+  }),
   setStaff: (r) => ({ op: 'setStaff', communityId: r.required('communityId'), profileId: r.required('profileId'), on: flag(r, 'on') }),
 };
 
-const RESOLUTIONS = ['dismiss', 'remove'] as const;
+const RESOLUTIONS = ['dismiss', 'remove', 'hide'] as const;
 
 /** Reason is optional; its length is the DB's job. */
 const REPORT: Record<ReportCommand['op'], (r: Reader) => ReportCommand> = {

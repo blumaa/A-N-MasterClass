@@ -4,7 +4,7 @@ import type { Viewer } from '@/lib/auth/viewer';
 import { grantIsActive } from '@/lib/data/grants';
 import { spaceNames } from '@/lib/data/names';
 import type { Repo } from '@/lib/data/repo';
-import type { Channel, Post, Product } from '@/lib/data/types';
+import type { Channel, Post, PostStatus, Product } from '@/lib/data/types';
 import type { MentionOption } from '@/lib/mentions/markup';
 import { postPhotoHref } from '../paths';
 import { channelAccess, communityAccess, readableChannels, type ChannelAccess, type CommunityAccess } from './access';
@@ -19,6 +19,7 @@ import {
   type MessageItem,
   type ReactionCount,
 } from './present';
+import { inFeed, postOpen, seesPost } from './visibility';
 
 export type PostItem = {
   id: string;
@@ -28,6 +29,10 @@ export type PostItem = {
   createdAt: Date;
   pinned: boolean;
   hidden: boolean;
+  /** Takes no new comments. */
+  locked: boolean;
+  /** Pending / rejected: only the author (feed) and moderators (review tabs) see it. */
+  status: PostStatus;
   reactions: ReactionCount[];
   commentCount: number;
   canDelete: boolean;
@@ -64,6 +69,8 @@ export type PostPage = {
   channel: Channel;
   rules: ChannelAccess;
   post: PostItem;
+  /** Takes new comments (postOpen). */
+  open: boolean;
   comments: CommentNode[];
   members: MentionOption[];
 };
@@ -78,15 +85,15 @@ export async function loadCommunity(repo: Repo, viewer: Viewer, slug: string, no
   return { community, access };
 }
 
-async function postItems(
+/** Card data of posts the caller already checked the viewer may see. */
+export async function postItems(
   repo: Repo,
   viewer: Viewer,
   community: Product,
   posts: readonly Post[],
   rules: ChannelAccess,
 ): Promise<PostItem[]> {
-  const visible = rules.moderatePosts ? posts : posts.filter((p) => p.hiddenAt === null);
-  const ids = visible.map((p) => p.id);
+  const ids = posts.map((p) => p.id);
   const [who, reactions, comments, photos] = await Promise.all([
     spaceNames(repo, viewer.space.id),
     repo.reactions('post', ids),
@@ -94,7 +101,7 @@ async function postItems(
     repo.postPhotos(ids),
   ]);
   const me = viewer.profile?.id ?? null;
-  return visible.map((p) => ({
+  return posts.map((p) => ({
     id: p.id,
     channelId: p.channelId,
     body: p.body,
@@ -102,6 +109,8 @@ async function postItems(
     createdAt: p.createdAt,
     pinned: p.pinned,
     hidden: p.hiddenAt !== null,
+    locked: p.lockedAt !== null,
+    status: p.status,
     reactions: reactionCounts(reactions, p.id, me),
     commentCount: comments.filter((c) => c.targetId === p.id && (rules.moderateComments || c.hiddenAt === null)).length,
     canDelete: rules.moderatePosts || p.authorId === me,
@@ -132,7 +141,7 @@ export async function communityPage(
   const isChat = channel.kind === 'chat';
   const rules = await channelAccess(repo, access, channel, me);
   const [posts, messages, members] = await Promise.all([
-    isChat ? [] : repo.posts(channel.id).then((rows) => postItems(repo, viewer, community, rows, rules)),
+    isChat ? [] : repo.posts(channel.id).then((rows) => postItems(repo, viewer, community, rows.filter((p) => inFeed(p, me)), rules)),
     isChat ? chatLines(repo, viewer, community, { channelId: channel.id }, rules.moderatePosts) : [],
     directory(repo, community, now),
   ]);
@@ -170,7 +179,7 @@ export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId:
   if (!row || !channel || channel.communityId !== community.id) return null;
   const me = viewer.profile!.id;
   const rules = await channelAccess(repo, access, channel, me);
-  if (!rules.read || (row.hiddenAt !== null && !rules.moderatePosts)) return null;
+  if (!rules.read || !seesPost(rules.moderatePosts, row, me)) return null;
   const commentsWithReactions = repo
     .comments('post', [row.id])
     .then(async (cs) => ({ cs, reactions: await repo.reactions('comment', cs.map((c) => c.id)) }));
@@ -188,6 +197,7 @@ export async function postPage(repo: Repo, viewer: Viewer, slug: string, postId:
     channel,
     rules,
     post: post!,
+    open: postOpen(row),
     comments: buildThread(comments, reactions, who, viewer.profile?.id ?? null, rules.moderateComments),
     members: mentionOptions(members),
   };

@@ -36,6 +36,21 @@ describe('ReportQueue', () => {
     const form = reportAction.mock.calls[0]![1];
     expect(Object.fromEntries(form.entries())).toEqual({ op: 'resolveReport', reportId: 'r1', action: 'dismiss' });
     expect(within(open).getByRole('button', { name: 'Remove content' })).toBeInTheDocument();
+    fireEvent.click(within(open).getByRole('button', { name: 'Hide' }));
+    expect(Object.fromEntries(reportAction.mock.calls[1]![1].entries())).toMatchObject({ action: 'hide' });
+  });
+
+  it('offers no Hide on chat lines; signs hidden reports', () => {
+    render(
+      <ReportQueue
+        queue={queue({
+          open: [entry({ targetType: 'message' })],
+          resolved: [entry({ id: 'r2', status: 'hidden', resolvedBy: 'Sam', resolvedAt: AT })],
+        })}
+      />,
+    );
+    expect(within(screen.getByRole('list', { name: 'Open reports' })).queryByRole('button', { name: 'Hide' })).toBeNull();
+    expect(screen.getByRole('list', { name: 'Resolved reports' })).toHaveTextContent(/Hidden by Sam/);
   });
 
   it('hides the reporter when not shown; marks removed content; keeps resolved reports signed', () => {

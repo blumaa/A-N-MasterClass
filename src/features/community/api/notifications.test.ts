@@ -78,8 +78,9 @@ describe('describeNotifications', () => {
   it('gives new rows the same text and link as the feed (push uses it)', async () => {
     const postId = await studentPostWithOwnerComment();
     const rows = [
-      { recipientId: SEED_IDS.student, actorId: SEED_IDS.alexanderOwner, type: 'comment' as const, postId, stepId: null },
-      { recipientId: SEED_IDS.alexanderOwner, actorId: SEED_IDS.student, type: 'step_comment' as const, postId: null, stepId: 'step-intro' },
+      { recipientId: SEED_IDS.student, actorId: SEED_IDS.alexanderOwner, type: 'comment' as const, postId, stepId: null, communityId: null },
+      { recipientId: SEED_IDS.alexanderOwner, actorId: SEED_IDS.student, type: 'step_comment' as const, postId: null, stepId: 'step-intro', communityId: null },
+      { recipientId: SEED_IDS.assistant, actorId: SEED_IDS.student, type: 'report' as const, postId: null, stepId: null, communityId: SEED_IDS.community },
     ];
     expect(await describeNotifications(repo, SEED_IDS.alexander, rows)).toEqual([
       { recipientId: SEED_IDS.student, text: 'Alexander commented on your post', link: { kind: 'post', community: 'community', postId } },
@@ -88,6 +89,7 @@ describe('describeNotifications', () => {
         text: 'Robin (student) commented on Introduction',
         link: { kind: 'step', program: 'shibari-101', stepId: 'step-intro' },
       },
+      { recipientId: SEED_IDS.assistant, text: 'Robin (student) reported content in Rope Community', link: { kind: 'reports', community: 'community' } },
     ]);
   });
 });

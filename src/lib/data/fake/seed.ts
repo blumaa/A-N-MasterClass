@@ -221,6 +221,8 @@ export function seedDb(now: Date = new Date()): Db {
     pinned: true,
     createdAt: new Date(now.getTime() - DAY),
     hiddenAt: null,
+    lockedAt: null,
+    status: 'published',
   });
 
   // Natasha gets her own look so the two dev spaces visibly differ; Alexander keeps defaults.

@@ -204,7 +204,7 @@ describe('posts', () => {
     await newComment(post.id);
     await repo.setReaction({ targetType: 'post', targetId: post.id, profileId: SEED_IDS.student, emoji: '❤️', createdAt: NOW }, true);
     await repo.addNotifications([
-      { spaceId: SEED_IDS.alexander, recipientId: SEED_IDS.alexanderOwner, actorId: SEED_IDS.student, type: 'mention', postId: post.id, stepId: null, createdAt: NOW },
+      { spaceId: SEED_IDS.alexander, recipientId: SEED_IDS.alexanderOwner, actorId: SEED_IDS.student, type: 'mention', postId: post.id, stepId: null, communityId: null, createdAt: NOW },
     ]);
     await repo.deletePost(post.id);
     expect(repo.db.comments).toEqual([]);
@@ -257,7 +257,7 @@ describe('reactions', () => {
 
 describe('notifications', () => {
   it('lists newest first per recipient and space, counts and marks read', async () => {
-    const base = { spaceId: SEED_IDS.alexander, recipientId: SEED_IDS.student, actorId: SEED_IDS.alexanderOwner, postId: 'p1', stepId: null };
+    const base = { spaceId: SEED_IDS.alexander, recipientId: SEED_IDS.student, actorId: SEED_IDS.alexanderOwner, postId: 'p1', stepId: null, communityId: null };
     await repo.addNotifications([
       { ...base, type: 'comment', createdAt: NOW },
       { ...base, type: 'reaction', createdAt: later(1000) },

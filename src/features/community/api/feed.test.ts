@@ -76,17 +76,37 @@ describe('communityPage', () => {
     expect(await communityPage(repo, await as(SEED_IDS.student), 'community', 'chan-x', NOW)).toBeNull();
   });
 
-  it('shows hidden posts to moderators only, flagged', async () => {
+  it('hidden posts leave the feed for everyone (moderators use the Hidden tab)', async () => {
     const p = await post(SEED_IDS.general, SEED_IDS.student, 'spam');
     await repo.updatePost(p.id, { hiddenAt: NOW });
     const student = await communityPage(repo, await as(SEED_IDS.student), 'community', null, NOW);
     const owner = await communityPage(repo, await as(SEED_IDS.alexanderOwner), 'community', null, NOW);
     if (student?.kind !== 'open' || owner?.kind !== 'open') throw new Error('expected open');
     expect(student.posts).toEqual([]);
-    expect(owner.posts.map((x) => x.hidden)).toEqual([true]);
+    expect(owner.posts).toEqual([]);
   });
 
-  it('channel moderators see hidden posts and delete in their channel; items flag the viewer\'s own', async () => {
+  it('pending and rejected posts show to their author only, flagged; locked posts stay', async () => {
+    const pending = await post(SEED_IDS.general, SEED_IDS.student, 'wait');
+    const locked = await post(SEED_IDS.general, SEED_IDS.alexanderOwner, 'shut', 1);
+    await repo.updatePost(pending.id, { status: 'pending' });
+    await repo.updatePost(locked.id, { lockedAt: NOW });
+    const student = await communityPage(repo, await as(SEED_IDS.student), 'community', null, NOW);
+    const owner = await communityPage(repo, await as(SEED_IDS.alexanderOwner), 'community', null, NOW);
+    if (student?.kind !== 'open' || owner?.kind !== 'open') throw new Error('expected open');
+    expect(student.posts.map((x) => [x.body, x.status, x.locked])).toEqual([
+      ['wait', 'pending', false],
+      ['shut', 'published', true],
+    ]);
+    expect(owner.posts.map((x) => x.body)).toEqual(['shut']);
+    expect(await postPage(repo, await as(SEED_IDS.alexanderOwner), 'community', pending.id, NOW)).not.toBeNull();
+    expect((await postPage(repo, await as(SEED_IDS.student), 'community', pending.id, NOW))?.open).toBe(false);
+    expect((await postPage(repo, await as(SEED_IDS.student), 'community', locked.id, NOW))?.open).toBe(false);
+    await repo.updatePost(locked.id, { lockedAt: null });
+    expect((await postPage(repo, await as(SEED_IDS.student), 'community', locked.id, NOW))?.open).toBe(true);
+  });
+
+  it('channel moderators delete in their channel; items flag the viewer\'s own', async () => {
     const p = await post(SEED_IDS.general, SEED_IDS.alexanderOwner, 'spam');
     await post(SEED_IDS.general, SEED_IDS.student, 'mine', 1);
     await repo.updatePost(p.id, { hiddenAt: NOW });
@@ -94,12 +114,9 @@ describe('communityPage', () => {
     const page = await communityPage(repo, await as(SEED_IDS.student), 'community', SEED_IDS.general, NOW);
     if (page?.kind !== 'open') throw new Error('expected open');
     expect(page.rules).toMatchObject({ moderatePosts: true, moderateComments: true });
-    expect(page.posts.map((x) => [x.body, x.hidden, x.canDelete, x.mine])).toEqual([
-      ['spam', true, true, false],
-      ['mine', false, true, true],
-    ]);
+    expect(page.posts.map((x) => [x.body, x.hidden, x.canDelete, x.mine])).toEqual([['mine', false, true, true]]);
     const postView = await postPage(repo, await as(SEED_IDS.student), 'community', p.id, NOW);
-    expect(postView?.rules.moderatePosts).toBe(true);
+    expect(postView?.post.hidden).toBe(true);
   });
 });
 

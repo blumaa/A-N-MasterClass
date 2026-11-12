@@ -11,6 +11,7 @@ import {
   meetupsHref,
   membersHref,
   reportsHref,
+  reviewTabHref,
   notificationsHref,
   postHref,
   postPhotoHref,
@@ -28,6 +29,8 @@ it('builds host-relative community paths', () => {
   expect(postHref('circle', 'p-1')).toBe('/community/circle/posts/p-1');
   expect(membersHref('circle')).toBe('/community/circle/members');
   expect(reportsHref('circle')).toBe('/community/circle/reports');
+  expect(reviewTabHref('/community/circle/reports', 'reports')).toBe('/community/circle/reports');
+  expect(reviewTabHref('/community/circle/reports', 'hidden')).toBe('/community/circle/reports?tab=hidden');
   expect(notificationsHref).toBe('/notifications');
   expect(studioCommunitiesHref).toBe('/studio/communities');
   expect(studioCommunityHref('c-1')).toBe('/studio/communities/c-1');

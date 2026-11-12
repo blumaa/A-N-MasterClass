@@ -47,6 +47,7 @@ const view = (over: Partial<StudioCommunity> = {}): StudioCommunity => ({
   ],
   channelMembers: { w: ['p1'] },
   channelModerators: { g: ['p2'], w: [] },
+  approvalMembers: [],
   staff: [{ profileId: 'a', name: 'Sam', role: 'assistant', ticked: true }],
   canManageStaff: true,
   canModerate: true,
@@ -99,6 +100,17 @@ describe('CommunityEditor', () => {
     rerender(<CommunityEditor imageSrc={String} view={view({ canModerate: false })} />);
     expect(screen.queryByText('No moderators picked yet.')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Reports' })).toBeNull();
+  });
+
+  it('picks members whose posts need approval; hidden without community.moderate', () => {
+    const { rerender } = render(<CommunityEditor imageSrc={String} view={view({ approvalMembers: ['p1'] })} />);
+    const list = screen.getByRole('list', { name: 'Posts need approval' });
+    expect(within(list).getByText('Robin')).toBeInTheDocument();
+    const pick = screen.getByRole('combobox', { name: 'Pick member' });
+    expect(within(pick).getAllByRole('option').map((o) => o.textContent)).toEqual(['Kim']);
+    expect(screen.getByRole('button', { name: 'Require approval' })).toBeInTheDocument();
+    rerender(<CommunityEditor imageSrc={String} view={view({ canModerate: false })} />);
+    expect(screen.queryByRole('heading', { name: 'Post approval' })).toBeNull();
   });
 
   it('lists access groups; only non-default groups can be deleted', () => {

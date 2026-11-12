@@ -46,6 +46,7 @@ import type {
   Part,
   PaymentCredentials,
   PaymentEnv,
+  ModerationLogEntry,
   Post,
   PostPhoto,
   Product,
@@ -167,7 +168,8 @@ export type MessageWhere = { channelId: string } | { threadId: string };
 export type NewReport = Pick<Report, 'targetType' | 'targetId' | 'reason' | 'createdAt'> & { reporterId: string };
 export type ReportResolution = { status: Exclude<ReportStatus, 'open'>; resolvedBy: string; resolvedAt: Date };
 export type NewPost = Pick<Post, 'channelId' | 'authorId' | 'body' | 'createdAt'>;
-export type PostPatch = Partial<Pick<Post, 'pinned' | 'hiddenAt'>>;
+export type PostPatch = Partial<Pick<Post, 'pinned' | 'hiddenAt' | 'lockedAt' | 'status'>>;
+export type NewModerationLog = Omit<ModerationLogEntry, 'id' | 'communityId' | 'channelId'> & { actorId: string };
 export type NewComment = Pick<Comment, 'spaceId' | 'targetType' | 'targetId' | 'parentId' | 'authorId' | 'body' | 'createdAt'>;
 export type CommentPatch = Partial<Pick<Comment, 'hiddenAt'>>;
 export type NewNotification = Omit<Notification, 'id' | 'readAt'>;
@@ -431,6 +433,14 @@ export interface Repo {
   resolveReports(ids: readonly string[], resolution: ReportResolution): Promise<void>;
   /** Report id -> reporter id. Empty unless the caller moderates the whole community (SQL: report_reporters). */
   reportReporters(communityId: string): Promise<Record<string, string>>;
+  /** Profile ids whose new posts wait for approval in this community. */
+  postApprovalMembers(communityId: string): Promise<string[]>;
+  /** Profile must be a member of the community (SQL policy). */
+  setPostApproval(communityId: string, profileId: string, on: boolean): Promise<void>;
+  /** Newest first. */
+  moderationLog(communityId: string): Promise<ModerationLogEntry[]>;
+  /** Target must exist (post, or comment on a post); channel and community come from it. */
+  logModeration(entry: NewModerationLog): Promise<void>;
 
   /** The latest `limit` messages, returned oldest first. */
   messages(where: MessageWhere, limit: number): Promise<Message[]>;

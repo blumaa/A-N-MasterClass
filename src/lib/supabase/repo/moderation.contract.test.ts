@@ -98,4 +98,30 @@ describe.skipIf(!contractEnabled)('moderation repo (Supabase contract)', () => {
     expect(rows).toHaveLength(2);
     expect(await asOwner.reportReporters(communityId)).toEqual(Object.fromEntries(rows.map((r) => [r.id, student])));
   });
+  it('post approval: set, clear, and approval member posts go pending', async () => {
+    await repo.setPostApproval(communityId, student, true);
+    await repo.setPostApproval(communityId, student, true);
+    expect(await repo.postApprovalMembers(communityId)).toEqual([student]);
+    const pending = await community.createPost({ channelId: feedId, authorId: student, body: 'p', createdAt: T0 });
+    expect(pending).toMatchObject({ status: 'pending', lockedAt: null });
+    await repo.setPostApproval(communityId, student, false);
+    expect(await repo.postApprovalMembers(communityId)).toEqual([]);
+    expect(await community.updatePost(pending.id, { status: 'rejected', lockedAt: at(1) })).toMatchObject({
+      status: 'rejected',
+      lockedAt: at(1),
+    });
+  });
+
+  it('moderation log: channel and community from the target, newest first, target must exist', async () => {
+    await repo.logModeration({ actorId: owner, action: 'lock', targetType: 'post', targetId: postId, createdAt: T0 });
+    await repo.logModeration({ actorId: owner, action: 'unlock', targetType: 'post', targetId: postId, createdAt: at(5) });
+    const rows = await repo.moderationLog(communityId);
+    expect(rows.map((r) => [r.action, r.channelId, r.communityId, r.actorId, r.targetId, r.createdAt])).toEqual([
+      ['unlock', feedId, communityId, owner, postId, at(5)],
+      ['lock', feedId, communityId, owner, postId, T0],
+    ]);
+    await expect(
+      repo.logModeration({ actorId: owner, action: 'lock', targetType: 'post', targetId: randomUUID(), createdAt: T0 }),
+    ).rejects.toThrow(new ConstraintError(REPORT_TARGET_MISSING));
+  });
 });

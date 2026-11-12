@@ -25,6 +25,8 @@ type Props = {
   addPhotos?: boolean;
 };
 
+const STATUS_BADGE = { pending: 'Waiting for approval', rejected: 'Not approved' } as const;
+
 const commentsLabel = (n: number): string => (n === 1 ? '1 comment' : `${n} comments`);
 
 export function PostCard({ post, action, href, moderate, signedIn, afterDelete, addPhotos = false }: Props) {
@@ -39,6 +41,8 @@ export function PostCard({ post, action, href, moderate, signedIn, afterDelete, 
             <Inline gap="tight">
               {post.pinned ? <Badge tone="accent">Pinned</Badge> : null}
               {post.hidden ? <Badge tone="warning">Hidden</Badge> : null}
+              {post.locked ? <Badge tone="neutral">Locked</Badge> : null}
+              {post.status === 'published' ? null : <Badge tone="warning">{STATUS_BADGE[post.status]}</Badge>}
               <Text variant="meta" tone="muted">
                 {formatDate(post.createdAt)}
               </Text>
@@ -54,6 +58,13 @@ export function PostCard({ post, action, href, moderate, signedIn, afterDelete, 
               <>
                 <ActionForm action={action} inline variant="ghost" submit={post.pinned ? 'Unpin' : 'Pin'} fields={{ op: 'pinPost', ...id, pinned: String(!post.pinned) }} />
                 <ActionForm action={action} inline variant="ghost" submit={post.hidden ? 'Unhide' : 'Hide'} fields={{ op: 'hidePost', ...id, hidden: String(!post.hidden) }} />
+                <ActionForm action={action} inline variant="ghost" submit={post.locked ? 'Unlock' : 'Lock'} fields={{ op: 'lockPost', ...id, locked: String(!post.locked) }} />
+                {post.status === 'published' ? null : (
+                  <ActionForm action={action} inline variant="ghost" submit="Approve" fields={{ op: 'reviewPost', ...id, decision: 'approve' }} />
+                )}
+                {post.status === 'pending' ? (
+                  <ActionForm action={action} inline variant="ghost" submit="Reject" fields={{ op: 'reviewPost', ...id, decision: 'reject' }} />
+                ) : null}
               </>
             ) : null}
             {post.canDelete ? (

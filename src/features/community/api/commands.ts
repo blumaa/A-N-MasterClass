@@ -13,7 +13,9 @@ import { inFolder } from '@/lib/storage/uploadPath';
 import { channelScope as findChannel, type ChannelAccess } from './access';
 import { directory } from './feed';
 import { channelFolderOf, postFilePaths } from './files';
+import { logModeration } from './moderationLog';
 import { buildNotifications, type Candidate, type NotificationBase } from './notify';
+import { postOpen, seesPost } from './visibility';
 
 /** Whether the viewer may open a step (programs feature decides; the app injects it). */
 export type StepGate = (stepId: string) => Promise<boolean>;
@@ -25,6 +27,8 @@ export type CommunityCommand =
   | { op: 'deletePost'; postId: string }
   | { op: 'hidePost'; postId: string; hidden: boolean }
   | { op: 'pinPost'; postId: string; pinned: boolean }
+  | { op: 'lockPost'; postId: string; locked: boolean }
+  | { op: 'reviewPost'; postId: string; decision: 'approve' | 'reject' }
   | { op: 'createComment'; target: { type: 'post' | 'step'; id: string }; parentId: string | null; body: string }
   | { op: 'deleteComment'; commentId: string }
   | { op: 'hideComment'; commentId: string; hidden: boolean }
@@ -51,7 +55,7 @@ async function postScope(ctx: Ctx, postId: string): Promise<Found<Extract<Scope,
   const found = post ? await channelScope(ctx, post.channelId) : null;
   if (!post || !found) return fail(NOT_FOUND);
   if (!found.rules.read) return fail(FORBIDDEN);
-  if (post.hiddenAt !== null && !found.rules.moderatePosts) return fail(NOT_FOUND);
+  if (!seesPost(found.rules.moderatePosts, post, ctx.me)) return fail(NOT_FOUND);
   return { ok: true, value: { kind: 'post', post, community: found.community, rules: found.rules } };
 }
 
@@ -77,6 +81,7 @@ const notificationBase = (ctx: Ctx, scope: Scope): NotificationBase => ({
   actorId: ctx.me,
   postId: scope.kind === 'post' ? scope.post.id : null,
   stepId: scope.kind === 'step' ? scope.stepId : null,
+  communityId: null,
   createdAt: ctx.now,
 });
 
@@ -128,6 +133,33 @@ async function editPhotos(ctx: Ctx, cmd: Extract<CommunityCommand, { op: 'addPos
   return OK;
 }
 
+type PostModeration = Extract<CommunityCommand, { op: 'hidePost' | 'pinPost' | 'lockPost' | 'reviewPost' }>;
+
+/** Moderator post writes; all but pin go to the moderation log. */
+async function moderatePost(ctx: Ctx, post: Post, cmd: PostModeration): Promise<CommandResult> {
+  const { repo, me, now } = ctx;
+  switch (cmd.op) {
+    case 'pinPost':
+      await repo.updatePost(post.id, { pinned: cmd.pinned });
+      return OK;
+    case 'hidePost':
+      await repo.updatePost(post.id, { hiddenAt: cmd.hidden ? now : null });
+      await logModeration(repo, me, cmd.hidden ? 'hide' : 'unhide', 'post', post.id, now);
+      return OK;
+    case 'lockPost':
+      await repo.updatePost(post.id, { lockedAt: cmd.locked ? now : null });
+      await logModeration(repo, me, cmd.locked ? 'lock' : 'unlock', 'post', post.id, now);
+      return OK;
+    case 'reviewPost': {
+      // Rejected posts can still be approved later; the author is not notified (Kajabi).
+      if (post.status === 'published') return { ok: false, error: 'invalid', message: 'This post is already published.' };
+      await repo.updatePost(post.id, { status: cmd.decision === 'approve' ? 'published' : 'rejected' });
+      await logModeration(repo, me, cmd.decision, 'post', post.id, now);
+      return OK;
+    }
+  }
+}
+
 const isEmoji = (value: string): value is ReactionEmoji => (REACTION_EMOJIS as readonly string[]).includes(value);
 
 async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
@@ -143,7 +175,8 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
       if (problem) return problem;
       const post = await repo.createPost({ channelId: cmd.channelId, authorId: ctx.me, body: cmd.body, createdAt: ctx.now });
       if (photos.length > 0) await repo.addPostPhotos(post.id, photos);
-      await notify(ctx, { kind: 'post', post, community: found.community, rules: found.rules }, mentions(cmd.body));
+      // Pending posts reach no one yet: no mention notifications (approval sends none either).
+      if (post.status === 'published') await notify(ctx, { kind: 'post', post, community: found.community, rules: found.rules }, mentions(cmd.body));
       return { ok: true, id: post.id };
     }
     case 'addPostPhotos':
@@ -151,7 +184,9 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
       return editPhotos(ctx, cmd);
     case 'deletePost':
     case 'hidePost':
-    case 'pinPost': {
+    case 'pinPost':
+    case 'lockPost':
+    case 'reviewPost': {
       const found = await postScope(ctx, cmd.postId);
       if (!found.ok) return found.result;
       const { post, rules } = found.value;
@@ -163,13 +198,15 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
         return OK;
       }
       if (!rules.moderatePosts) return FORBIDDEN;
-      await repo.updatePost(post.id, cmd.op === 'pinPost' ? { pinned: cmd.pinned } : { hiddenAt: cmd.hidden ? ctx.now : null });
-      return OK;
+      return moderatePost(ctx, post, cmd);
     }
     case 'createComment': {
       const found = await targetScope(ctx, cmd.target.type, cmd.target.id);
       if (!found.ok) return found.result;
       const scope = found.value;
+      if (scope.kind === 'post' && !postOpen(scope.post)) {
+        return { ok: false, error: 'invalid', message: scope.post.status === 'published' ? 'This post is locked.' : 'This post is not published.' };
+      }
       const parent = cmd.parentId ? await repo.comment(cmd.parentId) : null;
       const comment = await repo.createComment({
         spaceId: ctx.viewer.space.id,
@@ -201,6 +238,7 @@ async function run(ctx: Ctx, cmd: CommunityCommand): Promise<CommandResult> {
       }
       if (!moderate) return FORBIDDEN;
       await repo.updateComment(comment.id, { hiddenAt: cmd.hidden ? ctx.now : null });
+      if (scope.kind === 'post') await logModeration(repo, ctx.me, cmd.hidden ? 'hide' : 'unhide', 'comment', comment.id, ctx.now);
       return OK;
     }
     case 'react': {

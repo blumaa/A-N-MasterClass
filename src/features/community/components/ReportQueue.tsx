@@ -1,15 +1,15 @@
 // Reports queue of one community (Studio and the member side share it). Open reports carry a
-// preview and Dismiss / Remove content; resolved ones stay, signed. The reporter shows only when
+// preview and Dismiss / Hide (posts, comments) / Remove content; resolved ones stay, signed. The reporter shows only when
 // the API gives it (staff).
 import { ActionForm } from '@/components/ActionForm/ActionForm';
 import { EmptyState, Heading, Inline, ListGroup, ListItem, Stack, Text } from '@/components/ui/mds';
 import { formatDateTime } from '@/lib/format/date';
-import type { ReportTarget } from '@/lib/data/types';
+import type { ReportStatus, ReportTarget } from '@/lib/data/types';
 import type { ReportEntry, ReportQueue as Queue } from '../api/reports';
 import { reportAction } from '../reportActions';
 
 const TARGET: Record<ReportTarget, string> = { post: 'Post', comment: 'Comment', message: 'Chat line' };
-const STATUS = { open: 'Reported', dismissed: 'Dismissed', removed: 'Removed' } as const;
+const STATUS: Record<ReportStatus, string> = { open: 'Reported', dismissed: 'Dismissed', removed: 'Removed', hidden: 'Hidden' };
 
 function Details({ e }: { e: ReportEntry }) {
   const signed = e.resolvedAt ? `${STATUS[e.status]} by ${e.resolvedBy ?? 'someone'} · ${formatDateTime(e.resolvedAt)}` : null;
@@ -26,12 +26,15 @@ function Details({ e }: { e: ReportEntry }) {
   );
 }
 
-const resolveFields = (e: ReportEntry, action: 'dismiss' | 'remove') => ({ op: 'resolveReport', reportId: e.id, action });
+const resolveFields = (e: ReportEntry, action: 'dismiss' | 'remove' | 'hide') => ({ op: 'resolveReport', reportId: e.id, action });
 
 function Actions({ e }: { e: ReportEntry }) {
   return (
     <Inline gap="tight">
       <ActionForm action={reportAction} inline variant="secondary" submit="Dismiss" fields={resolveFields(e, 'dismiss')} />
+      {e.targetType === 'message' ? null : (
+        <ActionForm action={reportAction} inline variant="secondary" submit="Hide" fields={resolveFields(e, 'hide')} />
+      )}
       <ActionForm
         action={reportAction}
         inline

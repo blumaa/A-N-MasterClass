@@ -1289,6 +1289,61 @@ export type Database = {
           },
         ]
       }
+      moderation_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          channel_id: string
+          community_id: string
+          created_at: string
+          id: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          channel_id: string
+          community_id: string
+          created_at?: string
+          id?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          channel_id?: string
+          community_id?: string
+          created_at?: string
+          id?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_log_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_log_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modules: {
         Row: {
           created_at: string
@@ -1356,6 +1411,7 @@ export type Database = {
       notifications: {
         Row: {
           actor_id: string
+          community_id: string | null
           created_at: string
           id: string
           post_id: string | null
@@ -1367,6 +1423,7 @@ export type Database = {
         }
         Insert: {
           actor_id: string
+          community_id?: string | null
           created_at?: string
           id?: string
           post_id?: string | null
@@ -1378,6 +1435,7 @@ export type Database = {
         }
         Update: {
           actor_id?: string
+          community_id?: string | null
           created_at?: string
           id?: string
           post_id?: string | null
@@ -1393,6 +1451,13 @@ export type Database = {
             columns: ["actor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
@@ -1954,6 +2019,36 @@ export type Database = {
           },
         ]
       }
+      post_approval_members: {
+        Row: {
+          community_id: string
+          profile_id: string
+        }
+        Insert: {
+          community_id: string
+          profile_id: string
+        }
+        Update: {
+          community_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_approval_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_approval_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_photos: {
         Row: {
           created_at: string
@@ -1994,7 +2089,9 @@ export type Database = {
           created_at: string
           hidden_at: string | null
           id: string
+          locked_at: string | null
           pinned: boolean
+          status: string
         }
         Insert: {
           author_id: string
@@ -2003,7 +2100,9 @@ export type Database = {
           created_at?: string
           hidden_at?: string | null
           id?: string
+          locked_at?: string | null
           pinned?: boolean
+          status?: string
         }
         Update: {
           author_id?: string
@@ -2012,7 +2111,9 @@ export type Database = {
           created_at?: string
           hidden_at?: string | null
           id?: string
+          locked_at?: string | null
           pinned?: boolean
+          status?: string
         }
         Relationships: [
           {
@@ -3137,6 +3238,10 @@ export type Database = {
         Args: { target_community: string }
         Returns: boolean
       }
+      can_moderate_log_target: {
+        Args: { t_id: string; t_type: string }
+        Returns: boolean
+      }
       can_moderate_posts: {
         Args: { target_community: string }
         Returns: boolean
@@ -3383,6 +3488,7 @@ export type Database = {
       }
       post_channel: { Args: { target_post: string }; Returns: string }
       post_community: { Args: { target_post: string }; Returns: string }
+      post_open: { Args: { target_post: string }; Returns: boolean }
       product_space: { Args: { target_product: string }; Returns: string }
       program_progress: {
         Args: { target_program: string }
@@ -3419,6 +3525,7 @@ export type Database = {
         Args: { t_id: string; t_type: string }
         Returns: string
       }
+      reported_in: { Args: { target_community: string }; Returns: boolean }
       reset_podcast_feed: { Args: { target_product: string }; Returns: string }
       save_calendar_connection: {
         Args: {

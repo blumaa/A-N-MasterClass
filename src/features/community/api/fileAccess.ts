@@ -5,10 +5,11 @@ import type { Repo } from '@/lib/data/repo';
 import type { Attachment, Product } from '@/lib/data/types';
 import { channelScope } from './access';
 import { threadScope } from './chat';
+import { seesPost } from './visibility';
 
 const inCommunity = (community: Product | null, slug: string): boolean => community?.slug === slug;
 
-/** Path of a photo of a post the viewer reads (hidden posts: moderators only). */
+/** Path of a photo of a post the viewer sees (seesPost). */
 export async function postPhotoPath(
   repo: Repo,
   viewer: Viewer,
@@ -20,7 +21,7 @@ export async function postPhotoPath(
   const post = await repo.post(postId);
   const scope = post ? await channelScope(repo, viewer, post.channelId, now) : null;
   if (!post || !scope?.rules.read || !inCommunity(scope.community, slug)) return null;
-  if (post.hiddenAt !== null && !scope.rules.moderatePosts) return null;
+  if (!seesPost(scope.rules.moderatePosts, post, viewer.profile?.id ?? null)) return null;
   const photo = (await repo.postPhotos([postId])).find((p) => p.id === photoId);
   return photo?.path ?? null;
 }

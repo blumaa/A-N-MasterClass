@@ -128,6 +128,17 @@ describe('editCommunity', () => {
     expect(await repo.channelModerators(SEED_IDS.general)).toEqual([]);
   });
 
+  it('puts members on post approval; staff with community.moderate only', async () => {
+    const on = { op: 'setPostApproval', communityId: SEED_IDS.community, profileId: SEED_IDS.student, on: true } as const;
+    expect(await run(SEED_IDS.student, on)).toEqual({ ok: false, error: 'forbidden' });
+    expect((await run(OWNER, on)).ok).toBe(true);
+    expect(await repo.postApprovalMembers(SEED_IDS.community)).toEqual([SEED_IDS.student]);
+    expect(await run(OWNER, { ...on, profileId: OWNER })).toMatchObject({ error: 'invalid' });
+    expect((await studioCommunity(repo, await as(OWNER), SEED_IDS.community, NOW))?.approvalMembers).toEqual([SEED_IDS.student]);
+    expect((await run(OWNER, { ...on, on: false })).ok).toBe(true);
+    expect(await repo.postApprovalMembers(SEED_IDS.community)).toEqual([]);
+  });
+
   it('merges settings patches, point values per reason', async () => {
     const save = (patch: CommunitySettingsPatch) => run(OWNER, { op: 'saveSettings', communityId: SEED_IDS.community, patch });
     expect((await save({ dmsEnabled: false })).ok).toBe(true);

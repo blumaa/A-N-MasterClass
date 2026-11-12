@@ -465,7 +465,7 @@ export type Message = {
 /** Reportable content: a feed post, a comment on a post, a chat line in a channel. */
 export const REPORT_TARGETS = ['post', 'comment', 'message'] as const;
 export type ReportTarget = (typeof REPORT_TARGETS)[number];
-export const REPORT_STATUSES = ['open', 'dismissed', 'removed'] as const;
+export const REPORT_STATUSES = ['open', 'dismissed', 'removed', 'hidden'] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
 /** A member's report. Channel and community come from the target. Reporter: reportReporters (staff only). */
@@ -616,6 +616,10 @@ export type MeetupRsvp = { meetupId: string; occurrence: number; profileId: stri
 /** space_member_communities: assistant/support staff ticked for this community (G15). */
 export type CommunityStaff = { communityId: string; profileId: string };
 
+/** pending = waits for approval (author on the approval list); rejected = kept out, can still be approved. */
+export const POST_STATUSES = ['published', 'pending', 'rejected'] as const;
+export type PostStatus = (typeof POST_STATUSES)[number];
+
 export type Post = {
   id: string;
   channelId: string;
@@ -626,6 +630,26 @@ export type Post = {
   createdAt: Date;
   /** Hidden by a moderator: only moderators still see it. */
   hiddenAt: Date | null;
+  /** Locked by a moderator: stays visible, takes no new comments. */
+  lockedAt: Date | null;
+  /** Set by the DB from the approval list on insert. Not published: moderators and the author only. */
+  status: PostStatus;
+};
+
+/** Logged moderator actions (G15). */
+export const MODERATION_ACTIONS = ['hide', 'unhide', 'lock', 'unlock', 'approve', 'reject'] as const;
+export type ModerationAction = (typeof MODERATION_ACTIONS)[number];
+
+/** One moderation log row. Channel and community come from the target. actorId null once erased. */
+export type ModerationLogEntry = {
+  id: string;
+  communityId: string;
+  channelId: string;
+  actorId: string | null;
+  action: ModerationAction;
+  targetType: 'post' | 'comment';
+  targetId: string;
+  createdAt: Date;
 };
 
 /** A photo on a feed post, in the `community` bucket (post's channel folder). Max 10 per post. */
@@ -665,9 +689,10 @@ export type Reaction = {
 
 /**
  * comment = someone commented on your post; reply = someone replied to your comment;
- * step_comment = new lesson comment (to staff with comments.moderate); mention; reaction.
+ * step_comment = new lesson comment (to staff with comments.moderate); mention; reaction;
+ * report = new report in a channel you moderate.
  */
-export const NOTIFICATION_TYPES = ['comment', 'reply', 'step_comment', 'mention', 'reaction'] as const;
+export const NOTIFICATION_TYPES = ['comment', 'reply', 'step_comment', 'mention', 'reaction', 'report'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /** One browser's push subscription, on one space (Launch 6 item 6). Keys are the browser's. */
@@ -689,6 +714,8 @@ export type Notification = {
   /** Where it points: a post, or a step (lesson comments). */
   postId: string | null;
   stepId: string | null;
+  /** Report notifications only: the community whose review feed it opens. */
+  communityId: string | null;
   createdAt: Date;
   readAt: Date | null;
 };

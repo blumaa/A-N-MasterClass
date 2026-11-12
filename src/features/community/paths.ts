@@ -1,5 +1,6 @@
 // Browser paths (host-relative; the proxy adds the space segment). SSOT for community links.
 import type { LeaderboardPeriod } from './api/points';
+import type { ReviewTab } from './api/review';
 export const communityHref = (community: string): string => `/community/${community}`;
 export const channelHref = (community: string, channel: string): string => `/community/${community}/channels/${channel}`;
 export const postHref = (community: string, post: string): string => `/community/${community}/posts/${post}`;
@@ -8,6 +9,8 @@ export const postPhotoHref = (community: string, post: string, photo: string): s
   `${postHref(community, post)}/photos/${photo}`;
 export const attachmentHref = (community: string, message: string): string => `/community/${community}/attachments/${message}`;
 export const reportsHref = (community: string): string => `/community/${community}/reports`;
+/** A review feed tab on a reports page (member side or Studio); reports is the default. */
+export const reviewTabHref = (reportsPage: string, tab: ReviewTab): string => (tab === 'reports' ? reportsPage : `${reportsPage}?tab=${tab}`);
 export const membersHref = (community: string): string => `/community/${community}/members`;
 export const notificationsHref = '/notifications';
 export const studioCommunitiesHref = '/studio/communities';

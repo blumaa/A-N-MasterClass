@@ -33,6 +33,8 @@ export type StudioCommunity = {
   channelMembers: Record<string, string[]>;
   /** Picked moderators per channel (trusted members, G15). */
   channelModerators: Record<string, string[]>;
+  /** Members whose posts wait for approval (G15 follow-up). */
+  approvalMembers: string[];
   staff: StaffTick[];
   canManageStaff: boolean;
   /** community.moderate: picks channel moderators, works the reports queue. */
@@ -74,9 +76,10 @@ export async function studioCommunity(
     directory(repo, community, now),
   ]);
   const privates = channels.filter((c) => c.privacy === 'private');
-  const [picked, moderators] = await Promise.all([
+  const [picked, moderators, approvalMembers] = await Promise.all([
     Promise.all(privates.map((c) => repo.channelMembers(c.id))),
     Promise.all(channels.map((c) => repo.channelModerators(c.id))),
+    repo.postApprovalMembers(community.id),
   ]);
   return {
     community,
@@ -86,6 +89,7 @@ export async function studioCommunity(
     members: people,
     channelMembers: Object.fromEntries(privates.map((c, i) => [c.id, picked[i] ?? []])),
     channelModerators: Object.fromEntries(channels.map((c, i) => [c.id, moderators[i] ?? []])),
+    approvalMembers,
     staff: members
       .filter((m) => tickable(m.role))
       .map((m) => ({
@@ -117,6 +121,7 @@ export type StudioCommunityCommand =
   | { op: 'moveChannel'; channelId: string; direction: Direction }
   | { op: 'setChannelMember'; channelId: string; profileId: string; on: boolean }
   | { op: 'setChannelModerator'; channelId: string; profileId: string; on: boolean }
+  | { op: 'setPostApproval'; communityId: string; profileId: string; on: boolean }
   | { op: 'createGroup'; communityId: string; title: string }
   | { op: 'updateGroup'; groupId: string; patch: AccessGroupPatch }
   | { op: 'deleteGroup'; groupId: string }
@@ -140,6 +145,7 @@ const targetOf = (repo: Repo, c: StudioCommunityCommand): Promise<string | null>
     case 'createGroup':
     case 'saveSettings':
     case 'setStaff':
+    case 'setPostApproval':
       return Promise.resolve(c.communityId);
     case 'updateChannel':
     case 'deleteChannel':
@@ -176,15 +182,28 @@ async function setChannelMember(repo: Repo, c: Extract<StudioCommunityCommand, {
   await repo.setChannelMember(c.channelId, c.profileId, c.on);
 }
 
+/** Picks (moderators, approval) are community members who are not staff. */
+async function requireTrustedPick(repo: Repo, community: Product, profileId: string, now: Date): Promise<void> {
+  if (!(await directory(repo, community, now)).some((m) => m.id === profileId && !m.staff)) {
+    throw new ConstraintError('pick a member of this community who is not staff');
+  }
+}
+
 /** Staff already moderate every channel; picks are trusted members (G15). */
 async function setChannelModerator(repo: Repo, c: Extract<StudioCommunityCommand, { op: 'setChannelModerator' }>, now: Date) {
   const channel = await repo.channel(c.channelId);
   const community = channel && (await repo.product(channel.communityId));
   if (!channel || !community) throw new ConstraintError('channel not found');
-  if (c.on && !(await directory(repo, community, now)).some((m) => m.id === c.profileId && !m.staff)) {
-    throw new ConstraintError('pick a member of this community who is not staff');
-  }
+  if (c.on) await requireTrustedPick(repo, community, c.profileId, now);
   await repo.setChannelModerator(c.channelId, c.profileId, c.on);
+}
+
+/** Approval holds a member's posts for review; staff never wait. */
+async function setPostApproval(repo: Repo, c: Extract<StudioCommunityCommand, { op: 'setPostApproval' }>, now: Date) {
+  const community = await repo.product(c.communityId);
+  if (!community) throw new ConstraintError('community not found');
+  if (c.on) await requireTrustedPick(repo, community, c.profileId, now);
+  await repo.setPostApproval(c.communityId, c.profileId, c.on);
 }
 
 type Ctx = { repo: Repo; files: FileStore; viewer: Viewer; me: string; now: Date };
@@ -242,6 +261,8 @@ async function run({ repo, files, viewer, me, now }: Ctx, c: StudioCommunityComm
       return void (await setChannelMember(repo, c, now));
     case 'setChannelModerator':
       return void (await setChannelModerator(repo, c, now));
+    case 'setPostApproval':
+      return void (await setPostApproval(repo, c, now));
     case 'createGroup':
       return (await repo.createAccessGroup({ communityId: c.communityId, title: c.title })).id;
     case 'updateGroup':
@@ -268,7 +289,7 @@ export async function editCommunity(
 ): Promise<CommandResult> {
   if (!viewer.profile || !viewerCan(viewer, 'products.edit')) return FORBIDDEN;
   if (c.op === 'setStaff' && !viewerCan(viewer, 'staff.manage')) return FORBIDDEN;
-  if (c.op === 'setChannelModerator' && !viewerCan(viewer, 'community.moderate')) return FORBIDDEN;
+  if ((c.op === 'setChannelModerator' || c.op === 'setPostApproval') && !viewerCan(viewer, 'community.moderate')) return FORBIDDEN;
   const pending = targetOf(repo, c);
   if (pending) {
     const communityId = await pending;

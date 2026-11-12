@@ -8,6 +8,7 @@ import { studioEventsHref, studioReportsHref } from '../paths';
 import { ChannelEditor } from './ChannelEditor';
 import { CommunityForm } from './CommunityForm';
 import { GroupEditor } from './GroupEditor';
+import { PeoplePicker } from './PeoplePicker';
 import { PointsEditor } from './PointsEditor';
 import styles from './community.module.css';
 
@@ -26,6 +27,8 @@ function StaffRow({ communityId, tick }: { communityId: string; tick: StaffTick 
   );
 }
 
+const APPROVAL = { list: 'Posts need approval', empty: 'No members need approval.', field: 'Pick member', add: 'Require approval' };
+
 export function CommunityEditor({ view, imageSrc }: { view: StudioCommunity; imageSrc: ImageSrc }) {
   const { community, channels, groups, members, channelMembers, channelModerators, staff, canManageStaff, canModerate } = view;
   const communityId = community.id;
@@ -43,6 +46,15 @@ export function CommunityEditor({ view, imageSrc }: { view: StudioCommunity; ima
         channelMembers={channelMembers}
         channelModerators={canModerate ? channelModerators : null}
       />
+      {canModerate ? (
+        <Stack gap="base">
+          <Heading level={2} variant="subtitle">
+            Post approval
+          </Heading>
+          <Text tone="muted">Posts by these members wait in the review feed until a moderator approves them.</Text>
+          <PeoplePicker text={APPROVAL} base={{ op: 'setPostApproval', communityId }} candidates={members} picked={view.approvalMembers} />
+        </Stack>
+      ) : null}
       <GroupEditor communityId={communityId} groups={groups} settings={view.settings} />
       <PointsEditor communityId={communityId} settings={view.settings} />
       <div className={styles.rowActions}>

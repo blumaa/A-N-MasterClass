@@ -71,6 +71,18 @@ describe('communityCommandFromForm', () => {
     });
   });
 
+  it('reads lock and review', () => {
+    expect(communityCommandFromForm(form({ op: 'lockPost', postId: 'p', locked: 'true' }))).toEqual({
+      ok: true,
+      command: { op: 'lockPost', postId: 'p', locked: true },
+    });
+    expect(communityCommandFromForm(form({ op: 'reviewPost', postId: 'p', decision: 'reject' }))).toEqual({
+      ok: true,
+      command: { op: 'reviewPost', postId: 'p', decision: 'reject' },
+    });
+    expect(communityCommandFromForm(form({ op: 'reviewPost', postId: 'p', decision: 'publish' }))).toMatchObject({ ok: false });
+  });
+
   it('reads booleans for hide, pin and react', () => {
     expect(communityCommandFromForm(form({ op: 'pinPost', postId: 'p', pinned: 'true' }))).toEqual({
       ok: true,
@@ -145,6 +157,13 @@ describe('studioCommunityCommandFromForm', () => {
     });
   });
 
+  it('reads post approval picks', () => {
+    expect(studioCommunityCommandFromForm(form({ op: 'setPostApproval', communityId: 'c', profileId: 'p', on: 'true' }))).toEqual({
+      ok: true,
+      command: { op: 'setPostApproval', communityId: 'c', profileId: 'p', on: true },
+    });
+  });
+
   it('reads group feature toggles', () => {
     const f = form({ op: 'updateGroup', groupId: 'g', challenges: 'false', meetups: 'true', leaderboard: 'false' });
     expect(studioCommunityCommandFromForm(f)).toEqual({
@@ -198,6 +217,9 @@ describe('reportCommandFromForm', () => {
     expect(reportCommandFromForm(form({ op: 'resolveReport', reportId: 'r', action: 'remove' }))).toEqual({
       ok: true,
       command: { op: 'resolveReport', reportId: 'r', action: 'remove' },
+    });
+    expect(reportCommandFromForm(form({ op: 'resolveReport', reportId: 'r', action: 'hide' }))).toMatchObject({
+      command: { action: 'hide' },
     });
     expect(reportCommandFromForm(form({ op: 'resolveReport', reportId: 'r', action: 'ban' }))).toMatchObject({ ok: false });
   });

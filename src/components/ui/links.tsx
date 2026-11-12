@@ -29,11 +29,14 @@ export function ButtonLink({
   size,
   onMedia,
   download,
+  current,
 }: Common & {
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   onMedia?: boolean;
   download?: boolean;
+  /** Marks the current page (tabs). */
+  current?: boolean;
 }) {
   // MDS types Button as a <button>; with `href` it renders an <a> and forwards the rest.
   const file = download ? { download: true } : {};
@@ -44,6 +47,7 @@ export function ButtonLink({
       variant={variant}
       size={size}
       onMedia={onMedia}
+      aria-current={current ? 'page' : undefined}
       {...file}
     >
       {children}

@@ -8,7 +8,10 @@ import { spaceNames } from '@/lib/data/names';
 import { authorOf, buildThread, type CommentNode } from './present';
 
 /** Where a notification leads. The app turns this into a URL (programs paths live in another feature). */
-export type NotificationLink = { kind: 'post'; community: string; postId: string } | { kind: 'step'; program: string; stepId: string };
+export type NotificationLink =
+  | { kind: 'post'; community: string; postId: string }
+  | { kind: 'step'; program: string; stepId: string }
+  | { kind: 'reports'; community: string };
 
 export type NotificationItem = {
   id: string;
@@ -26,6 +29,7 @@ const PHRASES: Record<NotificationType, (target: string) => string> = {
   mention: () => 'mentioned you',
   reaction: () => 'reacted to your contribution',
   step_comment: (target) => `commented on ${target}`,
+  report: (target) => `reported content in ${target}`,
 };
 
 type Target = { link: NotificationLink; title: string };
@@ -44,10 +48,18 @@ async function stepTarget(repo: Repo, stepId: string): Promise<Target | null> {
   return step && program ? { link: { kind: 'step', program: program.slug, stepId }, title: step.title } : null;
 }
 
-type Describable = Pick<Notification, 'recipientId' | 'actorId' | 'type' | 'postId' | 'stepId'>;
+async function reportsTarget(repo: Repo, communityId: string): Promise<Target | null> {
+  const community = await repo.product(communityId);
+  return community ? { link: { kind: 'reports', community: community.slug }, title: community.title } : null;
+}
 
-const targetOf = (repo: Repo, n: Describable): Promise<Target | null> =>
-  n.postId ? postTarget(repo, n.postId) : n.stepId ? stepTarget(repo, n.stepId) : Promise.resolve(null);
+type Describable = Pick<Notification, 'recipientId' | 'actorId' | 'type' | 'postId' | 'stepId' | 'communityId'>;
+
+const targetOf = (repo: Repo, n: Describable): Promise<Target | null> => {
+  if (n.postId) return postTarget(repo, n.postId);
+  if (n.stepId) return stepTarget(repo, n.stepId);
+  return n.communityId ? reportsTarget(repo, n.communityId) : Promise.resolve(null);
+};
 
 export type NotificationText = { recipientId: string; text: string; link: NotificationLink | null };
 

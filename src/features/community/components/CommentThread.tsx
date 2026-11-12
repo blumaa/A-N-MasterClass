@@ -17,6 +17,8 @@ type Props = {
   comments: readonly CommentNode[];
   members: readonly MentionOption[];
   canComment: boolean;
+  /** Locked or unpublished post: no new comments (postOpen). */
+  closed?: boolean;
   moderate: boolean;
 };
 
@@ -50,7 +52,8 @@ function Comment({ comment, action, moderate, canComment, target }: ItemProps) {
 }
 
 export function CommentThread(props: Props) {
-  const { action, target, comments, members, canComment } = props;
+  const { action, target, comments, members, canComment, closed = false } = props;
+  const write = canComment && !closed;
   const fields = { op: 'createComment', targetType: target.type, targetId: target.id };
   return (
     <Stack gap="loose" as="section" aria-label="Comments">
@@ -66,17 +69,17 @@ export function CommentThread(props: Props) {
               {c.replies.map((r) => (
                 <Comment key={r.id} {...props} comment={r} />
               ))}
-              {canComment ? (
+              {write ? (
                 <Composer action={action} fields={{ ...fields, parentId: c.id }} members={members} submit="Reply" label={`Reply to ${c.author.name}`} rows={2} />
               ) : null}
             </Stack>
           </div>
         </Stack>
       ))}
-      {canComment ? (
+      {write ? (
         <Composer action={action} fields={fields} members={members} submit="Comment" label="Write a comment" placeholder="Write a comment… use @ to mention" />
       ) : (
-        <Text tone="muted">Sign in to comment.</Text>
+        <Text tone="muted">{closed ? 'Comments are closed.' : 'Sign in to comment.'}</Text>
       )}
     </Stack>
   );

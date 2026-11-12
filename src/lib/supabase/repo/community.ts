@@ -256,7 +256,12 @@ export function createCommunityRepo({ db }: RepoCtx): CommunityRepo {
     },
     async updatePost(id, patch) {
       const client = await db();
-      const values = defined({ pinned: patch.pinned, hidden_at: isoOrNull(patch.hiddenAt) });
+      const values = defined({
+        pinned: patch.pinned,
+        hidden_at: isoOrNull(patch.hiddenAt),
+        locked_at: isoOrNull(patch.lockedAt),
+        status: patch.status,
+      });
       const query =
         Object.keys(values).length === 0
           ? client.from('posts').select('*').eq('id', id)
@@ -392,6 +397,7 @@ export function createCommunityRepo({ db }: RepoCtx): CommunityRepo {
             type: r.type,
             post_id: r.postId,
             step_id: r.stepId,
+            community_id: r.communityId,
             created_at: r.createdAt.toISOString(),
           })),
         ),

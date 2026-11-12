@@ -1,5 +1,5 @@
-// Moderation part of the fake repo: channel moderators and reports. Same rules as
-// supabase/migrations/*_moderation.sql (reports_once, reports_reason, reports_target trigger).
+// Moderation part of the fake repo: channel moderators, reports, post approval, moderation log.
+// Same rules as supabase/migrations/*_moderation.sql and *_moderation_review.sql (target triggers).
 import { ALREADY_REPORTED, ConstraintError, REPORT_TARGET_MISSING } from '../errors';
 import { REPORT_REASON_MAX, REPORT_REASON_RANGE } from '../limits';
 import type { Repo } from '../repo';
@@ -15,6 +15,10 @@ type ModerationRepo = Pick<
   | 'createReport'
   | 'resolveReports'
   | 'reportReporters'
+  | 'postApprovalMembers'
+  | 'setPostApproval'
+  | 'moderationLog'
+  | 'logModeration'
 >;
 
 /** Stored row: the reporter stays out of Report (SQL: no column grant). */
@@ -31,6 +35,12 @@ export function createFakeModerationRepo(db: Db, id: (prefix: string) => string)
       return c?.targetType === 'post' ? postChannel(c.targetId) : undefined;
     },
     message: (targetId) => db.messages.find((m) => m.id === targetId)?.channelId,
+  };
+
+  const channelOf = (type: ReportTarget, targetId: string) => {
+    const channel = db.channels.find((c) => c.id === targetChannel[type](targetId));
+    if (!channel) throw new ConstraintError(REPORT_TARGET_MISSING);
+    return channel;
   };
 
   return {
@@ -52,8 +62,7 @@ export function createFakeModerationRepo(db: Db, id: (prefix: string) => string)
       return row ? withoutReporter(row) : null;
     },
     async createReport(input) {
-      const channel = db.channels.find((c) => c.id === targetChannel[input.targetType](input.targetId));
-      if (!channel) throw new ConstraintError(REPORT_TARGET_MISSING);
+      const channel = channelOf(input.targetType, input.targetId);
       if (input.reason !== null && (input.reason.trim().length === 0 || input.reason.length > REPORT_REASON_MAX)) {
         throw new ConstraintError(REPORT_REASON_RANGE);
       }
@@ -76,5 +85,21 @@ export function createFakeModerationRepo(db: Db, id: (prefix: string) => string)
     },
     reportReporters: async (communityId) =>
       Object.fromEntries(db.reports.filter((r) => r.communityId === communityId).map((r) => [r.id, r.reporterId])),
+
+    postApprovalMembers: async (communityId) =>
+      db.postApprovalMembers.filter((a) => a.communityId === communityId).map((a) => a.profileId),
+    async setPostApproval(communityId, profileId, on) {
+      db.postApprovalMembers = db.postApprovalMembers.filter((a) => !(a.communityId === communityId && a.profileId === profileId));
+      if (on) db.postApprovalMembers.push({ communityId, profileId });
+    },
+
+    moderationLog: async (communityId) =>
+      db.moderationLog
+        .filter((r) => r.communityId === communityId)
+        .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+    async logModeration(entry) {
+      const channel = channelOf(entry.targetType, entry.targetId);
+      db.moderationLog.push({ ...entry, id: id('modlog'), communityId: channel.communityId, channelId: channel.id });
+    },
   };
 }

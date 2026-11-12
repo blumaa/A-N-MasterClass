@@ -98,6 +98,8 @@ const BY_NAME: Readonly<Record<string, string>> = {
   reports_reason: REPORT_REASON_RANGE,
   // Raised by the reports_target trigger: no post, post comment or channel line with that id.
   reports_target_missing: REPORT_TARGET_MISSING,
+  // Raised by the moderation_log_target trigger: no post or post comment with that id.
+  moderation_log_target_missing: REPORT_TARGET_MISSING,
   // Community files: the path triggers raise these names (post_photos_check, messages_attachment_check).
   post_photos_path: FILE_OUTSIDE_FOLDER,
   messages_attachment_path: FILE_OUTSIDE_FOLDER,
