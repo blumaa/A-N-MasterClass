@@ -14,7 +14,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={fontVariables}>
+    // MDS base sets html scroll-behavior smooth (in-page anchors). The attribute tells Next 16 to
+    // switch it off during route changes, so a new page starts at the top without a scroll animation.
+    <html lang="en" className={fontVariables} data-scroll-behavior="smooth">
       <body>
         <Icons>
           <Toasts>{children}</Toasts>
