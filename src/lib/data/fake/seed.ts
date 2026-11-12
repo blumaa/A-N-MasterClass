@@ -39,11 +39,11 @@ export function seedDb(now: Date = new Date()): Db {
     { id: ids.student, email: 'student@example.test', isPlatformAdmin: false },
   );
   db.spaceProfiles.push(
-    { spaceId: ids.alexander, profileId: ids.alexanderOwner, displayName: 'Alexander' },
-    { spaceId: ids.alexander, profileId: ids.assistant, displayName: 'Sam (assistant)' },
-    { spaceId: ids.alexander, profileId: ids.student, displayName: 'Robin (student)' },
-    { spaceId: ids.natasha, profileId: ids.natashaOwner, displayName: 'Natasha' },
-    { spaceId: ids.natasha, profileId: ids.student, displayName: 'Robin (student)' },
+    { spaceId: ids.alexander, profileId: ids.alexanderOwner, displayName: 'Alexander', avatarPath: null, bio: null },
+    { spaceId: ids.alexander, profileId: ids.assistant, displayName: 'Sam (assistant)', avatarPath: null, bio: null },
+    { spaceId: ids.alexander, profileId: ids.student, displayName: 'Robin (student)', avatarPath: null, bio: null },
+    { spaceId: ids.natasha, profileId: ids.natashaOwner, displayName: 'Natasha', avatarPath: null, bio: null },
+    { spaceId: ids.natasha, profileId: ids.student, displayName: 'Robin (student)', avatarPath: null, bio: null },
   );
   db.members.push(
     { spaceId: ids.alexander, profileId: ids.alexanderOwner, role: 'owner' },

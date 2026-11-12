@@ -47,7 +47,7 @@ describe('profiles by email', () => {
   it('ensureSpaceProfile inserts once and keeps the existing name', async () => {
     await repo.ensureSpaceProfile({ spaceId: 's1', profileId: 'u1', displayName: 'Robin' });
     await repo.ensureSpaceProfile({ spaceId: 's1', profileId: 'u1', displayName: 'Other' });
-    expect(await repo.spaceProfiles('s1')).toEqual([{ spaceId: 's1', profileId: 'u1', displayName: 'Robin' }]);
+    expect(await repo.spaceProfiles('s1')).toEqual([{ spaceId: 's1', profileId: 'u1', displayName: 'Robin', avatarPath: null, bio: null }]);
   });
 });
 

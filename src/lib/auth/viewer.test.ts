@@ -22,6 +22,15 @@ describe('resolveViewer', () => {
     const v = await resolveViewer(repo(), 'alexander', SEED_IDS.assistant);
     expect(v?.role).toBe('assistant');
     expect(v?.displayName).toBe('Sam (assistant)');
+    expect(v?.avatarPath).toBeNull();
+  });
+
+  it('carries the member photo of this space', async () => {
+    const r = repo();
+    const path = `${SEED_IDS.alexander}/avatars/${SEED_IDS.student}/a.png`;
+    await r.saveSpaceProfile({ spaceId: SEED_IDS.alexander, profileId: SEED_IDS.student, displayName: 'Robin', bio: null, avatarPath: path });
+    expect((await resolveViewer(r, 'alexander', SEED_IDS.student))?.avatarPath).toBe(path);
+    expect((await resolveViewer(r, 'natasha', SEED_IDS.student))?.avatarPath).toBeNull();
   });
 
   it('owner of one space is nobody special in the other', async () => {
@@ -40,7 +49,7 @@ describe('canSeeSpace', () => {
   const student = { id: 'p', email: 'p@example.com', isPlatformAdmin: false };
   type Over = { space?: Viewer['space']; profile?: typeof student; role?: Role };
   const viewer = ({ space: sp = space, profile, role }: Over = {}): Viewer =>
-    profile ? { space: sp, profile, role: role ?? null, displayName: 'P' } : { space: sp, profile: null, role: null, displayName: null };
+    profile ? { space: sp, profile, role: role ?? null, displayName: 'P', avatarPath: null } : { space: sp, profile: null, role: null, displayName: null, avatarPath: null };
 
   it('live space: everyone', () => {
     expect(canSeeSpace(viewer({ space: { ...space, status: 'live' } }))).toBe(true);

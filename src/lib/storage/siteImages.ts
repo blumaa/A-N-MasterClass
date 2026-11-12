@@ -1,4 +1,4 @@
-// Page builder photos (hero, image + text, bio) and the space logo. Bucket `site` is public so
+// Page builder photos (hero, image + text, bio), the space logo and member avatars. Bucket `site` is public so
 // published pages stay cacheable; uploads are still signed by the server only (no storage
 // policies). Stored value = object path; the URL is built from it when rendering.
 import { formatBytes } from '@/lib/format/bytes';
@@ -17,6 +17,17 @@ export const siteImagePath = ({ spaceId, id, fileName }: SiteImagePathInput): st
   `${folder(spaceId)}${id}-${safeFileName(fileName)}`;
 
 export const isSiteImagePath = (path: string, spaceId: string): boolean => inFolder(path, folder(spaceId));
+
+const avatarFolder = (spaceId: string, profileId: string) => `${spaceId}/avatars/${profileId}/`;
+
+export type AvatarPathInput = { spaceId: string; profileId: string; id: string; fileName: string };
+
+/** Member photo: same public bucket, one folder per member per space. */
+export const avatarPath = ({ spaceId, profileId, id, fileName }: AvatarPathInput): string =>
+  `${avatarFolder(spaceId, profileId)}${id}-${safeFileName(fileName)}`;
+
+export const isAvatarPath = (path: string, spaceId: string, profileId: string): boolean =>
+  inFolder(path, avatarFolder(spaceId, profileId));
 
 export function siteImageProblem({ fileName, sizeBytes }: { fileName: string; sizeBytes: number }): string | null {
   if (sizeBytes < 1) return 'The file is empty.';

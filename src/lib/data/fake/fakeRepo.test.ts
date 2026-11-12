@@ -220,6 +220,29 @@ describe('branding', () => {
   });
 });
 
+describe('space profiles', () => {
+  const base = { spaceId: 's1', profileId: 'u1', displayName: 'Robin' };
+
+  it('starts with no avatar or bio, then saves name, bio and avatar', async () => {
+    await repo.ensureSpaceProfile(base);
+    expect(await repo.spaceProfiles('s1')).toEqual([{ ...base, avatarPath: null, bio: null }]);
+    const row = { ...base, displayName: 'Robin K', bio: 'Hi', avatarPath: 's1/avatars/u1/a-me.png' };
+    expect(await repo.saveSpaceProfile(row)).toEqual(row);
+    expect(await repo.spaceProfiles('s1')).toEqual([row]);
+  });
+
+  it('refuses an avatar outside the member avatar folder', async () => {
+    await repo.ensureSpaceProfile(base);
+    for (const avatarPath of ['s1/avatars/u2/a.png', 's2/avatars/u1/a.png', 's1/site/a.png', 's1/avatars/u1/x/a.png']) {
+      await expect(repo.saveSpaceProfile({ ...base, bio: null, avatarPath })).rejects.toThrow(FILE_OUTSIDE_FOLDER);
+    }
+  });
+
+  it('refuses to save a profile that does not exist', async () => {
+    await expect(repo.saveSpaceProfile({ ...base, bio: null, avatarPath: null })).rejects.toThrow();
+  });
+});
+
 describe('custom domains', () => {
   it('maps a host to its space slug, case-insensitive; unknown host = null', async () => {
     repo.db.spaceDomains.push({ host: 'alexander.example', spaceId: 's1', isPrimary: true });

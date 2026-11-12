@@ -30,7 +30,7 @@ describe('create', () => {
 
     const owner = (await repo.profileByEmail('ana@example.com'))!;
     expect(await repo.member(space.id, owner.id)).toEqual({ spaceId: space.id, profileId: owner.id, role: 'owner' });
-    expect(await repo.spaceProfiles(space.id)).toEqual([{ spaceId: space.id, profileId: owner.id, displayName: 'Ana' }]);
+    expect(await repo.spaceProfiles(space.id)).toEqual([{ spaceId: space.id, profileId: owner.id, displayName: 'Ana', avatarPath: null, bio: null }]);
     expect(await repo.consumeClaimToken(space.id, hashClaimToken(result.claimToken!), NOW)).toMatchObject({ profileId: owner.id });
   });
 

@@ -30,6 +30,7 @@ export type CoreRepo = Pick<
   | 'profileByEmail'
   | 'createProfile'
   | 'ensureSpaceProfile'
+  | 'saveSpaceProfile'
   | 'spaces'
   | 'createSpace'
   | 'updateSpace'
@@ -139,6 +140,18 @@ export function createCoreRepo({ db, admin }: RepoCtx): CoreRepo {
             { onConflict: 'space_id,profile_id', ignoreDuplicates: true },
           ),
       );
+    },
+    async saveSpaceProfile(row) {
+      const saved = unwrap(
+        await (await db())
+          .from('space_profiles')
+          .update({ display_name: row.displayName, avatar_path: row.avatarPath, bio: row.bio })
+          .eq('space_id', row.spaceId)
+          .eq('profile_id', row.profileId)
+          .select('*')
+          .single(),
+      );
+      return toSpaceProfile(saved);
     },
 
     // platform admin (RLS: platform admin only for insert/delete + domains)

@@ -1,5 +1,5 @@
 'use client';
-// Studio image field for site sections and the logo. Same flow as FileUpload: signed ticket,
+// Image field for site sections, the logo and member avatars. Same flow as FileUpload: signed ticket,
 // bytes straight to Storage, stored path into one hidden input. Shows a preview and a remove button.
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -7,7 +7,7 @@ import { Button, FileDrop, Text, UploadProgress, type UploadStatus } from '@/com
 import { formatBytes } from '@/lib/format/bytes';
 import { putFile } from '@/lib/storage/putFile';
 import { SITE_IMAGE_ACCEPT, SITE_IMAGE_MAX_BYTES } from '@/lib/storage/siteImages';
-import { requestImageUploadAction } from './actions';
+import { requestImageUploadAction, type ImageTarget } from './actions';
 import styles from './ImageUpload.module.css';
 
 export type CurrentImage = { path: string; src: string };
@@ -17,6 +17,8 @@ export type ImageUploadProps = {
   name: string;
   label: string;
   current?: CurrentImage;
+  /** Which folder the upload is signed into. Default: the space site folder. */
+  target?: ImageTarget;
 };
 
 type Upload = { file: File; status: UploadStatus; percent: number; error?: string };
@@ -33,7 +35,7 @@ const LABELS = {
 
 const HINT = `JPG, PNG or WebP. Up to ${formatBytes(SITE_IMAGE_MAX_BYTES)}.`;
 
-export function ImageUpload({ name, label, current }: ImageUploadProps) {
+export function ImageUpload({ name, label, current, target = 'site' }: ImageUploadProps) {
   const [image, setImage] = useState<CurrentImage | null>(current ?? null);
   const [upload, setUpload] = useState<Upload | null>(null);
 
@@ -44,7 +46,7 @@ export function ImageUpload({ name, label, current }: ImageUploadProps) {
   async function send(file: File) {
     const update = (next: Partial<Upload>) => setUpload((u) => (u?.file === file ? { ...u, ...next } : u));
     setUpload({ file, status: 'uploading', percent: 0 });
-    const ticket = await requestImageUploadAction({ fileName: file.name, sizeBytes: file.size });
+    const ticket = await requestImageUploadAction(target, { fileName: file.name, sizeBytes: file.size });
     if (!ticket.ok) return update({ status: 'error', error: ticket.message });
     try {
       await putFile(ticket.uploadUrl, file, (percent) => update({ percent }));

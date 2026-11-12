@@ -52,7 +52,7 @@ describe('fulfilOrder', () => {
     expect(profile?.id).toBe(result.profileId);
     expect((await repo.grantsForOrder(order.id)).map((g) => g.productId).toSorted()).toEqual(productIds.toSorted());
     expect(await repo.order(order.id)).toMatchObject({ status: 'paid', captureId: 'CAP-1', profileId: result.profileId, paidAt: NOW });
-    expect(await repo.spaceProfiles('s1')).toEqual([{ spaceId: 's1', profileId: result.profileId, displayName: 'buyer' }]);
+    expect(await repo.spaceProfiles('s1')).toEqual([{ spaceId: 's1', profileId: result.profileId, displayName: 'buyer', avatarPath: null, bio: null }]);
     expect(repo.db.claimTokens).toHaveLength(1);
     expect(repo.db.claimTokens[0].tokenHash).not.toBe(result.claimToken);
   });

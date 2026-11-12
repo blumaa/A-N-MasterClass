@@ -1,6 +1,6 @@
 // Repo over in-memory tables. Enforces the same constraints as the SQL schema
 // (unique slug, one active grant, vimeo id digits, cascades) so fakes fail like Postgres.
-import { isSiteImagePath } from '@/lib/storage/siteImages';
+import { isAvatarPath, isSiteImagePath } from '@/lib/storage/siteImages';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/tenancy/slug';
 import { ALREADY_MEMBER, CERTIFICATES_PROGRAM_ONLY, ConstraintError, FILE_OUTSIDE_FOLDER, HOST_TAKEN, ONE_PRIMARY_DOMAIN, QUIZ_PASS_PERCENT, SLUG_RESERVED } from '../errors';
 import { grantIsActive } from '../grants';
@@ -118,8 +118,17 @@ export function createFakeRepo(db: Db): FakeRepo {
     },
     async ensureSpaceProfile(row) {
       if (!db.spaceProfiles.some((sp) => sp.spaceId === row.spaceId && sp.profileId === row.profileId)) {
-        db.spaceProfiles.push({ ...row });
+        db.spaceProfiles.push({ ...row, avatarPath: null, bio: null });
       }
+    },
+    async saveSpaceProfile(row) {
+      const i = db.spaceProfiles.findIndex((sp) => sp.spaceId === row.spaceId && sp.profileId === row.profileId);
+      if (i < 0) throw new Error(`space profile not found: ${row.spaceId}/${row.profileId}`);
+      if (row.avatarPath && !isAvatarPath(row.avatarPath, row.spaceId, row.profileId)) {
+        throw new ConstraintError(FILE_OUTSIDE_FOLDER);
+      }
+      db.spaceProfiles[i] = { ...row };
+      return { ...row };
     },
 
     spaces: async () => db.spaces.toSorted((a, b) => a.name.localeCompare(b.name)),

@@ -21,7 +21,7 @@ import { canSeeSpace, viewerCan } from "@/lib/auth/viewer";
 import { getRepo } from "@/lib/data/getRepo";
 import { pushPublicKey } from "@/lib/push/getPushSender";
 import { siteImageSrc } from "@/lib/storage/siteImageSrc";
-import { accountSubscriptionsHref, signInHref } from "@/lib/routes";
+import { accountHref, accountSubscriptionsHref, signInHref } from "@/lib/routes";
 import styles from "./layout.module.css";
 import { PushHeal } from "./PushHeal";
 import { SignOutForm } from "./SignOutForm";
@@ -75,6 +75,7 @@ export default async function SpaceLayout({
           viewer.profile
             ? {
                 displayName: viewer.displayName,
+                avatarSrc: viewer.avatarPath ? siteImageSrc(viewer.avatarPath) : null,
                 unread,
                 links: [
                   { label: "Library", href: libraryHref },
@@ -85,6 +86,7 @@ export default async function SpaceLayout({
                     label: unread > 0 ? `Notifications (${unread})` : "Notifications",
                     href: notificationsHref,
                   },
+                  { label: "Account", href: accountHref },
                   { label: "Subscriptions", href: accountSubscriptionsHref },
                 ],
               }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SITE_IMAGE_MAX_BYTES, isSiteImagePath, siteImagePath, siteImageProblem, siteImageUrl } from './siteImages';
+import { SITE_IMAGE_MAX_BYTES, avatarPath, isAvatarPath, isSiteImagePath, siteImagePath, siteImageProblem, siteImageUrl } from './siteImages';
 
 const SPACE = '11111111-1111-4111-8111-111111111111';
 
@@ -14,6 +14,17 @@ describe('site images', () => {
     expect(isSiteImagePath(`${SPACE}/site/x/u1-a.jpg`, SPACE)).toBe(false);
     expect(isSiteImagePath(`${SPACE}/prod/u1-a.jpg`, SPACE)).toBe(false);
     expect(isSiteImagePath('https://evil.test/a.jpg', SPACE)).toBe(false);
+  });
+
+  it('stores a member avatar in <space>/avatars/<profile>/', () => {
+    expect(avatarPath({ spaceId: SPACE, profileId: 'p1', id: 'u1', fileName: 'Me.PNG' })).toBe(`${SPACE}/avatars/p1/u1-me.png`);
+  });
+
+  it('accepts an avatar only in that member folder', () => {
+    expect(isAvatarPath(`${SPACE}/avatars/p1/u1-me.png`, SPACE, 'p1')).toBe(true);
+    expect(isAvatarPath(`${SPACE}/avatars/p2/u1-me.png`, SPACE, 'p1')).toBe(false);
+    expect(isAvatarPath(`${SPACE}/site/u1-me.png`, SPACE, 'p1')).toBe(false);
+    expect(isAvatarPath(`${SPACE}/avatars/p1/x/u1-me.png`, SPACE, 'p1')).toBe(false);
   });
 
   it('allows jpeg, png and webp up to the size limit', () => {

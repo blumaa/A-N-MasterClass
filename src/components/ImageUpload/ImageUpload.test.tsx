@@ -33,9 +33,16 @@ describe('ImageUpload', () => {
     const file = new File(['abc'], 'a.jpg', { type: 'image/jpeg' });
     pick(file);
     await waitFor(() => expect(hidden()).toBe('s/site/u-a.jpg'));
-    expect(ticket).toHaveBeenCalledWith({ fileName: 'a.jpg', sizeBytes: 3 });
+    expect(ticket).toHaveBeenCalledWith('site', { fileName: 'a.jpg', sizeBytes: 3 });
     expect(put).toHaveBeenCalledWith('https://up.test/x', file, expect.any(Function));
     expect(screen.getByRole('img', { name: 'Image preview' })).toHaveAttribute('src', 'blob:preview');
+  });
+
+  it('asks for an avatar ticket when the field is a member photo', async () => {
+    ticket.mockResolvedValue({ ok: false, message: 'No.' });
+    render(<form><ImageUpload name="avatarPath" label="Photo" target="avatar" /></form>);
+    pick(new File(['abc'], 'me.png'));
+    await waitFor(() => expect(ticket).toHaveBeenCalledWith('avatar', { fileName: 'me.png', sizeBytes: 3 }));
   });
 
   it('shows the current image and can remove it', () => {

@@ -3,7 +3,7 @@
 // Everything lives in one is_test space + auth users that afterAll deletes.
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ConstraintError } from '@/lib/data/errors';
+import { ConstraintError, FILE_OUTSIDE_FOLDER } from '@/lib/data/errors';
 import { FONT_IDS } from '@/lib/fonts/catalog';
 import { DEFAULT_BRAND } from '@/tokens/resolveBrand';
 import { adminClient } from '../admin';
@@ -66,7 +66,15 @@ describe.skipIf(!enabled)('core repo (Supabase contract)', () => {
       await repo.ensureSpaceProfile({ spaceId, profileId: p.id, displayName: 'First' });
       await repo.ensureSpaceProfile({ spaceId, profileId: p.id, displayName: 'Second' });
       const rows = (await repo.spaceProfiles(spaceId)).filter((r) => r.profileId === p.id);
-      expect(rows).toEqual([{ spaceId, profileId: p.id, displayName: 'First' }]);
+      expect(rows).toEqual([{ spaceId, profileId: p.id, displayName: 'First', avatarPath: null, bio: null }]);
+    });
+
+    it('saves name, bio and avatar; refuses an avatar outside the member folder', async () => {
+      const p = await newProfile('save');
+      await repo.ensureSpaceProfile({ spaceId, profileId: p.id, displayName: 'First' });
+      const row = { spaceId, profileId: p.id, displayName: 'Saved', bio: 'Hi', avatarPath: `${spaceId}/avatars/${p.id}/a-me.png` };
+      expect(await repo.saveSpaceProfile(row)).toEqual(row);
+      await expect(repo.saveSpaceProfile({ ...row, avatarPath: `${spaceId}/site/a.png` })).rejects.toThrow(FILE_OUTSIDE_FOLDER);
     });
   });
 

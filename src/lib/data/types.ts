@@ -27,7 +27,16 @@ export type SpaceDomain = { host: string; spaceId: string; isPrimary: boolean };
 
 export type Profile = { id: string; email: string; isPlatformAdmin: boolean };
 
-export type SpaceProfile = { spaceId: string; profileId: string; displayName: string };
+/** Per-space member profile (G2). avatarPath: object in the public `site` bucket (<space>/avatars/<profile>/<name>). */
+export type SpaceProfile = {
+  spaceId: string;
+  profileId: string;
+  displayName: string;
+  avatarPath: string | null;
+  bio: string | null;
+};
+
+export type NewSpaceProfile = Pick<SpaceProfile, 'spaceId' | 'profileId' | 'displayName'>;
 
 /** null fields = brand.css defaults. */
 export type SpaceBranding = {

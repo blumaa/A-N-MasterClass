@@ -3,22 +3,24 @@ import type { Repo } from '@/lib/data/repo';
 import type { Profile, Role, Space } from '@/lib/data/types';
 import { can, type Capability } from './capabilities';
 
-/** Signed in (profile and name always together) or a visitor. */
+/** Signed in (profile and name always together) or a visitor. avatarPath: space_profiles photo. */
 export type Viewer =
-  | { space: Space; profile: Profile; role: Role | null; displayName: string }
-  | { space: Space; profile: null; role: null; displayName: null };
+  | { space: Space; profile: Profile; role: Role | null; displayName: string; avatarPath: string | null }
+  | { space: Space; profile: null; role: null; displayName: null; avatarPath: null };
 
 export async function resolveViewer(repo: Repo, spaceSlug: string, profileId: string | null): Promise<Viewer | null> {
   const space = await repo.spaceBySlug(spaceSlug);
   if (!space) return null;
   const profile = profileId ? await repo.profile(profileId) : null;
-  if (!profile) return { space, profile: null, role: null, displayName: null };
-  const [member, names] = await Promise.all([repo.member(space.id, profile.id), repo.spaceProfiles(space.id)]);
+  if (!profile) return { space, profile: null, role: null, displayName: null, avatarPath: null };
+  const [member, rows] = await Promise.all([repo.member(space.id, profile.id), repo.spaceProfiles(space.id)]);
+  const own = rows.find((r) => r.profileId === profile.id);
   return {
     space,
     profile,
     role: member?.role ?? null,
-    displayName: names.find((n) => n.profileId === profile.id)?.displayName ?? profile.email,
+    displayName: own?.displayName ?? profile.email,
+    avatarPath: own?.avatarPath ?? null,
   };
 }
 

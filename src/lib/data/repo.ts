@@ -62,6 +62,7 @@ import type {
   Space,
   SpaceBranding,
   SpaceDomain,
+  NewSpaceProfile,
   SpaceProfile,
   Step,
   Episode,
@@ -204,7 +205,9 @@ export interface Repo {
   /** OWES: Supabase auth.admin.createUser (profile row follows by trigger). */
   createProfile(email: string): Promise<Profile>;
   /** Insert if missing; keeps an existing display name. */
-  ensureSpaceProfile(row: SpaceProfile): Promise<void>;
+  ensureSpaceProfile(row: NewSpaceProfile): Promise<void>;
+  /** Update an existing row. Throws ConstraintError(FILE_OUTSIDE_FOLDER) for an avatar outside the member's folder. */
+  saveSpaceProfile(row: SpaceProfile): Promise<SpaceProfile>;
 
   // platform admin (G1): spaces, owners, domains
   /** Every space, ordered by name. */

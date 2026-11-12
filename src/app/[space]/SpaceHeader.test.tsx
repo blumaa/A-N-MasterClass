@@ -8,6 +8,7 @@ const site = [
 ];
 const member = {
   displayName: 'Ada Lovelace',
+  avatarSrc: null,
   unread: 2,
   links: [
     { label: 'Library', href: '/library' },
@@ -28,6 +29,12 @@ describe('SpaceHeader', () => {
     render(<SpaceHeader spaceName="Fiddle" site={site} account={null} signInHref="/login" signOut={null} />);
     expect(screen.getAllByRole('link', { name: 'Sign in' })[0]).toHaveAttribute('href', '/login');
     expect(screen.queryByRole('button', { name: /Ada/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the member photo on the account button', () => {
+    render(<SpaceHeader spaceName="Fiddle" site={site} account={{ ...member, avatarSrc: '/ada.png' }} signInHref={null} signOut={signOut} />);
+    const button = screen.getByRole('button', { name: 'Account: Ada Lovelace, 2 unread' });
+    expect(button.querySelector('img')).toHaveAttribute('src', '/ada.png');
   });
 
   it('opens the account panel with the member links and sign out', () => {

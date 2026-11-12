@@ -42,6 +42,8 @@ export const toSpaceProfile = (r: Row<'space_profiles'>): SpaceProfile => ({
   spaceId: r.space_id,
   profileId: r.profile_id,
   displayName: r.display_name,
+  avatarPath: r.avatar_path,
+  bio: r.bio,
 });
 
 export const toMember = (r: Row<'space_members'>): Member => ({

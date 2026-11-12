@@ -9,7 +9,7 @@ import { Avatar, Badge, Button, Popover, PopoverBody, Sheet, SheetBody, SheetHea
 import type { NavItem } from '@/lib/data/types';
 import styles from './SpaceHeader.module.css';
 
-export type HeaderAccount = { displayName: string; unread: number; links: NavItem[] };
+export type HeaderAccount = { displayName: string; avatarSrc: string | null; unread: number; links: NavItem[] };
 
 type Props = {
   spaceName: string;
@@ -51,7 +51,7 @@ function AccountPopover({ account, signOut }: { account: HeaderAccount; signOut:
   return (
     <>
       <Button ref={anchor} variant="ghost" size="sm" aria-expanded={open} aria-label={accountLabel(account)} onClick={() => setOpen((v) => !v)}>
-        <Avatar name={account.displayName} size="sm" decorative />
+        <Avatar name={account.displayName} src={account.avatarSrc ?? undefined} size="sm" decorative />
         {account.unread > 0 ? <Badge tone="danger">{account.unread}</Badge> : null}
       </Button>
       <Popover open={open} onClose={close} anchorRef={anchor} label="Account" placement="bottom-end">
