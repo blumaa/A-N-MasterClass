@@ -31,7 +31,10 @@ function Products({ products, imageSrc }: { products: Data['products']; imageSrc
       </Heading>
       <ul aria-label="Coaching products" className={styles.rows}>
         {products.map(({ product: p, program }) => (
-          <li key={p.id} className={styles.row}>
+          <li key={p.id} className={styles.product}>
+            <Heading level={3} variant="label">
+              {p.title}
+            </Heading>
             <CoachingForm fields={{ op: 'updateProduct', productId: p.id }} submit="Save">
               <ProductFields product={p} imageSrc={imageSrc} />
             </CoachingForm>
@@ -50,6 +53,9 @@ function Products({ products, imageSrc }: { products: Data['products']; imageSrc
           </li>
         ))}
       </ul>
+      <Heading level={3} variant="label">
+        New coaching product
+      </Heading>
       <CoachingForm fields={{ op: 'createProgram' }} submit="Add coaching product">
         <Field label="Title">
           <Input name="title" required />

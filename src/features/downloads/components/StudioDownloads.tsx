@@ -10,7 +10,7 @@ import styles from './downloads.module.css';
 
 function Download({ download: { product: p, files }, imageSrc }: { download: StudioDownload; imageSrc: ImageSrc }) {
   return (
-    <li className={styles.row}>
+    <li className={styles.product}>
       <Heading level={2} variant="subtitle">
         {p.title}
       </Heading>
@@ -33,12 +33,13 @@ function Download({ download: { product: p, files }, imageSrc }: { download: Stu
           </li>
         ))}
       </ul>
+      <Heading level={3} variant="label">
+        New file
+      </Heading>
       <DownloadForm fields={{ op: 'addFile', productId: p.id }} submit="Add file">
-        <div className={styles.fields}>
-          <Field label="File title">
-            <Input name="title" required />
-          </Field>
-        </div>
+        <Field label="File title">
+          <Input name="title" required />
+        </Field>
         <FileUpload productId={p.id} kind="download" label="Choose or drop a file" pathName="filePath" sizeName="sizeBytes" />
       </DownloadForm>
     </li>
@@ -48,9 +49,6 @@ function Download({ download: { product: p, files }, imageSrc }: { download: Stu
 export function StudioDownloads({ downloads, imageSrc }: { downloads: StudioDownload[]; imageSrc: ImageSrc }) {
   return (
     <Stack gap="loose">
-      <Heading level={1} variant="title">
-        Downloads
-      </Heading>
       {downloads.length === 0 ? (
         <EmptyState title="No downloads yet" />
       ) : (
@@ -60,6 +58,9 @@ export function StudioDownloads({ downloads, imageSrc }: { downloads: StudioDown
           ))}
         </ul>
       )}
+      <Heading level={2} variant="label">
+        New download
+      </Heading>
       <DownloadForm fields={{ op: 'createDownload' }} submit="Add download">
         <Field label="Title">
           <Input name="title" required />

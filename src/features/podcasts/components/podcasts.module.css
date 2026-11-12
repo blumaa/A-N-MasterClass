@@ -13,6 +13,14 @@
   border-block-end: 1px solid var(--mds-border-subtle);
 }
 
+/* One product: its fields, settings and child list, stacked with room between the forms. */
+.product {
+  display: grid;
+  gap: var(--mds-space-4);
+  padding-block-end: var(--mds-space-4);
+  border-block-end: 1px solid var(--mds-border-subtle);
+}
+
 .fields {
   display: flex;
   flex-wrap: wrap;

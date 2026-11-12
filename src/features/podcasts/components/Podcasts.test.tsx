@@ -81,6 +81,14 @@ describe('StudioPodcasts', () => {
     expect(screen.getByRole('button', { name: 'Add podcast' })).toBeInTheDocument();
   });
 
+  it('leaves the page heading to the route and labels the add forms', () => {
+    const p: StudioPodcast = { product, settings: { productId: 'p1', author: '', explicit: false, order: 'serial' }, episodes: [] };
+    render(<StudioPodcasts imageSrc={String} podcasts={[p]} />);
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'New episode' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'New podcast' })).toBeInTheDocument();
+  });
+
   it('shows an empty state without podcasts', () => {
     render(<StudioPodcasts imageSrc={String} podcasts={[]} />);
     expect(screen.getByText('No podcasts yet')).toBeInTheDocument();

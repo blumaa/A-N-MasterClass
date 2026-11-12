@@ -55,7 +55,7 @@ function EpisodeFields({ productId, e }: { productId: string; e?: Episode }) {
 
 function Podcast({ podcast: { product: p, settings: s, episodes }, imageSrc }: { podcast: StudioPodcast; imageSrc: ImageSrc }) {
   return (
-    <li className={styles.row}>
+    <li className={styles.product}>
       <Heading level={2} variant="subtitle">
         {p.title}
       </Heading>
@@ -84,6 +84,9 @@ function Podcast({ podcast: { product: p, settings: s, episodes }, imageSrc }: {
           </li>
         ))}
       </ul>
+      <Heading level={3} variant="label">
+        New episode
+      </Heading>
       <PodcastForm fields={{ op: 'createEpisode', productId: p.id }} submit="Add episode">
         <EpisodeFields productId={p.id} />
       </PodcastForm>
@@ -94,9 +97,6 @@ function Podcast({ podcast: { product: p, settings: s, episodes }, imageSrc }: {
 export function StudioPodcasts({ podcasts, imageSrc }: { podcasts: StudioPodcast[]; imageSrc: ImageSrc }) {
   return (
     <Stack gap="loose">
-      <Heading level={1} variant="title">
-        Podcasts
-      </Heading>
       {podcasts.length === 0 ? (
         <EmptyState title="No podcasts yet" />
       ) : (
@@ -106,6 +106,9 @@ export function StudioPodcasts({ podcasts, imageSrc }: { podcasts: StudioPodcast
           ))}
         </ul>
       )}
+      <Heading level={2} variant="label">
+        New podcast
+      </Heading>
       <PodcastForm fields={{ op: 'createPodcast' }} submit="Add podcast">
         <Field label="Title">
           <Input name="title" required />

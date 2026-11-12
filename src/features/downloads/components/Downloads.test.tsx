@@ -58,6 +58,13 @@ describe('StudioDownloads', () => {
     expect(screen.queryByRole('textbox', { name: 'File path' })).toBeNull();
   });
 
+  it('leaves the page heading to the route and labels the add forms', () => {
+    render(<StudioDownloads imageSrc={String} downloads={[{ product, files: [] }]} />);
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'New file' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'New download' })).toBeInTheDocument();
+  });
+
   it('shows an empty state without downloads', () => {
     render(<StudioDownloads imageSrc={String} downloads={[]} />);
     expect(screen.getByText('No downloads yet')).toBeInTheDocument();

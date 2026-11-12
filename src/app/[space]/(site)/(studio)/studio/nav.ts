@@ -27,3 +27,13 @@ const NAV: readonly NavItem[] = [
 ];
 
 export const studioNav = (role: Role | null): NavItem[] => (role ? NAV.filter((i) => can(role, i.cap)) : []);
+
+/** The nav href the path sits under (longest whole-segment match), or null. */
+export function activeNavHref(pathname: string, hrefs: readonly string[]): string | null {
+  let best: string | null = null;
+  for (const href of hrefs) {
+    const inside = pathname === href || pathname.startsWith(`${href}/`);
+    if (inside && (best === null || href.length > best.length)) best = href;
+  }
+  return best;
+}
