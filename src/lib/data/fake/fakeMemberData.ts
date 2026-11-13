@@ -1,6 +1,6 @@
 // Member data export and per-space erase (G25), fake part. Same scope as member_space_data and
-// erase_member_space in supabase/migrations/20261113000000_member_data.sql. The fake has no
-// video positions, so that key is always empty.
+// erase_member_space in supabase/migrations/20261113000000_member_data.sql and
+// 20261120000000_member_data_coverage.sql. The fake has no video positions, so that key is always empty.
 import type { Repo } from '../repo';
 import type { Db } from './db';
 
@@ -19,6 +19,65 @@ function scope(db: Db, spaceId: string, profileId: string) {
   const posts = new Set(db.posts.filter((p) => channels.has(p.channelId)).map((p) => p.id));
   const comments = new Set(db.comments.filter((c) => c.spaceId === spaceId).map((c) => c.id));
   return { products, steps, parts, channels, threads, posts, comments };
+}
+
+const byTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title);
+
+type Scope = ReturnType<typeof scope>;
+
+/** Rows from the person-linked tables added after the first export; mirrors 20261120000000_member_data_coverage.sql. */
+function personLinked(db: Db, spaceId: string, profileId: string, s: Scope) {
+  const productTitle = (id: string) => db.products.find((p) => p.id === id)?.title ?? '';
+  const channelTitle = (id: string) => db.channels.find((c) => c.id === id)?.title ?? '';
+  const named = <T>(rows: T[], title: (row: T) => string) =>
+    rows.map((r) => ({ row: r, title: title(r) })).sort(byTitle);
+  const threadMine = (t: { communityId: string; aId: string; bId: string }) =>
+    s.products.has(t.communityId) && (t.aId === profileId || t.bId === profileId);
+  return {
+    notifications_sent: db.notifications
+      .filter((n) => n.spaceId === spaceId && n.actorId === profileId)
+      .map((n) => ({ type: n.type, post_id: n.postId, step_id: n.stepId, created_at: n.createdAt })),
+    moderation_log: db.moderationLog
+      .filter((l) => l.actorId === profileId && s.products.has(l.communityId))
+      .map((l) => ({ action: l.action, target_type: l.targetType, target_id: l.targetId, created_at: l.createdAt })),
+    post_approval_members: named(
+      db.postApprovalMembers.filter((a) => a.profileId === profileId && s.products.has(a.communityId)),
+      (a) => productTitle(a.communityId),
+    ).map((x) => ({ community: x.title })),
+    push_mutes: db.pushMutes.filter((m) => m.spaceId === spaceId && m.profileId === profileId).map((m) => ({ type: m.type })),
+    push_subscriptions: db.pushSubscriptions
+      .filter((p) => p.spaceId === spaceId && p.profileId === profileId)
+      .map((p) => ({ endpoint: p.endpoint, user_agent: p.userAgent })),
+    claim_tokens: db.claimTokens
+      .filter((t) => t.spaceId === spaceId && t.profileId === profileId)
+      .map((t) => ({ expires_at: t.expiresAt, used_at: t.usedAt })),
+    channel_members: named(
+      db.channelMembers.filter((c) => c.profileId === profileId && s.channels.has(c.channelId)),
+      (c) => channelTitle(c.channelId),
+    ).map((x) => ({ channel: x.title })),
+    channel_moderators: named(
+      db.channelModerators.filter((c) => c.profileId === profileId && s.channels.has(c.channelId)),
+      (c) => channelTitle(c.channelId),
+    ).map((x) => ({ channel: x.title })),
+    community_staff: named(
+      db.communityStaff.filter((c) => c.profileId === profileId && s.products.has(c.communityId)),
+      (c) => productTitle(c.communityId),
+    ).map((x) => ({ community: x.title })),
+    dm_threads: db.dmThreads.filter(threadMine).map((t) => ({ id: t.id, community: productTitle(t.communityId) })),
+    dm_reads: db.dmReads.filter((r) => r.profileId === profileId && s.threads.has(r.threadId)).map((r) => ({ thread_id: r.threadId, read_at: r.readAt })),
+    blocks: db.blocks
+      .filter((b) => b.blockerId === profileId && s.products.has(b.communityId))
+      .map((b) => ({
+        community: productTitle(b.communityId),
+        blocked: db.spaceProfiles.find((p) => p.spaceId === spaceId && p.profileId === b.blockedId)?.displayName ?? null,
+      })),
+    reports: db.reports
+      .filter((r) => r.reporterId === profileId && s.products.has(r.communityId))
+      .map((r) => ({ target_type: r.targetType, target_id: r.targetId, reason: r.reason, status: r.status, created_at: r.createdAt })),
+    podcast_feeds: db.podcastFeeds
+      .filter((f) => f.profileId === profileId && s.products.has(f.productId))
+      .map((f) => ({ podcast: productTitle(f.productId), created_at: f.createdAt })),
+  };
 }
 
 export function createFakeMemberData(db: Db): MemberDataRepo {
@@ -69,6 +128,7 @@ export function createFakeMemberData(db: Db): MemberDataRepo {
         points: mine(db.pointsLedger).filter((l) => s.products.has(l.communityId)),
         coaching_sessions: db.coachingSessions.filter((x) => x.spaceId === spaceId && x.clientId === profileId),
         notifications: db.notifications.filter((n) => n.spaceId === spaceId && n.recipientId === profileId),
+        ...personLinked(db, spaceId, profileId, s),
       };
     },
 

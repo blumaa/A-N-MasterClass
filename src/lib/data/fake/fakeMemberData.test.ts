@@ -33,6 +33,78 @@ describe('memberSpaceData', () => {
   });
 });
 
+describe('memberSpaceData: person-linked tables', () => {
+  const { assistant, community, lounge, podcast } = SEED_IDS;
+  const at = new Date('2026-11-12T10:00:00Z');
+
+  const seedRows = () => {
+    db.moderationLog.push(
+      { id: 'ml-1', communityId: community, channelId: general, actorId: student, action: 'hide', targetType: 'post', targetId: 'p-1', createdAt: at },
+      { id: 'ml-2', communityId: community, channelId: general, actorId: assistant, action: 'lock', targetType: 'post', targetId: 'p-2', createdAt: at },
+      { id: 'ml-3', communityId: community, channelId: general, actorId: null, action: 'hide', targetType: 'post', targetId: 'p-3', createdAt: at },
+    );
+    db.postApprovalMembers.push({ communityId: community, profileId: student }, { communityId: community, profileId: assistant });
+    db.pushMutes.push(
+      { spaceId: alexander, profileId: student, type: 'reaction' },
+      { spaceId: natasha, profileId: student, type: 'comment' },
+      { spaceId: alexander, profileId: assistant, type: 'mention' },
+    );
+    db.channelMembers.push({ channelId: lounge, profileId: student }, { channelId: lounge, profileId: assistant });
+    db.channelModerators.push({ channelId: general, profileId: student });
+    db.communityStaff.push({ communityId: community, profileId: student });
+    db.dmThreads.push({ id: 'dm-1', communityId: community, aId: assistant, bId: student });
+    db.dmReads.push({ threadId: 'dm-1', profileId: student, readAt: at }, { threadId: 'dm-1', profileId: assistant, readAt: at });
+    db.blocks.push({ communityId: community, blockerId: student, blockedId: assistant }, { communityId: community, blockerId: assistant, blockedId: student });
+    db.reports.push(
+      { id: 'r-1', communityId: community, channelId: general, targetType: 'post', targetId: 'p-1', reason: 'spam', status: 'open', createdAt: at, resolvedBy: null, resolvedAt: null, reporterId: student },
+      { id: 'r-2', communityId: community, channelId: general, targetType: 'post', targetId: 'p-2', reason: 'other', status: 'open', createdAt: at, resolvedBy: null, resolvedAt: null, reporterId: assistant },
+    );
+    db.podcastFeeds.push({ productId: podcast, profileId: student, token: 'secret-token', createdAt: at });
+    db.pushSubscriptions.push({ spaceId: alexander, profileId: student, endpoint: 'https://push.example/1', p256dh: 'k', auth: 'a', userAgent: 'UA' });
+    db.claimTokens.push({ tokenHash: 'h', spaceId: alexander, profileId: student, expiresAt: at, usedAt: null });
+    db.notifications.push({ id: 'n-1', spaceId: alexander, recipientId: assistant, actorId: student, type: 'reaction', postId: 'p-2', stepId: null, communityId: null, createdAt: at, readAt: null });
+  };
+
+  it('exports moderation log rows where the member is the actor', async () => {
+    seedRows();
+    const data = await repo.memberSpaceData(alexander, student);
+    expect(data.moderation_log).toEqual([{ action: 'hide', target_type: 'post', target_id: 'p-1', created_at: at }]);
+  });
+
+  it('exports approval status and push mutes of this space', async () => {
+    seedRows();
+    const data = await repo.memberSpaceData(alexander, student);
+    expect(data.post_approval_members).toEqual([{ community: 'Rope Community' }]);
+    expect(data.push_mutes).toEqual([{ type: 'reaction' }]);
+  });
+
+  it('exports the rest of the member rows, never other members', async () => {
+    seedRows();
+    const data = await repo.memberSpaceData(alexander, student);
+    expect(data.channel_members).toEqual([{ channel: 'Lounge' }]);
+    expect(data.channel_moderators).toEqual([{ channel: 'General' }]);
+    expect(data.community_staff).toEqual([{ community: 'Rope Community' }]);
+    expect(data.dm_threads).toEqual([{ id: 'dm-1', community: 'Rope Community' }]);
+    expect(data.dm_reads).toEqual([{ thread_id: 'dm-1', read_at: at }]);
+    expect(data.blocks).toEqual([{ community: 'Rope Community', blocked: 'Sam (assistant)' }]);
+    expect(data.reports).toEqual([{ target_type: 'post', target_id: 'p-1', reason: 'spam', status: 'open', created_at: at }]);
+    expect(data.podcast_feeds).toEqual([{ podcast: expect.any(String), created_at: at }]);
+    expect(JSON.stringify(data.podcast_feeds)).not.toContain('secret-token');
+    expect(data.push_subscriptions).toEqual([{ endpoint: 'https://push.example/1', user_agent: 'UA' }]);
+    expect(data.claim_tokens).toEqual([{ expires_at: at, used_at: null }]);
+    expect(data.notifications_sent).toEqual([{ type: 'reaction', post_id: 'p-2', step_id: null, created_at: at }]);
+  });
+
+  it('is empty in another space', async () => {
+    seedRows();
+    const data = await repo.memberSpaceData(natasha, student);
+    for (const key of ['moderation_log', 'post_approval_members', 'channel_members', 'dm_threads', 'blocks', 'reports', 'podcast_feeds', 'push_subscriptions']) {
+      expect(data[key], key).toEqual([]);
+    }
+    expect(data.push_mutes).toEqual([{ type: 'comment' }]);
+  });
+});
+
 describe('eraseMemberSpace', () => {
   it('refuses the owner', async () => {
     await expect(repo.eraseMemberSpace(alexander, alexanderOwner)).rejects.toThrow('owner cannot leave the space');

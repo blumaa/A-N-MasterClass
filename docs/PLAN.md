@@ -263,7 +263,7 @@ Launch 6 item 3 follow-up as built:
 - Logs (`moderation_log`): hide, unhide, lock, unlock, approve, reject. Moderator, action, timestamp, content preview + link (null once deleted). Filter by action and date range (`?action=&from=&to=`, UTC days, both ends included). Read: channel moderators for their channels, comment moderators (staff) all.
 - Report notifications: new type `report` to every channel moderator (`can_moderate_channel` recipients, SSOT), links to the Review Feed. Also web push since Group 2 push (`reportAction` moved to `app/[space]/reportActions.ts`, uses `pushingRepo`).
 - G0 diff: no "report a user" (Kajabi mobile has it). Reports target content only.
-- Not yet: member data export does not include `moderation_log` or `post_approval_members`. Erase: approval row cascades; log keeps the row, actor null ("Someone").
+- Member data export includes `moderation_log` (member as actor) and `post_approval_members`. Erase: approval row cascades; log keeps the row, actor null ("Someone").
 
 Launch 6 item 4 as built:
 - Migrations `20261112100000_community_files.sql` + `20261112100100_messages_attachment_not_null.sql`, `supabase/tests/140-community-files.test.sql`, applied to ksb 2026-11-12.
@@ -388,7 +388,7 @@ UI pass 2 (demo content, visitor reads) as built:
 - `Viewer` is now a union: signed in (profile + displayName) or visitor (both null).
 
 UI pass 3 (walkthroughs: visitor, member, phone, Studio, platform) as built:
-- G25 legal pages, export and account delete done.
+- G25 legal pages, export and account delete done. Export covers every person-linked table; `memberDataCoverage.test.ts` fails when a new one is missing.
 - Toasts on every save; loading states on every route.
 - Edit-form saves are the main button by default (`ActionForm` variant rule); inline and input-less forms stay secondary.
 - UI shows labels, never stored values: `src/lib/labels.ts` (publish status, role, product kind), `PublishStatusBadge`, space status labels on the platform.
@@ -433,7 +433,7 @@ Group 2 push as built:
 - iOS tap parking (KSG port, copied): the worker parks the tap URL in Cache Storage (`masterclass-notification-tap`, 60 s TTL) before focusing or opening a window, and posts `{ type: 'navigate', url }` to an open client. `NotificationTap` (space layout, with `PushHeal`) takes a parked tap on launch and listens for messages; same-origin paths only (`sameOriginPath`), the entry is consumed before it is checked. Reason: iOS home-screen apps can drop `openWindow`/`navigate` URLs.
 - Report push: `reportAction` moved to `app/[space]/reportActions.ts` with `pushingRepo`; components take it as a `report` prop (`FormAction`). No `report` prop = no Report button.
 - G0: Kajabi has per-feature, per-channel member notification preferences, all on by default, with admin overrides and channel mute (https://help.kajabi.com/en/articles/17175826-community-settings-notifications). Built: member per-type switches, default on. Kajabi's exact type list and wording not matched; follows KSG types.
-- Not built: Kajabi admin community-level overrides, per-channel mute, email channel; mark-read on tap (payload has no notification id); badge count; KSG tag/renotify; `push_mutes` not in the member data export (same as `push_subscriptions`).
+- Not built: Kajabi admin community-level overrides, per-channel mute, email channel; mark-read on tap (payload has no notification id); badge count; KSG tag/renotify; `push_mutes` and `push_subscriptions` are in the member data export (endpoint and agent only, no keys).
 
 Group 2 certificates as built:
 - G0: Kajabi certificates have a logo, background image, expiration and a share URL for social media (https://help.kajabi.com/en/articles/17174484, checked 2026-11-12). Fonts, indexing and revoking a link are not described. Built: logo, brand fonts, share page. Not built: background image, expiration.
