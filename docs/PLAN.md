@@ -449,6 +449,15 @@ Group 2 certificates as built:
 - Not built: certificate email, background image, expiration, WebP logo in the PDF, share page preview image of the certificate itself (OG image = logo).
 
 Group 2 coupon reports and automatic discounts as built:
+- G0 sources (checked 2026-11-13): coupon analytics panel with total redemptions, unique customers, active recurring redemptions and a date filter (https://help.kajabi.com/en/articles/17174770-coupon-analytics, https://help.kajabi.com/en/articles/17174764-coupons-overview). Coupon link: `?coupon_code=CODE` applies the coupon automatically; each attached offer also has an "Offer checkout URL" with the coupon applied; buyers can still type a code by hand (https://help.kajabi.com/articles/sales/coupons/how-to-create-a-coupon). Kajabi names no revenue or discount total in the coupon panel, no shown error for a bad link code, no remove rule.
+- No migration, no repo change. Report is computed from `repo.orders` (`couponReport` in `src/features/checkout/api/coupons.ts`). No counter: uses = coupon's orders past `created` (same rule as the coupon list).
+- Report on the Studio coupon page: Uses, Customers (unique emails), Revenue, Discount given, plus a table of every order with the coupon (date, customer, offer, paid, discount, status, Test badge).
+- Decision: Revenue and Discount given count live orders that are not fully refunded, summed per currency (partially refunded count in full: the refund amount is not stored). Uses and the table include test and refunded orders, so the count matches max uses.
+- Automatic discount = Kajabi coupon link. Param `coupon_code` (`COUPON_PARAM`, `checkoutPath(slug, code)` in `src/lib/commerce/paths.ts`). Checkout page reads it, checks it on the server (`couponFromLink`, same `previewCoupon` as the Apply button) and starts with it applied. Bad code: field filled in with the reason, full price. Buyer can remove it. Order creation checks the coupon again.
+- Studio coupon page lists a checkout link for each offer ticked on the coupon.
+- Not yet: date filter, active recurring redemptions (no recurring coupons, G5), `coupon_code` passed on from landing or sales pages, partial refund amounts (not stored), CSV export.
+
+Group 2 post photos as built:
 - G0 sources (checked 2026-11-13): "A maximum of 6 files can be added to a Channel post, comment, or chat message"; edit only removes a file (the X), nothing about captions or reorder (https://help.kajabi.com/en/articles/17174458-upload-files-to-a-community-channel). Gallery view is a responsive image grid; 40 MB photo limit (https://help.kajabi.com/en/articles/17174430-create-a-community-channel; also https://help.kajabi.com/en/articles/17174436-manage-community-posts-messages-comments). Mobile app: swipeable photo carousels (https://help.kajabi.com/en/articles/17175616-branded-mobile-app-community-updates).
 - Decision: no captions, no reorder. Kajabi documents neither; photos keep upload order. Alt text stays "Photo i of n".
 - Migration `20261119000000_post_photo_thumbs.sql` + `supabase/tests/330-post-photo-thumbs.test.sql` (11 asserts), applied to ksb 2026-11-13.
