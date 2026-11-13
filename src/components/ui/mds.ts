@@ -9,6 +9,7 @@ export {
   CardBody,
   CardHeader,
   Checkbox,
+  ConfirmDialog,
   Container,
   DataTable,
   EmptyState,

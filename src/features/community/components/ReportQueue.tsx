@@ -39,7 +39,7 @@ function Actions({ e, action }: { e: ReportEntry; action: FormAction }) {
         inline
         variant="danger"
         submit="Remove content"
-        confirm="Delete this content for everyone?"
+        confirm={{ title: 'Delete this content for everyone?' }}
         fields={resolveFields(e, 'remove')}
       />
     </Inline>

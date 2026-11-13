@@ -50,7 +50,7 @@ export function StudioSessionDetail({ data, timeZone }: { data: Data; timeZone: 
             </Field>
             <TimeZoneSelect value={timeZone} />
           </CoachingForm>
-          <CoachingForm inline variant="danger" submit="Cancel session" confirm="Cancel this session?" fields={{ op: 'cancel', sessionId: s.id }} />
+          <CoachingForm inline variant="danger" submit="Cancel session" confirm={{ title: 'Cancel this session?', cancelLabel: 'Keep session' }} fields={{ op: 'cancel', sessionId: s.id }} />
         </Stack>
       ) : null}
     </Stack>

@@ -48,7 +48,7 @@ export function ChallengeEditor({ communityId, groups, challenges }: Props) {
               inline
               variant="ghost"
               submit="Delete"
-              confirm={`Delete challenge "${c.title}" and its entries?`}
+              confirm={{ title: `Delete challenge "${c.title}"?`, description: 'Its entries are deleted too.' }}
               fields={{ op: 'deleteChallenge', challengeId: c.id }}
             />
           </li>

@@ -67,7 +67,7 @@ export function SpaceDetail({ detail, spaceUrl }: { detail: PlatformSpaceDetail;
                 fields={{ op: 'removeDomain', ...slug, host: d.host }}
                 submit="Remove"
                 variant="ghost"
-                confirm={`Remove ${d.host}?`}
+                confirm={{ title: `Remove ${d.host}?` }}
                 inline
               />
             </li>

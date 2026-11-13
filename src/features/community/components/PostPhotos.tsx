@@ -23,7 +23,7 @@ export function PostPhotos({ postId, photos, action, remove }: Props) {
               inline
               variant="ghost"
               submit="Remove photo"
-              confirm="Remove this photo?"
+              confirm={{ title: 'Remove this photo?' }}
               fields={{ op: 'removePostPhoto', postId, photoId: p.id }}
             />
           ) : null}

@@ -60,7 +60,7 @@ export function StepEditor({ programId, programSlug, step, previewHref, quizzes 
         variant="danger"
         fields={{ op: 'deleteStep', stepId: step.id, redirectTo: back }}
         submit="Delete lesson"
-        confirm={`Delete "${step.title}" and its student progress?`}
+        confirm={{ title: `Delete "${step.title}"?`, description: 'Student progress on this lesson is deleted too.' }}
       />
     </Stack>
   );

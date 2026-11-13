@@ -46,7 +46,7 @@ function Feed({ url, productId }: { url: string; productId: string }) {
       <ResetFeedForm
         fields={{ productId }}
         submit="Reset feed URL"
-        confirm="Podcast apps using the old URL stop updating. Reset?"
+        confirm={{ title: 'Reset the feed link?', description: 'Podcast apps using the old URL stop updating.', tone: 'warning' }}
         inline
       />
     </Stack>

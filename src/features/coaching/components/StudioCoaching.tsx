@@ -189,7 +189,7 @@ function Calendar({ calendar, outcome, connect, disconnect }: CalendarProps) {
       {calendar ? (
         <>
           <Text>{`Connected as ${calendar.accountEmail}. Busy times block slots; sessions are added to your calendar.`}</Text>
-          <ActionForm action={disconnect} fields={{}} submit="Disconnect" variant="danger" confirm="Disconnect Google Calendar?" />
+          <ActionForm action={disconnect} fields={{}} submit="Disconnect" variant="danger" confirm={{ title: 'Disconnect Google Calendar?', tone: 'warning' }} />
         </>
       ) : (
         <>

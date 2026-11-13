@@ -64,7 +64,7 @@ function ChannelRow({ channel, group, first, last, members, picked, moderators }
           inline
           variant="ghost"
           submit="Delete"
-          confirm={`Delete channel "${channel.title}" and everything in it?`}
+          confirm={{ title: `Delete channel "${channel.title}"?`, description: 'Everything in it is deleted too.' }}
           fields={{ op: 'deleteChannel', ...id }}
         />
       </div>

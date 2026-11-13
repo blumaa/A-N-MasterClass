@@ -25,7 +25,10 @@ export function YourData({ exportHref, deleteAction, spaceName, canDelete }: Pro
           fields={{}}
           submit="Delete my account"
           variant="danger"
-          confirm={`Delete your account at ${spaceName}? Your profile, posts, messages and progress here are removed for good. Purchases stay on record without your name.`}
+          confirm={{
+            title: `Delete your account at ${spaceName}?`,
+            description: 'Your profile, posts, messages and progress here are removed for good. Purchases stay on record without your name.',
+          }}
         />
       ) : (
         <Text variant="note">{OWNER_CANNOT_DELETE}</Text>

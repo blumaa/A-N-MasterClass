@@ -35,12 +35,55 @@ describe('ActionForm', () => {
     expect(within(region()).queryByText(/./)).toBeNull();
   });
 
-  it('does not submit when confirm is declined', async () => {
+  it('asks in an in-app dialog, never the browser confirm', async () => {
     const action = vi.fn(async () => null);
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    render(<ActionForm action={action} fields={{}} submit="Delete" confirm="Sure?" />);
+    const native = vi.spyOn(window, 'confirm');
+    render(<ActionForm action={action} fields={{}} submit="Delete" confirm={{ title: 'Delete this post?', description: 'Comments go too.' }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete this post?' });
+    expect(dialog).toHaveTextContent('Comments go too.');
+    expect(native).not.toHaveBeenCalled();
     expect(action).not.toHaveBeenCalled();
+  });
+
+  it('does not submit when the dialog is cancelled', async () => {
+    const action = vi.fn(async () => null);
+    render(<ActionForm action={action} fields={{}} submit="Delete" confirm={{ title: 'Sure?' }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Sure?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await vi.waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it('submits once with the hidden fields when confirmed, then closes', async () => {
+    const action = vi.fn(async (_prev: unknown, _form: FormData) => null);
+    render(<ActionForm action={action} fields={{ id: 'p1' }} submit="Delete" confirm={{ title: 'Sure?' }} done="Deleted" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Sure?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    expect(await within(region()).findByText('Deleted')).toBeInTheDocument();
+    await vi.waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(action.mock.calls[0][1].get('id')).toBe('p1');
+  });
+
+  it('keeps the dialog up with the reason when the action fails', async () => {
+    const action = vi.fn(async () => ({ message: 'Not allowed' }));
+    render(<ActionForm action={action} fields={{}} submit="Delete" confirm={{ title: 'Sure?' }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Sure?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Not allowed');
+  });
+
+  it('names the way out when the action itself is a cancel', async () => {
+    render(
+      <ActionForm action={vi.fn(async () => null)} fields={{}} submit="Cancel session" confirm={{ title: 'Cancel this session?', cancelLabel: 'Keep session' }} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel session' }));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByRole('button', { name: 'Keep session' })).toBeInTheDocument();
   });
 
   it('makes the submit of a stacked form with inputs the main button', () => {

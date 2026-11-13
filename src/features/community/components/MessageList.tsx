@@ -31,7 +31,7 @@ export function MessageList({ messages, action, report }: Props) {
                     inline
                     variant="ghost"
                     submit="Delete"
-                    confirm="Delete this message?"
+                    confirm={{ title: 'Delete this message?' }}
                     fields={{ op: 'deleteMessage', messageId: m.id }}
                   />
                 ) : null}

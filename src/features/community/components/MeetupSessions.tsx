@@ -59,7 +59,7 @@ function Session({ m, s }: { m: Meetup; s: StudioSession }) {
             inline
             variant="ghost"
             submit="Cancel event"
-            confirm="Cancel this event? RSVPs to the cancelled events are removed."
+            confirm={{ title: 'Cancel this event?', description: 'RSVPs to the cancelled events are removed.', cancelLabel: 'Keep event' }}
             fields={{ op: 'cancelOccurrence', ...ids }}
           >
             {m.repeat ? <ScopeSelect /> : null}

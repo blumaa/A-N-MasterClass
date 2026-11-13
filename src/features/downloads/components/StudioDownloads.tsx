@@ -29,7 +29,7 @@ function Download({ download: { product: p, files }, imageSrc }: { download: Stu
               </Field>
             </DownloadForm>
             <Text tone="muted" variant="note">{`${f.filePath} · ${fileType(f.filePath)} · ${formatBytes(f.sizeBytes)}`}</Text>
-            <DownloadForm inline variant="ghost" submit="Delete file" confirm={`Delete "${f.title}"?`} fields={{ op: 'deleteFile', fileId: f.id }} />
+            <DownloadForm inline variant="ghost" submit="Delete file" confirm={{ title: `Delete "${f.title}"?` }} fields={{ op: 'deleteFile', fileId: f.id }} />
           </li>
         ))}
       </ul>

@@ -111,7 +111,7 @@ export function SectionEditor({ pageId, section, choices, images = NO_IMAGES, fi
             <MoveButtons form={SiteForm} fields={{ op: 'moveSection', ...ref }} first={first} last={last} />
             <SiteForm inline variant="ghost" submit={section.hidden ? 'Show' : 'Hide'} fields={{ op: 'toggleSection', ...ref }} />
             <SiteForm inline variant="ghost" submit="Duplicate" fields={{ op: 'duplicateSection', ...ref }} />
-            <SiteForm inline variant="ghost" submit="Remove" confirm="Remove this section?" fields={{ op: 'removeSection', ...ref }} />
+            <SiteForm inline variant="ghost" submit="Remove" confirm={{ title: 'Remove this section?' }} fields={{ op: 'removeSection', ...ref }} />
           </div>
         </Stack>
       </CardBody>

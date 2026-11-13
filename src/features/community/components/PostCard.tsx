@@ -75,7 +75,7 @@ export function PostCard({ post, action, href, moderate, signedIn, report, after
                 inline
                 variant="ghost"
                 submit="Delete"
-                confirm="Delete this post and its comments?"
+                confirm={{ title: 'Delete this post?', description: 'Its comments are deleted too.' }}
                 fields={{ op: 'deletePost', ...id, ...(afterDelete ? { redirectTo: afterDelete } : {}) }}
               />
             ) : null}

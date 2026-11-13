@@ -19,11 +19,11 @@ describe('CertificateShare', () => {
   });
 
   it('shows the live link and asks before turning it off', () => {
-    const ask = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<CertificateShare program="shibari-101" url={URL} />);
     expect(screen.getByLabelText('Public certificate link')).toHaveValue(URL);
     expect(hidden('shared')).toBe('false');
     fireEvent.click(screen.getByRole('button', { name: 'Stop sharing' }));
-    expect(ask).toHaveBeenCalledWith(expect.stringMatching(/stops working/));
+    const dialog = screen.getByRole('alertdialog', { name: 'Stop sharing?' });
+    expect(dialog).toHaveTextContent(/stops working/);
   });
 });

@@ -66,7 +66,7 @@ function Settings({ page }: { page: Page }) {
           </>
         ) : null}
       </SiteForm>
-      <SiteForm variant="danger" submit="Delete page" confirm="Delete this page for good?" fields={{ op: 'deletePage', pageId: page.id }} />
+      <SiteForm variant="danger" submit="Delete page" confirm={{ title: 'Delete this page?', description: 'This cannot be undone.' }} fields={{ op: 'deletePage', pageId: page.id }} />
     </details>
   );
 }

@@ -38,7 +38,7 @@ function Change({ session: s, viewerZone, coachZone, cutoffHours, reschedule }: 
           <SlotSelect slots={reschedule.slots} timeZone={viewerZone} coachZone={coachZone} />
         </BookingForm>
       ) : null}
-      <BookingForm inline variant="danger" submit="Cancel session" confirm="Cancel this session?" fields={{ op: 'cancel', sessionId: s.id }} />
+      <BookingForm inline variant="danger" submit="Cancel session" confirm={{ title: 'Cancel this session?', cancelLabel: 'Keep session' }} fields={{ op: 'cancel', sessionId: s.id }} />
     </Stack>
   );
 }

@@ -69,7 +69,7 @@ export function PartEditor({ programId, part, first, last, questions = [] }: Pro
             variant="ghost"
             fields={{ op: 'deletePart', partId: part.id }}
             submit="Delete block"
-            confirm="Delete this block?"
+            confirm={{ title: 'Delete this block?' }}
           />
         </Stack>
       </CardBody>

@@ -82,7 +82,7 @@ export function OfferEditor({ detail }: { detail: StudioOfferDetail }) {
         ) : (
           <OfferForm fields={{ op: 'publish', ...id }} submit="Publish" variant="primary" />
         )}
-        <OfferForm fields={{ op: 'delete', ...id }} submit="Delete offer" variant="danger" confirm={`Delete “${offer.title}”?`} />
+        <OfferForm fields={{ op: 'delete', ...id }} submit="Delete offer" variant="danger" confirm={{ title: `Delete “${offer.title}”?` }} />
       </div>
     </Stack>
   );

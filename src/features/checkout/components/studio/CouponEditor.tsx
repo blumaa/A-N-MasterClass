@@ -70,7 +70,7 @@ export function CouponEditor({ detail, now, locale }: { detail: StudioCouponDeta
         </Heading>
         <Text variant="note">A used coupon cannot be deleted. Turn it off instead.</Text>
         <div className={styles.actions}>
-          <CouponForm fields={{ op: 'delete', ...id }} submit="Delete coupon" variant="danger" confirm={`Delete “${coupon.code}”?`} />
+          <CouponForm fields={{ op: 'delete', ...id }} submit="Delete coupon" variant="danger" confirm={{ title: `Delete “${coupon.code}”?` }} />
         </div>
       </Stack>
     </Stack>

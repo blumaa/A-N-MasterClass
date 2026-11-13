@@ -26,7 +26,7 @@ function GroupRow({ group }: { group: AccessGroup }) {
           inline
           variant="ghost"
           submit="Delete"
-          confirm={`Delete group "${group.title}"?`}
+          confirm={{ title: `Delete group "${group.title}"?` }}
           fields={{ op: 'deleteGroup', ...id }}
         />
       )}

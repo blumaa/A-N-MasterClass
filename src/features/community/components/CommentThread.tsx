@@ -44,7 +44,7 @@ function Comment({ comment, action, moderate, canComment, target, report }: Item
           <ActionForm action={action} inline variant="ghost" submit={comment.hidden ? 'Unhide' : 'Hide'} fields={{ op: 'hideComment', ...id, hidden: String(!comment.hidden) }} />
         ) : null}
         {comment.canDelete ? (
-          <ActionForm action={action} inline variant="ghost" submit="Delete" confirm="Delete this comment?" fields={{ op: 'deleteComment', ...id }} />
+          <ActionForm action={action} inline variant="ghost" submit="Delete" confirm={{ title: 'Delete this comment?' }} fields={{ op: 'deleteComment', ...id }} />
         ) : null}
         {/* Only comments on posts are reportable (lesson comments have no channel). */}
         {report && target.type === 'post' && canComment && !comment.mine ? (

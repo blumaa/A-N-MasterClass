@@ -45,7 +45,7 @@ function EntryBox({ challenge, action, signedIn }: { challenge: ChallengeItem; a
             <Text variant="label">Your entry</Text>
             <Text>{challenge.mine.body}</Text>
             {challenge.state === 'open' ? (
-              <ActionForm action={action} fields={{ op: 'withdraw', ...id }} submit="Withdraw entry" variant="ghost" confirm="Withdraw your entry?" />
+              <ActionForm action={action} fields={{ op: 'withdraw', ...id }} submit="Withdraw entry" variant="ghost" confirm={{ title: 'Withdraw your entry?' }} />
             ) : null}
           </Stack>
         </CardBody>

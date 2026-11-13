@@ -93,7 +93,7 @@ export function ModuleEditor({ programSlug, mod, earlierSteps, earlierQuizzes, f
               variant="ghost"
               fields={{ op: 'deleteModule', moduleId: mod.id }}
               submit="Delete module"
-              confirm={`Delete "${mod.title}" with all its lessons and student progress?`}
+              confirm={{ title: `Delete "${mod.title}"?`, description: 'All its lessons and student progress are deleted too.' }}
             />
           </div>
         </Stack>

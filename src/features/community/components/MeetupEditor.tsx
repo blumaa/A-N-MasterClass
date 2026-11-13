@@ -59,7 +59,7 @@ export function MeetupEditor({ communityId, groups, channels, meetups }: Props) 
               inline
               variant="ghost"
               submit="Delete"
-              confirm={`Delete meetup "${m.title}"?`}
+              confirm={{ title: `Delete meetup "${m.title}"?` }}
               fields={{ op: 'deleteMeetup', meetupId: m.id }}
             />
           </li>

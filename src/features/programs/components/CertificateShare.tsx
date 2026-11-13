@@ -28,7 +28,7 @@ export function CertificateShare({ program, url }: Props) {
         fields={{ program, shared: 'false' }}
         submit="Stop sharing"
         done="Share link off"
-        confirm="The link stops working for everyone who has it. Stop sharing?"
+        confirm={{ title: 'Stop sharing?', description: 'The link stops working for everyone who has it.', tone: 'warning' }}
         inline
       />
     </Stack>

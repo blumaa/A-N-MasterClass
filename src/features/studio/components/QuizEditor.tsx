@@ -56,7 +56,7 @@ export function QuizEditor({ partId, questions }: { partId: string; questions: E
                 variant="ghost"
                 fields={{ op: 'deleteQuestion', questionId: q.id }}
                 submit="Delete question"
-                confirm="Delete this question?"
+                confirm={{ title: 'Delete this question?' }}
               />
             </Stack>
           </CardBody>

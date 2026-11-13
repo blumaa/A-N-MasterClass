@@ -6,11 +6,10 @@ const action = vi.fn(async () => null);
 
 describe('YourData', () => {
   it('links the export and asks before deleting', () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<YourData exportHref="/account/data.json" deleteAction={action} spaceName="Alexander" canDelete />);
     expect(screen.getByRole('link', { name: 'Download my data' })).toHaveAttribute('href', '/account/data.json');
     fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }));
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Alexander'));
+    expect(screen.getByRole('alertdialog', { name: 'Delete your account at Alexander?' })).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
   });
 

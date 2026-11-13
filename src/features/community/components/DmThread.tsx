@@ -21,7 +21,7 @@ export function DmThread({ communityId, page, action, typing = null }: Props) {
           inline
           variant="ghost"
           submit={blocking ? 'Unblock' : 'Block'}
-          confirm={blocking ? undefined : `Block ${other.name}? Neither of you can send messages until you unblock.`}
+          confirm={blocking ? undefined : { title: `Block ${other.name}?`, description: 'Neither of you can send messages until you unblock.', tone: 'warning' }}
           fields={{ op: 'block', communityId, profileId: other.id, on: blocking ? 'false' : 'true' }}
         />
       </Inline>
