@@ -45,8 +45,9 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
 
-      # Full stack: policies need auth schema. pnpm exec = lockfile-pinned CLI.
-      - run: pnpm exec supabase start
+      # Only what the SQL suites need: db, auth (auth schema), storage-api (storage schema),
+      # realtime (realtime schema). Fewer image pulls = no registry rate limit. pnpm exec = lockfile-pinned CLI.
+      - run: pnpm exec supabase start -x imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       # Replay every migration into an empty DB.
       - run: pnpm exec supabase db reset
 
