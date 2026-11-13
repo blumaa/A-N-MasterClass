@@ -6,3 +6,5 @@ export const stepHref = (program: string, step: string): string => `/programs/${
 export const partFileHref = (program: string, step: string, part: string): string => `${stepHref(program, step)}/files/${part}`;
 /** Completion certificate PDF: route checks it was earned, then draws it (G26). */
 export const certificateHref = (program: string): string => `${programHref(program)}/certificate`;
+/** Public share page of a certificate; the token is the member's revocable link (G26). */
+export const certificateShareHref = (token: string): string => `/certificates/${token}`;

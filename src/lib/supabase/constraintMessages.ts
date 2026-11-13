@@ -5,6 +5,7 @@ import {
   ALREADY_MEMBER,
   ALREADY_REPORTED,
   ATTACHMENT_INCOMPLETE,
+  CERTIFICATE_NEEDS_NAME,
   CERTIFICATE_NOT_EARNED,
   CERTIFICATES_OFF,
   CERTIFICATES_PROGRAM_ONLY,
@@ -127,6 +128,8 @@ const BY_NAME: Readonly<Record<string, string>> = {
   // Raised by issue_certificate.
   certificates_off: CERTIFICATES_OFF,
   certificate_not_earned: CERTIFICATE_NOT_EARNED,
+  // Raised by set_certificate_sharing.
+  certificate_needs_name: CERTIFICATE_NEEDS_NAME,
   // Coupons, bumps, upsells (G23). The order FKs fire on delete: a used coupon / sold bump stays.
   offers_bump_space: OFFER_LINK_SPACE,
   offers_upsell_space: OFFER_LINK_SPACE,

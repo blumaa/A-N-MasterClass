@@ -1,0 +1,20 @@
+/* Framed card in the space theme; the frame uses the brand accent so it follows any brand colour. */
+.card {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--mds-space-10, 2.5rem) var(--mds-space-6, 1.5rem);
+  text-align: center;
+  background: var(--mds-surface-card);
+  border: 2px solid var(--mds-accent);
+  outline: 1px solid var(--mds-border-subtle);
+  outline-offset: -0.75rem;
+  border-radius: var(--mds-radius-card, 0.5rem);
+}
+
+.logo {
+  max-width: 100%;
+  height: auto;
+  max-height: 4.5rem;
+  width: auto;
+  object-fit: contain;
+}

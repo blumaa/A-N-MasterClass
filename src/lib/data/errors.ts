@@ -41,6 +41,7 @@ export const QUIZ_PASS_PERCENT = 'pass mark must be 1 to 100';
 export const CERTIFICATES_OFF = 'certificates are off for this program';
 export const CERTIFICATE_NOT_EARNED = 'finish every step to earn the certificate';
 export const CERTIFICATES_PROGRAM_ONLY = 'only programs give certificates';
+export const CERTIFICATE_NEEDS_NAME = 'add a display name to your profile before sharing';
 
 // Coupons, bumps, upsells (G23).
 export const COUPON_CODE = 'code: 3 to 32 letters, digits, - or _';

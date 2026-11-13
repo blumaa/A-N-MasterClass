@@ -1,7 +1,10 @@
 // Certificate Supabase repo against the linked project. issue_certificate reads auth.uid(), so the
-// member runs signed in (RLS: 200-certificates.test.sql).
+// member runs signed in (RLS: 200-certificates.test.sql). Share links read as anon (320-certificate-share.test.sql).
+import { createClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CERTIFICATE_NOT_EARNED, CERTIFICATES_OFF, CERTIFICATES_PROGRAM_ONLY } from '@/lib/data/errors';
+import { supabasePublic } from '@/config/supabase';
+import type { Database } from '@/lib/db/database.types';
+import { CERTIFICATE_NEEDS_NAME, CERTIFICATE_NOT_EARNED, CERTIFICATES_OFF, CERTIFICATES_PROGRAM_ONLY } from '@/lib/data/errors';
 import { createCertificateRepo, type CertificateRepo } from './certificate';
 import { createCoreRepo, type CoreRepo } from './core';
 import { contractEnabled, createContractSpace, type ContractSpace } from './testing/contractSpace';
@@ -49,5 +52,26 @@ describe.skipIf(!contractEnabled)('certificate repo (Supabase contract)', () => 
     expect(cert).toMatchObject({ programId: program, profileId: student });
     expect(cert.issuedAt).toBeInstanceOf(Date);
     expect(await member.issueCertificate(program, student)).toEqual(cert);
+  });
+
+  it('shares through a random token that anon reads, and revokes it', async () => {
+    const { url, publishableKey } = supabasePublic();
+    const anonClient = createClient<Database>(url, publishableKey, { auth: { persistSession: false } });
+    const anon = createCertificateRepo({ db: async () => anonClient, admin: () => fx.admin });
+    const cert = (await member.certificate(program, student))!;
+    expect(cert.shareToken).toBeNull();
+    await expect(member.setCertificateSharing(program, student, true)).rejects.toThrow(CERTIFICATE_NEEDS_NAME);
+    await core.ensureSpaceProfile({ spaceId: fx.spaceId, profileId: student, displayName: 'Ada' });
+    const token = (await member.setCertificateSharing(program, student, true)).shareToken!;
+    expect(token).toMatch(/^[0-9a-f]{32}$/);
+    expect(await anon.sharedCertificate(fx.spaceId, token)).toEqual({
+      memberName: 'Ada',
+      programTitle: 'C',
+      issuedAt: cert.issuedAt,
+      serial: cert.id,
+    });
+    expect(await anon.certificate(program, student)).toBeNull();
+    expect((await member.setCertificateSharing(program, student, false)).shareToken).toBeNull();
+    expect(await anon.sharedCertificate(fx.spaceId, token)).toBeNull();
   });
 });

@@ -231,18 +231,21 @@ export type Database = {
           issued_at: string
           profile_id: string
           program_id: string
+          share_token: string | null
         }
         Insert: {
           id?: string
           issued_at?: string
           profile_id: string
           program_id: string
+          share_token?: string | null
         }
         Update: {
           id?: string
           issued_at?: string
           profile_id?: string
           program_id?: string
+          share_token?: string | null
         }
         Relationships: [
           {
@@ -3464,6 +3467,7 @@ export type Database = {
           issued_at: string
           profile_id: string
           program_id: string
+          share_token: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3607,6 +3611,22 @@ export type Database = {
         Returns: string
       }
       sees_leaderboard: { Args: { target_community: string }; Returns: boolean }
+      set_certificate_sharing: {
+        Args: { shared: boolean; target_program: string }
+        Returns: {
+          id: string
+          issued_at: string
+          profile_id: string
+          program_id: string
+          share_token: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "certificates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_order_status: {
         Args: { new_status: string; target_order: string }
         Returns: {
@@ -3642,6 +3662,15 @@ export type Database = {
       set_session_event: {
         Args: { event_id: string; target_session: string }
         Returns: undefined
+      }
+      shared_certificate: {
+        Args: { target_space: string; token: string }
+        Returns: {
+          issued_at: string
+          member_name: string
+          program_title: string
+          serial: string
+        }[]
       }
       space_product_ids: { Args: { target_space: string }; Returns: string[] }
       space_role: { Args: { target_space: string }; Returns: string }

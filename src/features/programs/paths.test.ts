@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { certificateHref, partFileHref, programHref, stepHref } from './paths';
+import { certificateHref, certificateShareHref, partFileHref, programHref, stepHref } from './paths';
 
 it('builds host-relative program and step paths', () => {
   expect(programHref('shibari-101')).toBe('/programs/shibari-101');
@@ -12,4 +12,8 @@ it('builds the signed download path of a step part', () => {
 
 it('builds the certificate download path of a program', () => {
   expect(certificateHref('shibari-101')).toBe('/programs/shibari-101/certificate');
+});
+
+it('builds the public share path of a certificate', () => {
+  expect(certificateShareHref('ab'.repeat(16))).toBe(`/certificates/${'ab'.repeat(16)}`);
 });

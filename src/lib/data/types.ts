@@ -131,6 +131,15 @@ export type Certificate = {
   programId: string;
   profileId: string;
   issuedAt: Date;
+  /** Public share link token (32 hex); null while not shared. */
+  shareToken: string | null;
+};
+/** What the public share page shows (shared_certificate). */
+export type SharedCertificate = {
+  memberName: string;
+  programTitle: string;
+  issuedAt: Date;
+  serial: string;
 };
 
 export type QuizAttempt = {

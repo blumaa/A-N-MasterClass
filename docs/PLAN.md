@@ -342,7 +342,8 @@ Launch 6 item 11 as built:
 - Quiz lock: `modules.unlock_quiz_part_id`, checked in `can_read_step`, the outline and step access. Any passed attempt opens the module for good.
 - Certificate: Studio toggle per program (`products.certificates`, programs only). `issue_certificate` gives one row per member and program once every published step of every published module is done (grant needed; editors without a grant get none). Issued certificates stay valid when content is added later.
 - PDF drawn on the server per download with pdf-lib (pure JS, MIT): A4 landscape, program theme else space brand else default colours, space name as wordmark, member display name (else email), program title, issue date, certificate id as serial. Route `programs/[program]/certificate` (404 unless earned). Link "Download certificate" in the program outline at 100%.
-- Not yet: certificate email, public share page, logo or background image (no logo upload yet), custom fonts (standard Helvetica; characters outside WinAnsi print as "?"), assessments, quiz question images, answer reveal.
+- Logo, brand fonts and public share page: see "Group 2 certificates as built".
+- Not yet: certificate email, background image, expiration, assessments, quiz question images, answer reveal.
 
 Launch 6 item 12 as built:
 - G0: Kajabi coupons (code, percent or amount, limit, expiry, per offer), order bumps (extra offer ticked at checkout), upsells (offer after purchase). https://help.kajabi.com/articles/sales/coupons/how-to-create-a-coupon, https://help.kajabi.com/articles/sales/coupons/why-is-my-coupon-not-working, https://help.kajabi.com/articles/sales/checkout/how-to-add-an-order-bump-to-your-offer, https://help.kajabi.com/en/articles/17174752-upsells-overview, https://help.kajabi.com/en/articles/17174683-are-upsells-and-order-bumps-processed-as-one-transaction (checked 2026-11-12). PayPal line items + discount: https://developer.paypal.com/docs/api/orders/v2/#orders_create.
@@ -375,7 +376,7 @@ UI pass 1 (site sections) as built:
 - New kinds: imageText (side left/right), bio (portrait + signature), cards (photo, title, link), highlights (chips). Hero layout overlay (full-bleed photo, scrim) or split. Every section has tone plain / soft / dark. `*word*` = accent italic.
 - Bands are full-bleed; colours come from MDS tokens only, so any brand colour works.
 - Images through next/image (`images.remotePatterns` from the Supabase URL). Vercel image optimization is billed by usage on Pro; check pricing before launch, or set `unoptimized`.
-- Not yet: logo upload.
+- Logo upload: Studio Branding (`space_branding.logo_path`), shown in the header and on certificates.
 
 UI pass 2 (demo content, visitor reads) as built:
 - Demo site: `node --env-file=.env.local scripts/seed-demo-site.ts [slug]` (default `fiddle`). Refuses spaces without `is_test`. Seeds CC0 Wikimedia photos, one offer, home (every section kind and tone), about (split hero), nav. Re-runnable.
@@ -433,6 +434,19 @@ Group 2 push as built:
 - Report push: `reportAction` moved to `app/[space]/reportActions.ts` with `pushingRepo`; components take it as a `report` prop (`FormAction`). No `report` prop = no Report button.
 - G0: Kajabi has per-feature, per-channel member notification preferences, all on by default, with admin overrides and channel mute (https://help.kajabi.com/en/articles/17175826-community-settings-notifications). Built: member per-type switches, default on. Kajabi's exact type list and wording not matched; follows KSG types.
 - Not built: Kajabi admin community-level overrides, per-channel mute, email channel; mark-read on tap (payload has no notification id); badge count; KSG tag/renotify; `push_mutes` not in the member data export (same as `push_subscriptions`).
+
+Group 2 certificates as built:
+- G0: Kajabi certificates have a logo, background image, expiration and a share URL for social media (https://help.kajabi.com/en/articles/17174484, checked 2026-11-12). Fonts, indexing and revoking a link are not described. Built: logo, brand fonts, share page. Not built: background image, expiration.
+- Migration `20261118000000_certificate_share.sql` + `supabase/tests/320-certificate-share.test.sql` (16 asserts), applied to ksb 2026-11-13.
+- `certificates.share_token`: null = not shared. 32 hex chars (128-bit random), not the serial, unique, format check.
+- `set_certificate_sharing(program, shared)` (security definer, member's own row): on keeps the token, off sets null, on again makes a new one, so the old link dies. Needs certificates on (`certificates_off`) and a space display name (`certificate_needs_name`), so an email is never public.
+- `shared_certificate(space, token)` (security definer, anon allowed): returns member name, program title, issue date, serial only. Empty when the token is wrong, belongs to another space, or certificates are off for the program. Anon still reads no `certificates` rows (RLS unchanged).
+- Repo: `certificate`, `setCertificateSharing`, `sharedCertificate` (fake + Supabase, contract test).
+- Decision: sharing is off until the member turns it on (Kajabi shows the URL always). Member can stop sharing; the owner turning certificates off kills every link of that program.
+- Program page: "Share certificate" button at 100%; when shared, read-only link field and "Stop sharing" (confirm). `shareCertificateAction` issues the certificate if needed. Toasts "Share link on" / "Share link off".
+- Public page `/certificates/[token]` (space host, server rendered, space theme, not the program colour override): logo (else space name), name, program, date, serial. `robots: noindex, nofollow`; Open Graph title, description, site name, logo image. `certificates` added to `RESERVED_PAGE_SLUGS`.
+- PDF: logo from `space_branding.logo_path` (PNG or JPEG; WebP falls back to the space name; a failed fetch is an error, not hidden), fetched by `siteImageBytes` (fake mode: no logo). Fonts from the brand catalog (`src/lib/fonts/catalog.ts`): heading bold, body regular, TTFs in `src/lib/certificates/fonts` (SIL OFL), subset into the PDF with `@pdf-lib/fontkit` (new dependency: pdf-lib cannot embed custom fonts without it). No brand font: Lora + Inter. Glyphs a font lacks print as "?". `outputFileTracingIncludes` ships the TTFs with the route.
+- Not built: certificate email, background image, expiration, WebP logo in the PDF, share page preview image of the certificate itself (OG image = logo).
 
 Waiting on outside setup: Storage cleanup cron (`CRON_SECRET` + schedule, Group 2), transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

@@ -55,6 +55,7 @@ import type {
   PushMute,
   PushSubscription,
   Certificate,
+  SharedCertificate,
   QuizAttempt,
   QuizQuestion,
   Reaction,
@@ -307,6 +308,16 @@ export interface Repo {
    * module done (CERTIFICATE_NOT_EARNED). Supabase: profileId is the signed-in user.
    */
   issueCertificate(programId: string, profileId: string): Promise<Certificate>;
+  /** The member's certificate, null before it is issued. */
+  certificate(programId: string, profileId: string): Promise<Certificate | null>;
+  /**
+   * Share link on (random token, kept while on) or off (token cleared, link dead). Needs an issued
+   * certificate, certificates on (CERTIFICATES_OFF) and a space display name to share
+   * (CERTIFICATE_NEEDS_NAME). Supabase: profileId is the signed-in user.
+   */
+  setCertificateSharing(programId: string, profileId: string, shared: boolean): Promise<Certificate>;
+  /** Public read behind a share token in this space; null when unknown, revoked or certificates off. */
+  sharedCertificate(spaceId: string, token: string): Promise<SharedCertificate | null>;
 
   // site (pages ordered by title; versions newest first)
   pages(spaceId: string): Promise<Page[]>;

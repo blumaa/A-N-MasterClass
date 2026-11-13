@@ -2,11 +2,12 @@
 import { programCertificate } from '@/features/programs/api/certificate';
 import { currentViewer } from '@/lib/auth/currentViewer';
 import { getRepo } from '@/lib/data/getRepo';
+import { siteImageBytes } from '@/lib/storage/siteImageBytes';
 
 export async function GET(_req: Request, ctx: RouteContext<'/[space]/programs/[program]/certificate'>) {
   const { space, program } = await ctx.params;
   const viewer = await currentViewer(space);
-  const file = viewer && (await programCertificate(getRepo(), viewer, program, new Date()));
+  const file = viewer && (await programCertificate(getRepo(), viewer, program, new Date(), siteImageBytes));
   if (!file) return new Response('Not found', { status: 404 });
   return new Response(file.pdf, {
     headers: {
