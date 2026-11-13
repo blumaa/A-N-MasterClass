@@ -3,19 +3,21 @@
 import type { Viewer } from '@/lib/auth/viewer';
 import type { Repo } from '@/lib/data/repo';
 import type { Attachment, Product } from '@/lib/data/types';
+import type { PhotoSize } from '../paths';
 import { channelScope } from './access';
 import { threadScope } from './chat';
 import { seesPost } from './visibility';
 
 const inCommunity = (community: Product | null, slug: string): boolean => community?.slug === slug;
 
-/** Path of a photo of a post the viewer sees (seesPost). */
+/** Path of a photo of a post the viewer sees (seesPost). Thumb size: its thumbnail, else the photo. */
 export async function postPhotoPath(
   repo: Repo,
   viewer: Viewer,
   slug: string,
   postId: string,
   photoId: string,
+  size: PhotoSize,
   now: Date,
 ): Promise<string | null> {
   const post = await repo.post(postId);
@@ -23,7 +25,8 @@ export async function postPhotoPath(
   if (!post || !scope?.rules.read || !inCommunity(scope.community, slug)) return null;
   if (!seesPost(scope.rules.moderatePosts, post, viewer.profile?.id ?? null)) return null;
   const photo = (await repo.postPhotos([postId])).find((p) => p.id === photoId);
-  return photo?.path ?? null;
+  if (!photo) return null;
+  return size === 'thumb' ? (photo.thumbPath ?? photo.path) : photo.path;
 }
 
 /** File of a chat line the viewer reads: channel readers, or the two people in a DM thread. */

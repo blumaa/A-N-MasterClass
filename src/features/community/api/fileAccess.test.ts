@@ -19,24 +19,32 @@ beforeEach(async () => {
   repo = createFakeRepo(seedDb(NOW));
   slug = (await repo.product(SEED_IDS.community))!.slug;
   postId = (await repo.createPost({ channelId: SEED_IDS.general, authorId: SEED_IDS.student, body: 'hi', createdAt: NOW })).id;
-  await repo.addPostPhotos(postId, [`${FOLDER}/${SEED_IDS.general}/u-a.jpg`]);
+  await repo.addPostPhotos(postId, [{ path: `${FOLDER}/${SEED_IDS.general}/u-a.jpg`, thumbPath: `${FOLDER}/${SEED_IDS.general}/u-t.jpg` }]);
   photoId = (await repo.postPhotos([postId]))[0]!.id;
 });
 
 describe('postPhotoPath', () => {
   it('readers of the post get the path', async () => {
-    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), slug, postId, photoId, NOW)).toBe(`${FOLDER}/${SEED_IDS.general}/u-a.jpg`);
+    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), slug, postId, photoId, 'full', NOW)).toBe(`${FOLDER}/${SEED_IDS.general}/u-a.jpg`);
+  });
+
+  it('the thumb size gets the thumbnail, or the photo when it has none', async () => {
+    const student = await viewer(SEED_IDS.student);
+    expect(await postPhotoPath(repo, student, slug, postId, photoId, 'thumb', NOW)).toBe(`${FOLDER}/${SEED_IDS.general}/u-t.jpg`);
+    const [gif] = await repo.addPostPhotos(postId, [{ path: `${FOLDER}/${SEED_IDS.general}/v-a.gif`, thumbPath: null }]);
+    expect(await postPhotoPath(repo, student, slug, postId, gif!.id, 'thumb', NOW)).toBe(`${FOLDER}/${SEED_IDS.general}/v-a.gif`);
+    expect(await postPhotoPath(repo, await viewer(null), slug, postId, photoId, 'thumb', NOW)).toBeNull();
   });
 
   it('null for outsiders, other spaces, a wrong slug or post, and hidden posts for non-moderators', async () => {
-    expect(await postPhotoPath(repo, await viewer(null), slug, postId, photoId, NOW)).toBeNull();
-    expect(await postPhotoPath(repo, await viewer(SEED_IDS.assistant), slug, postId, photoId, NOW)).toBeNull();
-    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student, 'natasha'), slug, postId, photoId, NOW)).toBeNull();
-    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), 'other', postId, photoId, NOW)).toBeNull();
-    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), slug, 'nope', photoId, NOW)).toBeNull();
+    expect(await postPhotoPath(repo, await viewer(null), slug, postId, photoId, 'full', NOW)).toBeNull();
+    expect(await postPhotoPath(repo, await viewer(SEED_IDS.assistant), slug, postId, photoId, 'full', NOW)).toBeNull();
+    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student, 'natasha'), slug, postId, photoId, 'full', NOW)).toBeNull();
+    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), 'other', postId, photoId, 'full', NOW)).toBeNull();
+    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), slug, 'nope', photoId, 'full', NOW)).toBeNull();
     await repo.updatePost(postId, { hiddenAt: NOW });
-    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), slug, postId, photoId, NOW)).toBeNull();
-    expect(await postPhotoPath(repo, await viewer(SEED_IDS.alexanderOwner), slug, postId, photoId, NOW)).not.toBeNull();
+    expect(await postPhotoPath(repo, await viewer(SEED_IDS.student), slug, postId, photoId, 'full', NOW)).toBeNull();
+    expect(await postPhotoPath(repo, await viewer(SEED_IDS.alexanderOwner), slug, postId, photoId, 'full', NOW)).not.toBeNull();
   });
 });
 

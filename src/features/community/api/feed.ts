@@ -38,8 +38,8 @@ export type PostItem = {
   canDelete: boolean;
   /** Written by the viewer (others may report it). */
   mine: boolean;
-  /** In order; `href` is the signed route. */
-  photos: { id: string; href: string }[];
+  /** In order; `href` is the signed route, `thumbHref` its small copy for the grid. */
+  photos: { id: string; href: string; thumbHref: string }[];
 };
 
 export type DirectoryEntry = { id: string; name: string; staff: boolean };
@@ -117,7 +117,11 @@ export async function postItems(
     mine: p.authorId === me,
     photos: photos
       .filter((ph) => ph.postId === p.id)
-      .map((ph) => ({ id: ph.id, href: postPhotoHref(community.slug, p.id, ph.id) })),
+      .map((ph) => ({
+        id: ph.id,
+        href: postPhotoHref(community.slug, p.id, ph.id),
+        thumbHref: postPhotoHref(community.slug, p.id, ph.id, 'thumb'),
+      })),
   }));
 }
 

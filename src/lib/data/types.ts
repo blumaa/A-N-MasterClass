@@ -662,7 +662,9 @@ export type ModerationLogEntry = {
 };
 
 /** A photo on a feed post, in the `community` bucket (post's channel folder). Max 10 per post. */
-export type PostPhoto = { id: string; postId: string; path: string; position: number };
+export type PostPhoto = { id: string; postId: string; path: string; thumbPath: string | null; position: number };
+/** Photo being added: the photo and its small copy for the grid (null for GIFs). Same folder. */
+export type NewPostPhoto = { path: string; thumbPath: string | null };
 
 /** Comments hang off a feed post or a program step (lesson comments). */
 export const COMMENT_TARGETS = ['post', 'step'] as const;

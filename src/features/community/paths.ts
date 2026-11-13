@@ -5,8 +5,11 @@ export const communityHref = (community: string): string => `/community/${commun
 export const channelHref = (community: string, channel: string): string => `/community/${community}/channels/${channel}`;
 export const postHref = (community: string, post: string): string => `/community/${community}/posts/${post}`;
 /** Signed-file routes: check read access, then redirect to a short-lived URL. */
-export const postPhotoHref = (community: string, post: string, photo: string): string =>
-  `${postHref(community, post)}/photos/${photo}`;
+/** Post photo sizes: `thumb` is the small copy for the feed grid (the route falls back to the photo). */
+export type PhotoSize = 'full' | 'thumb';
+export const photoSize = (value: string | null): PhotoSize => (value === 'thumb' ? 'thumb' : 'full');
+export const postPhotoHref = (community: string, post: string, photo: string, size: PhotoSize = 'full'): string =>
+  `${postHref(community, post)}/photos/${photo}${size === 'thumb' ? '?size=thumb' : ''}`;
 export const attachmentHref = (community: string, message: string): string => `/community/${community}/attachments/${message}`;
 export const reportsHref = (community: string): string => `/community/${community}/reports`;
 /** A review feed tab on a reports page (member side or Studio); reports is the default. */

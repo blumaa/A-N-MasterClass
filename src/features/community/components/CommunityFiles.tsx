@@ -1,7 +1,8 @@
 'use client';
 // Files on a post or chat line (G0, Kajabi: photos in posts, a file in chat). Each pick gets an
 // upload ticket, goes straight to Storage, then lands in hidden fields for the surrounding form.
-// Photos are resized in the browser first. The picker has no name, so no bytes ride the action.
+// Photos are resized in the browser first; their thumbnail (none for GIFs) takes a second ticket.
+// The picker has no name, so no bytes ride the action.
 import { useEffect, useEffectEvent, useState } from 'react';
 import { FileDrop, Text, UploadProgress, type UploadStatus } from '@/components/ui/mds';
 import { formatBytes } from '@/lib/format/bytes';
@@ -23,7 +24,7 @@ export type CommunityFilesProps = {
   onChange: (state: FilesState) => void;
 };
 
-type Stored = { path: string; name: string; type: string; size: number };
+type Stored = { path: string; thumbPath: string | null; name: string; type: string; size: number };
 type Upload = { key: number; file: File; status: UploadStatus; percent: number; error?: string; stored?: Stored };
 
 const LABELS = {
@@ -52,16 +53,23 @@ export function CommunityFiles({ kind, target, id, max, onChange }: CommunityFil
   const report = useEffectEvent(onChange);
   useEffect(() => report({ ready, busy }), [ready, busy]);
 
+  /** Ticket, then PUT. Throws the refusal so the upload shows it. */
+  async function upload(file: File, onProgress: (percent: number) => void): Promise<string> {
+    const ticket = await communityUploadAction({ target, id, fileName: file.name, type: file.type, sizeBytes: file.size });
+    if (!ticket.ok) throw new Error(ticket.message);
+    await putFile(ticket.uploadUrl, file, onProgress);
+    return ticket.path;
+  }
+
   async function send(key: number, picked: File) {
     const update = (next: Partial<Upload>) => setUploads((all) => all.map((u) => (u.key === key ? { ...u, ...next } : u)));
     try {
       update({ status: kind === 'photo' ? 'processing' : 'uploading', percent: 0, error: undefined });
-      const file = kind === 'photo' ? await preparePhoto(picked) : picked;
+      const { photo: file, thumb } = kind === 'photo' ? await preparePhoto(picked) : { photo: picked, thumb: null };
       update({ status: 'uploading' });
-      const ticket = await communityUploadAction({ target, id, fileName: file.name, type: file.type, sizeBytes: file.size });
-      if (!ticket.ok) return update({ status: 'error', error: ticket.message });
-      await putFile(ticket.uploadUrl, file, (percent) => update({ percent }));
-      update({ status: 'done', percent: 100, stored: { path: ticket.path, name: file.name, type: file.type, size: file.size } });
+      const path = await upload(file, (percent) => update({ percent }));
+      const thumbPath = thumb ? await upload(thumb, () => {}) : null;
+      update({ status: 'done', percent: 100, stored: { path, thumbPath, name: file.name, type: file.type, size: file.size } });
     } catch (error) {
       update({ status: 'error', error: message(error) });
     }
@@ -80,7 +88,10 @@ export function CommunityFiles({ kind, target, id, max, onChange }: CommunityFil
     <div className={styles.files}>
       {uploads.map(({ key, stored }) =>
         !stored ? null : kind === 'photo' ? (
-          <input key={key} type="hidden" name="photo" value={stored.path} />
+          <span key={key}>
+            <input type="hidden" name="photo" value={stored.path} />
+            <input type="hidden" name="photoThumb" value={stored.thumbPath ?? ''} />
+          </span>
         ) : (
           <span key={key}>
             <input type="hidden" name="attachmentPath" value={stored.path} />

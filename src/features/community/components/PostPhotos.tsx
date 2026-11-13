@@ -1,4 +1,4 @@
-// Photos of a post, in a grid. Each opens full size; the signed route checks read access.
+// Photos of a post, in a grid of thumbnails. Each opens full size; the signed route checks read access.
 // `remove`: author or moderator, on the post page.
 import { ActionForm, type FormAction } from '@/components/ActionForm/ActionForm';
 import type { PostItem } from '../api/feed';
@@ -15,7 +15,7 @@ export function PostPhotos({ postId, photos, action, remove }: Props) {
           <a href={p.href} target="_blank" rel="noreferrer">
             {/* Signed redirect to private storage: no next/image optimiser in between. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.href} alt={`Photo ${i + 1} of ${photos.length}`} loading="lazy" className={styles.photoImage} />
+            <img src={p.thumbHref} alt={`Photo ${i + 1} of ${photos.length}`} loading="lazy" className={styles.photoImage} />
           </a>
           {remove ? (
             <ActionForm

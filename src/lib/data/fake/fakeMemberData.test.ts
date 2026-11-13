@@ -14,7 +14,7 @@ beforeEach(() => {
 
 const addPost = async () => {
   const post = await repo.createPost({ channelId: general, authorId: student, body: 'mine', createdAt: new Date() });
-  db.postPhotos.push({ id: 'ph-1', postId: post.id, path: `photo/${post.id}.png`, position: 0 });
+  db.postPhotos.push({ id: 'ph-1', postId: post.id, path: `photo/${post.id}.png`, thumbPath: null, position: 0 });
   return post;
 };
 

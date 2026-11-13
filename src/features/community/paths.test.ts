@@ -14,6 +14,7 @@ import {
   reviewTabHref,
   notificationsHref,
   postHref,
+  photoSize,
   postPhotoHref,
   attachmentHref,
   studioCommunitiesHref,
@@ -52,5 +53,7 @@ it('builds challenge, meetup and leaderboard paths', () => {
 
 it('builds signed file paths', () => {
   expect(postPhotoHref('circle', 'p-1', 'ph-1')).toBe('/community/circle/posts/p-1/photos/ph-1');
+  expect(postPhotoHref('circle', 'p-1', 'ph-1', 'thumb')).toBe('/community/circle/posts/p-1/photos/ph-1?size=thumb');
+  expect([photoSize('thumb'), photoSize(null), photoSize('huge')]).toEqual(['thumb', 'full', 'full']);
   expect(attachmentHref('circle', 'm-1')).toBe('/community/circle/attachments/m-1');
 });

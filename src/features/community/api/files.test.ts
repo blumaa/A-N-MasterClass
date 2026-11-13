@@ -27,13 +27,15 @@ const id = (r: { ok: boolean; id?: string }): string => {
   if (!r.ok || !r.id) throw new Error(`expected id, got ${JSON.stringify(r)}`);
   return r.id;
 };
-const photos = (n: number, folder = FEED) => Array.from({ length: n }, (_, i) => `${folder}p${i}-a.jpg`);
+const paths = (n: number, folder = FEED) => Array.from({ length: n }, (_, i) => `${folder}p${i}-a.jpg`);
+const photos = (n: number, folder = FEED) => paths(n, folder).map((path) => ({ path, thumbPath: path.replace('-a.', '-t.') }));
 const photoPaths = () => repo.db.postPhotos.map((p) => p.path);
 
 describe('post photos', () => {
   it('a post keeps its photos in order', async () => {
     const postId = id(await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'hi', photos: photos(2) }));
-    expect((await repo.postPhotos([postId])).map((p) => p.path)).toEqual(photos(2));
+    expect((await repo.postPhotos([postId])).map((p) => p.path)).toEqual(paths(2));
+    expect((await repo.postPhotos([postId])).map((p) => p.thumbPath)).toEqual(photos(2).map((p) => p.thumbPath));
   });
 
   it('refuses photos outside the channel folder or over the cap, before writing the post', async () => {
@@ -41,24 +43,27 @@ describe('post photos', () => {
     expect(outside).toMatchObject({ ok: false, error: 'invalid' });
     const many = await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'x', photos: photos(11) });
     expect(many).toEqual({ ok: false, error: 'invalid', message: 'A post takes up to 10 photos.' });
+    const thumbOutside = [{ path: `${FEED}q-a.jpg`, thumbPath: `${CHAT}q-t.jpg` }];
+    const badThumb = await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'x', photos: thumbOutside });
+    expect(badThumb).toMatchObject({ ok: false, error: 'invalid' });
     expect(repo.db.posts.filter((p) => p.body === 'x')).toEqual([]);
   });
 
   it('the author adds photos later; others may not', async () => {
     const postId = id(await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'hi' }));
     expect((await post(SEED_IDS.student, { op: 'addPostPhotos', postId, photos: photos(1) })).ok).toBe(true);
-    expect(await post(SEED_IDS.alexanderOwner, { op: 'addPostPhotos', postId, photos: [`${FEED}z-a.jpg`] })).toEqual({
+    expect(await post(SEED_IDS.alexanderOwner, { op: 'addPostPhotos', postId, photos: [{ path: `${FEED}z-a.jpg`, thumbPath: null }] })).toEqual({
       ok: false,
       error: 'forbidden',
     });
-    expect(photoPaths()).toEqual(photos(1));
+    expect(photoPaths()).toEqual(paths(1));
   });
 
   it('removing a photo deletes its row (DB triggers queue the object)', async () => {
     const postId = id(await post(SEED_IDS.student, { op: 'createPost', channelId: SEED_IDS.general, body: 'hi', photos: photos(2) }));
     const [first] = await repo.postPhotos([postId]);
     expect((await post(SEED_IDS.alexanderOwner, { op: 'removePostPhoto', postId, photoId: first!.id })).ok).toBe(true);
-    expect(photoPaths()).toEqual([photos(2)[1]]);
+    expect(photoPaths()).toEqual([paths(2)[1]]);
     expect(await post(SEED_IDS.student, { op: 'removePostPhoto', postId, photoId: 'nope' })).toEqual({ ok: false, error: 'not_found' });
   });
 
@@ -142,8 +147,8 @@ describe('file views', () => {
     const page = await communityPage(repo, await viewer(SEED_IDS.student), await slug(), SEED_IDS.general, NOW);
     const item = page?.kind === 'open' ? page.posts.find((p) => p.id === postId) : undefined;
     expect(item?.photos).toEqual([
-      { id: a!.id, href: postPhotoHref(await slug(), postId, a!.id) },
-      { id: b!.id, href: postPhotoHref(await slug(), postId, b!.id) },
+      { id: a!.id, href: postPhotoHref(await slug(), postId, a!.id), thumbHref: postPhotoHref(await slug(), postId, a!.id, 'thumb') },
+      { id: b!.id, href: postPhotoHref(await slug(), postId, b!.id), thumbHref: postPhotoHref(await slug(), postId, b!.id, 'thumb') },
     ]);
     expect((await postPage(repo, await viewer(SEED_IDS.student), await slug(), postId, NOW))?.post.photos).toHaveLength(2);
   });

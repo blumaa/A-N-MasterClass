@@ -27,7 +27,7 @@ function threadFolderOf(db: Db, threadId: string): string {
 }
 
 const pathTaken = (db: Db, path: string): boolean =>
-  db.postPhotos.some((p) => p.path === path) || db.messages.some((m) => m.attachment?.path === path);
+  db.postPhotos.some((p) => p.path === path || p.thumbPath === path) || db.messages.some((m) => m.attachment?.path === path);
 
 /** SQL: messages_attachment, messages_attachment_path, messages_attachment_path_key. */
 export function checkAttachment(db: Db, channelId: string | null, threadId: string | null, a: Attachment): void {
@@ -44,17 +44,18 @@ export function createFakeCommunityFiles(db: Db, id: (prefix: string) => string)
       const ids = new Set(postIds);
       return db.postPhotos.filter((p) => ids.has(p.postId)).toSorted((a, b) => a.position - b.position);
     },
-    async addPostPhotos(postId, paths) {
+    async addPostPhotos(postId, photos) {
       const post = must(db.posts.find((p) => p.id === postId), 'post');
       const folder = channelFolderOf(db, post.channelId);
       const added: PostPhoto[] = [];
-      for (const path of paths) {
+      for (const { path, thumbPath } of photos) {
         const current = db.postPhotos.filter((p) => p.postId === postId);
-        if (!inFolder(path, folder)) throw new ConstraintError(FILE_OUTSIDE_FOLDER);
+        const paths = thumbPath === null ? [path] : [path, thumbPath];
+        if (!paths.every((p) => inFolder(p, folder))) throw new ConstraintError(FILE_OUTSIDE_FOLDER);
         if (current.length >= POST_PHOTOS_MAX) throw new ConstraintError(TOO_MANY_PHOTOS);
-        if (pathTaken(db, path)) throw new ConstraintError(FILE_IN_USE);
+        if (paths.some((p) => pathTaken(db, p))) throw new ConstraintError(FILE_IN_USE);
         const position = current.reduce((m, p) => Math.max(m, p.position + 1), 0);
-        const row: PostPhoto = { id: id('photo'), postId, path, position };
+        const row: PostPhoto = { id: id('photo'), postId, path, thumbPath, position };
         db.postPhotos.push(row);
         added.push({ ...row });
       }

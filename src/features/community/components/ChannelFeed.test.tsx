@@ -73,10 +73,10 @@ describe('ChannelFeed', () => {
       commentCount: 0,
       canDelete: true,
       mine: true,
-      photos: [{ id: 'ph1', href: '/community/circle/posts/p1/photos/ph1' }],
+      photos: [{ id: 'ph1', href: '/community/circle/posts/p1/photos/ph1', thumbHref: '/community/circle/posts/p1/photos/ph1?size=thumb' }],
     };
     render(<ChannelFeed page={page({ posts: [post] })} action={action} report={action} signedIn />);
-    expect(screen.getByRole('img', { name: 'Photo 1 of 1' })).toHaveAttribute('src', post.photos[0].href);
+    expect(screen.getByRole('img', { name: 'Photo 1 of 1' })).toHaveAttribute('src', post.photos[0].thumbHref);
     expect(screen.queryByText('Remove photo')).toBeNull();
   });
 

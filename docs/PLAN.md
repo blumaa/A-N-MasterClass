@@ -274,7 +274,7 @@ Launch 6 item 4 as built:
 - Signed routes: `community/[community]/posts/[post]/photos/[photo]` and `community/[community]/attachments/[message]` re-check read access (hidden post only for its moderators, DM only for participants) and the community slug. Non-images download under their name.
 - Delete post, delete chat line, remove photo, report Remove, Studio delete channel: objects go through `storage_trash` (Group 2 cleanup). `channel_files` RPC dropped.
 - G0 diff: Kajabi allows 40 MB photos and video in posts; here photos are resized and posts take no video.
-- Not yet: photo captions/reorder; thumbnails (full photo shown cropped in the grid); uploads do nothing with `DATA_SOURCE=fake`.
+- Not yet: uploads do nothing with `DATA_SOURCE=fake`. Thumbnails, captions, reorder: see "Group 2 post photos as built".
 
 Launch 6 item 5 as built:
 - Migration `20261112110000_live_topics.sql` + `supabase/tests/150-live-topics.test.sql` (28 asserts), applied to ksb 2026-11-12.
@@ -449,13 +449,16 @@ Group 2 certificates as built:
 - Not built: certificate email, background image, expiration, WebP logo in the PDF, share page preview image of the certificate itself (OG image = logo).
 
 Group 2 coupon reports and automatic discounts as built:
-- G0 sources (checked 2026-11-13): coupon analytics panel with total redemptions, unique customers, active recurring redemptions and a date filter (https://help.kajabi.com/en/articles/17174770-coupon-analytics, https://help.kajabi.com/en/articles/17174764-coupons-overview). Coupon link: `?coupon_code=CODE` applies the coupon automatically; each attached offer also has an "Offer checkout URL" with the coupon applied; buyers can still type a code by hand (https://help.kajabi.com/articles/sales/coupons/how-to-create-a-coupon). Kajabi names no revenue or discount total in the coupon panel, no shown error for a bad link code, no remove rule.
-- No migration, no repo change. Report is computed from `repo.orders` (`couponReport` in `src/features/checkout/api/coupons.ts`). No counter: uses = coupon's orders past `created` (same rule as the coupon list).
-- Report on the Studio coupon page: Uses, Customers (unique emails), Revenue, Discount given, plus a table of every order with the coupon (date, customer, offer, paid, discount, status, Test badge).
-- Decision: Revenue and Discount given count live orders that are not fully refunded, summed per currency (partially refunded count in full: the refund amount is not stored). Uses and the table include test and refunded orders, so the count matches max uses.
-- Automatic discount = Kajabi coupon link. Param `coupon_code` (`COUPON_PARAM`, `checkoutPath(slug, code)` in `src/lib/commerce/paths.ts`). Checkout page reads it, checks it on the server (`couponFromLink`, same `previewCoupon` as the Apply button) and starts with it applied. Bad code: field filled in with the reason, full price. Buyer can remove it. Order creation checks the coupon again.
-- Studio coupon page lists a checkout link for each offer ticked on the coupon.
-- Not yet: date filter, active recurring redemptions (no recurring coupons, G5), `coupon_code` passed on from landing or sales pages, partial refund amounts (not stored), CSV export.
+- G0 sources (checked 2026-11-13): "A maximum of 6 files can be added to a Channel post, comment, or chat message"; edit only removes a file (the X), nothing about captions or reorder (https://help.kajabi.com/en/articles/17174458-upload-files-to-a-community-channel). Gallery view is a responsive image grid; 40 MB photo limit (https://help.kajabi.com/en/articles/17174430-create-a-community-channel; also https://help.kajabi.com/en/articles/17174436-manage-community-posts-messages-comments). Mobile app: swipeable photo carousels (https://help.kajabi.com/en/articles/17175616-branded-mobile-app-community-updates).
+- Decision: no captions, no reorder. Kajabi documents neither; photos keep upload order. Alt text stays "Photo i of n".
+- Migration `20261119000000_post_photo_thumbs.sql` + `supabase/tests/330-post-photo-thumbs.test.sql` (11 asserts), applied to ksb 2026-11-13.
+- Thumbnail: `post_photos.thumb_path` (unique, nullable). Browser makes it at upload from the same decode as the photo: long edge 640, JPEG 0.85 (`preparePhoto` in `src/lib/photo/photo.ts`). GIF: none (still moves). No Supabase Storage image transformations (paid per image).
+- Upload: thumbnail is a second ordinary photo ticket + PUT into the same folder. Form pairs `photo` with `photoThumb` ('' = none). A refused thumbnail fails that photo.
+- Same folder rule (`post_photos_check`, also on update; command `photoProblem`). Cleanup: `thumb_path` is a `storage_columns()` entry, the `storage_trash` trigger queues both paths, `storage_refs` keeps a thumbnail in use.
+- One signed route: `.../photos/[photo]?size=thumb` (`photoSize`, `postPhotoHref` in `src/features/community/paths.ts`). Same read check; thumb falls back to the photo when there is none (photos from before this). Grid shows the thumbnail, link opens the photo.
+- Member data export: no new member-authored text (no caption). Photos are not in the export (as before); erase removes their rows, both objects queue.
+- G0 diff (kept from Launch 6 item 4): 10 photos per post, images only, vs Kajabi 6 files of any type.
+- Not yet: fake-mode uploads still do nothing. The fake FileStore is shared by every bucket and signs URLs on a host with nothing behind it; serving bytes needs an in-memory store plus a dev-only PUT/GET route outside the space host rewrite. Not cheap, left. Lightbox or carousel (full photo opens in a new tab).
 
 Waiting on outside setup: Storage cleanup cron (`CRON_SECRET` + schedule, Group 2), transactional email (drip release, meetup + coaching reminders), Vercel Domains API, embedded live room (paid, G14), native marketing-tool integration, Capacitor (only if wanted).
 

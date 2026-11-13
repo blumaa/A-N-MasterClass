@@ -2,7 +2,7 @@
 // DMs, blocks), report forms and Studio forms (communities, channels, groups, settings, staff
 // ticks, moderators, post approval) each post `op` plus their fields. Shared readers live in lib/forms/commands.
 import type { Direction } from '@/lib/data/repo';
-import type { Attachment } from '@/lib/data/types';
+import type { Attachment, NewPostPhoto } from '@/lib/data/types';
 import {
   CHANNEL_KINDS,
   CHANNEL_PRIVACIES,
@@ -39,17 +39,23 @@ function pointValues(r: Reader): { pointValues?: Partial<Record<PointReason, num
   return entries.length === 0 ? {} : { pointValues: Object.fromEntries(entries) };
 }
 
-/** Post photo paths (repeated `photo` fields); omitted when none. */
-function photos(r: Reader): { photos?: string[] } {
-  const paths = r.all('photo');
-  return paths.length === 0 ? {} : { photos: paths };
+/** Uploaded post photos: repeated `photo` fields, each paired with a `photoThumb` field ('' = no thumbnail). */
+function photoList(r: Reader): NewPostPhoto[] {
+  const thumbs = r.all('photoThumb');
+  return r.all('photo').map((path, i) => ({ path, thumbPath: thumbs[i] || null }));
 }
 
-/** Upload paths for a photo edit: at least one. */
-function somePhotos(r: Reader): string[] {
-  const paths = r.all('photo');
-  if (paths.length === 0) throw new FormError('Add a photo first.');
-  return paths;
+/** Photos of a new post; omitted when none. */
+function photos(r: Reader): { photos?: NewPostPhoto[] } {
+  const list = photoList(r);
+  return list.length === 0 ? {} : { photos: list };
+}
+
+/** Photos for a photo edit: at least one. */
+function somePhotos(r: Reader): NewPostPhoto[] {
+  const list = photoList(r);
+  if (list.length === 0) throw new FormError('Add a photo first.');
+  return list;
 }
 
 /** The uploaded file of a chat line, if any. */

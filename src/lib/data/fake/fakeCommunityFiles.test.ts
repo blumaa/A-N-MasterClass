@@ -23,14 +23,18 @@ beforeEach(async () => {
 });
 
 const newPost = () => repo.createPost({ channelId: feedId, authorId: SEED_IDS.student, body: 'Hi', createdAt: NOW });
+const photo = (path: string, thumbPath: string | null = null) => ({ path, thumbPath });
+const photos = (...paths: string[]) => paths.map((p) => photo(p));
 const file = (path: string, name = 'a.pdf') => ({ path, name, type: 'application/pdf', size: 10 });
 
 describe('post photos', () => {
   it('append in order, read by post, delete one', async () => {
     const post = await newPost();
-    await repo.addPostPhotos(post.id, [`${folder}1-a.jpg`, `${folder}2-b.jpg`]);
-    const [c] = await repo.addPostPhotos(post.id, [`${folder}3-c.jpg`]);
+    const [a] = await repo.addPostPhotos(post.id, [photo(`${folder}1-a.jpg`, `${folder}1-t.jpg`), photo(`${folder}2-b.gif`)]);
+    expect(a!.thumbPath).toBe(`${folder}1-t.jpg`);
+    const [c] = await repo.addPostPhotos(post.id, photos(`${folder}3-c.jpg`));
     expect(c!.position).toBe(2);
+    expect(c!.thumbPath).toBeNull();
     const b = (await repo.postPhotos([post.id]))[1];
     expect((await repo.postPhotos([post.id])).map((p) => p.position)).toEqual([0, 1, 2]);
     await repo.deletePostPhoto(b!.id);
@@ -40,18 +44,20 @@ describe('post photos', () => {
   it('stay in the channel folder, unique, max 10', async () => {
     const post = await newPost();
     const chatFolder = channelFolder(SEED_IDS.alexander, communityId, chatId);
-    await expect(repo.addPostPhotos(post.id, [`${chatFolder}1-a.jpg`])).rejects.toThrow(FILE_OUTSIDE_FOLDER);
-    await expect(repo.addPostPhotos(post.id, [`${folder}x/1-a.jpg`])).rejects.toThrow(FILE_OUTSIDE_FOLDER);
-    const ten = Array.from({ length: 10 }, (_, i) => `${folder}${i}-a.jpg`);
+    await expect(repo.addPostPhotos(post.id, photos(`${chatFolder}1-a.jpg`))).rejects.toThrow(FILE_OUTSIDE_FOLDER);
+    await expect(repo.addPostPhotos(post.id, photos(`${folder}x/1-a.jpg`))).rejects.toThrow(FILE_OUTSIDE_FOLDER);
+    await expect(repo.addPostPhotos(post.id, [photo(`${folder}1-a.jpg`, `${chatFolder}1-t.jpg`)])).rejects.toThrow(FILE_OUTSIDE_FOLDER);
+    const ten = Array.from({ length: 10 }, (_, i) => photo(`${folder}${i}-a.jpg`, `${folder}${i}-t.jpg`));
     await repo.addPostPhotos(post.id, ten);
-    await expect(repo.addPostPhotos(post.id, [`${folder}x-a.jpg`])).rejects.toThrow(TOO_MANY_PHOTOS);
+    await expect(repo.addPostPhotos(post.id, photos(`${folder}x-a.jpg`))).rejects.toThrow(TOO_MANY_PHOTOS);
     const other = await newPost();
-    await expect(repo.addPostPhotos(other.id, [`${folder}0-a.jpg`])).rejects.toThrow(FILE_IN_USE);
+    await expect(repo.addPostPhotos(other.id, photos(`${folder}0-a.jpg`))).rejects.toThrow(FILE_IN_USE);
+    await expect(repo.addPostPhotos(other.id, [photo(`${folder}y-a.jpg`, `${folder}0-t.jpg`)])).rejects.toThrow(FILE_IN_USE);
   });
 
   it('go with the post', async () => {
     const post = await newPost();
-    await repo.addPostPhotos(post.id, [`${folder}1-a.jpg`]);
+    await repo.addPostPhotos(post.id, photos(`${folder}1-a.jpg`));
     await repo.deletePost(post.id);
     expect(await repo.postPhotos([post.id])).toEqual([]);
   });

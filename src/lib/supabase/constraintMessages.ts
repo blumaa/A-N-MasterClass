@@ -105,6 +105,7 @@ const BY_NAME: Readonly<Record<string, string>> = {
   post_photos_path: FILE_OUTSIDE_FOLDER,
   messages_attachment_path: FILE_OUTSIDE_FOLDER,
   post_photos_path_key: FILE_IN_USE,
+  post_photos_thumb_path_key: FILE_IN_USE,
   messages_attachment_path_key: FILE_IN_USE,
   post_photos_max: TOO_MANY_PHOTOS,
   messages_attachment: ATTACHMENT_INCOMPLETE,

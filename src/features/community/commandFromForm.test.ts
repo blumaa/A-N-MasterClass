@@ -47,13 +47,26 @@ describe('communityCommandFromForm', () => {
   it('reads post photos, and photo edits', () => {
     const f = form({ op: 'createPost', channelId: 'ch', body: 'hi' });
     f.append('photo', 'a.jpg');
-    f.append('photo', 'b.jpg');
+    f.append('photoThumb', 'a-thumb.jpg');
+    f.append('photo', 'b.gif');
+    f.append('photoThumb', '');
     expect(communityCommandFromForm(f)).toEqual({
       ok: true,
-      command: { op: 'createPost', channelId: 'ch', body: 'hi', photos: ['a.jpg', 'b.jpg'] },
+      command: {
+        op: 'createPost',
+        channelId: 'ch',
+        body: 'hi',
+        photos: [
+          { path: 'a.jpg', thumbPath: 'a-thumb.jpg' },
+          { path: 'b.gif', thumbPath: null },
+        ],
+      },
     });
     const add = form({ op: 'addPostPhotos', postId: 'p', photo: 'c.jpg' });
-    expect(communityCommandFromForm(add)).toEqual({ ok: true, command: { op: 'addPostPhotos', postId: 'p', photos: ['c.jpg'] } });
+    expect(communityCommandFromForm(add)).toEqual({
+      ok: true,
+      command: { op: 'addPostPhotos', postId: 'p', photos: [{ path: 'c.jpg', thumbPath: null }] },
+    });
     expect(communityCommandFromForm(form({ op: 'addPostPhotos', postId: 'p' }))).toEqual({ ok: false, message: 'Add a photo first.' });
     expect(communityCommandFromForm(form({ op: 'removePostPhoto', postId: 'p', photoId: 'ph' }))).toEqual({
       ok: true,

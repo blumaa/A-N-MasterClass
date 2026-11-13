@@ -48,6 +48,7 @@ import type {
   PaymentCredentials,
   PaymentEnv,
   ModerationLogEntry,
+  NewPostPhoto,
   Post,
   PostPhoto,
   Product,
@@ -494,8 +495,8 @@ export interface Repo {
 
   /** Photos of the given posts, by position. */
   postPhotos(postIds: readonly string[]): Promise<PostPhoto[]>;
-  /** Appends after the last photo. Paths in the post's channel folder, max 10 per post (constraint). */
-  addPostPhotos(postId: string, paths: readonly string[]): Promise<PostPhoto[]>;
+  /** Appends after the last photo. Paths and thumbnails in the post's channel folder, max 10 per post (constraint). */
+  addPostPhotos(postId: string, photos: readonly NewPostPhoto[]): Promise<PostPhoto[]>;
   deletePostPhoto(id: string): Promise<void>;
 
   /** Oldest first, for every target id given. */

@@ -5,7 +5,7 @@ import { viewerCan, type Viewer } from '@/lib/auth/viewer';
 import type { CommandResult } from '@/lib/data/commandResult';
 import { ConstraintError } from '@/lib/data/errors';
 import type { Repo } from '@/lib/data/repo';
-import { REACTION_EMOJIS, type Comment, type Post, type Product, type ReactionEmoji } from '@/lib/data/types';
+import { REACTION_EMOJIS, type Comment, type NewPostPhoto, type Post, type Product, type ReactionEmoji } from '@/lib/data/types';
 import { mentionIdsFromBody } from '@/lib/mentions/parse';
 import { POST_PHOTOS_MAX } from '@/lib/storage/communityFiles';
 import { inFolder } from '@/lib/storage/uploadPath';
@@ -20,8 +20,8 @@ import { postOpen, seesPost } from './visibility';
 export type StepGate = (stepId: string) => Promise<boolean>;
 
 export type CommunityCommand =
-  | { op: 'createPost'; channelId: string; body: string; photos?: string[] }
-  | { op: 'addPostPhotos'; postId: string; photos: string[] }
+  | { op: 'createPost'; channelId: string; body: string; photos?: NewPostPhoto[] }
+  | { op: 'addPostPhotos'; postId: string; photos: NewPostPhoto[] }
   | { op: 'removePostPhoto'; postId: string; photoId: string }
   | { op: 'deletePost'; postId: string }
   | { op: 'hidePost'; postId: string; hidden: boolean }
@@ -104,11 +104,11 @@ async function stepModerators(ctx: Ctx): Promise<Candidate[]> {
     .map((m) => ({ recipientId: m.profileId, type: 'step_comment' }));
 }
 
-/** Photo paths must be uploaded into the post's channel folder (the DB checks again). */
-function photoProblem(community: Product, channelId: string, photos: readonly string[], had = 0): CommandResult | null {
+/** Photos and thumbnails must be uploaded into the post's channel folder (the DB checks again). */
+function photoProblem(community: Product, channelId: string, photos: readonly NewPostPhoto[], had = 0): CommandResult | null {
   if (had + photos.length > POST_PHOTOS_MAX) return { ok: false, error: 'invalid', message: `A post takes up to ${POST_PHOTOS_MAX} photos.` };
   const folder = channelFolderOf(community, channelId);
-  if (photos.some((p) => !inFolder(p, folder))) return { ok: false, error: 'invalid', message: 'This photo does not belong to the post.' };
+  if (photos.some((p) => !inFolder(p.path, folder) || (p.thumbPath !== null && !inFolder(p.thumbPath, folder)))) return { ok: false, error: 'invalid', message: 'This photo does not belong to the post.' };
   return null;
 }
 

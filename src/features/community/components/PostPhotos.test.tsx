@@ -4,15 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { PostPhotos } from './PostPhotos';
 
 const photos = [
-  { id: 'ph1', href: '/community/c/posts/p/photos/ph1' },
-  { id: 'ph2', href: '/community/c/posts/p/photos/ph2' },
+  { id: 'ph1', href: '/community/c/posts/p/photos/ph1', thumbHref: '/community/c/posts/p/photos/ph1?size=thumb' },
+  { id: 'ph2', href: '/community/c/posts/p/photos/ph2', thumbHref: '/community/c/posts/p/photos/ph2?size=thumb' },
 ];
 
 describe('PostPhotos', () => {
-  it('shows each photo through its signed route, opening it full size', () => {
+  it('shows each thumbnail through its signed route, opening the photo full size', () => {
     render(<PostPhotos postId="p" photos={photos} action={vi.fn()} remove={false} />);
     const images = screen.getAllByRole('img');
-    expect(images.map((i) => i.getAttribute('src'))).toEqual(photos.map((p) => p.href));
+    expect(images.map((i) => i.getAttribute('src'))).toEqual(photos.map((p) => p.thumbHref));
     expect(screen.getAllByRole('link')[0]).toHaveAttribute('href', photos[0].href);
     expect(screen.queryByRole('button', { name: 'Remove photo' })).toBeNull();
   });
