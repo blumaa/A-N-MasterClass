@@ -15,6 +15,8 @@ import {
 describe('checkout paths', () => {
   it('builds checkout and thank-you URLs', () => {
     expect(checkoutPath('full')).toBe('/checkout/full');
+    // Kajabi's coupon link parameter: the coupon is applied when the buyer opens the checkout.
+    expect(checkoutPath('full', 'SAVE 10')).toBe('/checkout/full?coupon_code=SAVE%2010');
     expect(thanksPath('full', 'pending')).toBe('/checkout/full/thanks?status=pending');
     expect(thanksPath('full', 'welcome')).toBe('/checkout/full/thanks?status=welcome');
   });

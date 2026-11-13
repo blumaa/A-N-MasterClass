@@ -65,10 +65,63 @@ describe('studioCoupons', () => {
 });
 
 describe('studioCoupon', () => {
-  it('returns the coupon, its uses and the space offers to pick from', async () => {
+  it('returns the coupon, an empty report and the space offers to pick from', async () => {
     const id = await created();
     const detail = await studioCoupon(repo, await owner(), id);
-    expect(detail).toMatchObject({ coupon: { id }, uses: 0, offers: [{ id: offerId, title: 'Full', currency: 'EUR' }] });
+    expect(detail).toMatchObject({
+      coupon: { id },
+      report: { uses: 0, customers: 0, totals: [], orders: [] },
+      offers: [{ id: offerId, title: 'Full', slug: 'full', currency: 'EUR' }],
+    });
+  });
+
+  it('reports uses, unique customers, live money per currency and the orders', async () => {
+    const id = await created();
+    const order = async (email: string, over: { livemode?: boolean; status?: 'created' | 'paid' | 'refunded'; at?: string } = {}) => {
+      const at = new Date(over.at ?? '2026-11-05T10:00:00Z');
+      const o = await repo.createOrder({
+        spaceId: SEED_IDS.alexander,
+        offerId,
+        email,
+        provider: 'fake',
+        providerOrderId: `po-${email}-${at.toISOString()}`,
+        amountCents: 4410,
+        couponId: id,
+        discountCents: 490,
+        currency: 'EUR',
+        livemode: over.livemode ?? true,
+        waiverVersion: 'v1',
+        waiverAcceptedAt: at,
+        marketingConsent: false,
+        createdAt: at,
+      });
+      const status = over.status ?? 'paid';
+      if (status !== 'created') await repo.updateOrder(o.id, { status, paidAt: at });
+      return o.id;
+    };
+    const first = await order('a@test', { at: '2026-11-01T10:00:00Z' });
+    const second = await order('a@test', { at: '2026-11-02T10:00:00Z' });
+    const test = await order('b@test', { livemode: false, at: '2026-11-03T10:00:00Z' });
+    const refunded = await order('c@test', { status: 'refunded', at: '2026-11-04T10:00:00Z' });
+    await order('d@test', { status: 'created' });
+
+    const { report } = (await studioCoupon(repo, await owner(), id))!;
+    expect(report.uses).toBe(4);
+    expect(report.customers).toBe(3);
+    // Live and not fully refunded: the two paid orders of a@test.
+    expect(report.totals).toEqual([{ currency: 'EUR', revenueCents: 8820, discountCents: 980 }]);
+    expect(report.orders.map((o) => o.id)).toEqual([refunded, test, second, first]);
+    expect(report.orders[0]).toEqual({
+      id: refunded,
+      email: 'c@test',
+      offerTitle: 'Full',
+      amountCents: 4410,
+      discountCents: 490,
+      currency: 'EUR',
+      status: 'refunded',
+      livemode: true,
+      createdAt: new Date('2026-11-04T10:00:00Z'),
+    });
   });
 
   it('hides a coupon of another space or without offers.manage', async () => {

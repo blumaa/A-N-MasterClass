@@ -7,6 +7,7 @@ import { spaceProvider } from '@/lib/payments/spaceProvider';
 import { checkoutOffer, type CheckoutOffer } from './checkout';
 
 export type LoadedCheckout = {
+  spaceId: string;
   offer: CheckoutOffer;
   locale: string;
   /** Paid offer and no payment provider configured: nothing to pay with. */
@@ -23,6 +24,7 @@ export const loadCheckout = cache(async (spaceSlug: string, offerSlug: string): 
   const offer = await checkoutOffer(repo, viewer.space.id, offerSlug);
   if (!offer) return null;
   const base = {
+    spaceId: viewer.space.id,
     offer,
     locale: viewer.space.locale,
     couponField: offer.kind === 'one_time' && (await repo.hasActiveCoupon(offer.id, new Date())),

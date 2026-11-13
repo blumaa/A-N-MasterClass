@@ -145,6 +145,21 @@ export async function previewCoupon(repo: Repo, spaceId: string, offerSlug: stri
   return { ok: true, code: code.trim().toUpperCase(), discountCents: priced.quote.discountCents };
 }
 
+/** Coupon from the checkout link (Kajabi `coupon_code`). null = no single code in the link. */
+export type LinkCoupon = { code: string; result: CouponPreview };
+
+export async function couponFromLink(
+  repo: Repo,
+  spaceId: string,
+  offerSlug: string,
+  param: string | string[] | undefined,
+  now: Date,
+): Promise<LinkCoupon | null> {
+  const code = typeof param === 'string' ? param.trim() : '';
+  if (!code) return null;
+  return { code, result: await previewCoupon(repo, spaceId, offerSlug, code, now) };
+}
+
 /** Called after the buyer approved. Capture is keyed on our order id, so a retry never charges twice. */
 export async function completeCheckout(
   repo: Repo,

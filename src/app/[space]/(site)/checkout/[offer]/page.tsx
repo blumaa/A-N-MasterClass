@@ -1,5 +1,6 @@
 // Branded checkout page for one offer (G11, G28). Price shown from the server; the order is
-// created server-side from the offer row, never from anything the browser sends.
+// created server-side from the offer row, never from anything the browser sends. A `coupon_code`
+// query param pre-applies that coupon (Kajabi coupon links); the server checks it again on order.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Card, CardBody, Heading, Stack, Text } from '@/components/ui/mds';
@@ -9,9 +10,12 @@ import {
   completeCheckoutAction,
   startCheckoutAction,
 } from '@/features/checkout/actions';
+import { couponFromLink } from '@/features/checkout/api/checkout';
 import { loadCheckout } from '@/features/checkout/api/load';
 import { CheckoutForm } from '@/features/checkout/components/CheckoutForm';
+import { COUPON_PARAM } from '@/lib/commerce/paths';
 import { priceTermsLabel } from '@/lib/commerce/recurring';
+import { getServiceRepo } from '@/lib/data/getRepo';
 import styles from './page.module.css';
 
 type Props = PageProps<'/[space]/checkout/[offer]'>;
@@ -22,11 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: found ? `Checkout: ${found.offer.title}` : 'Checkout', robots: { index: false } };
 }
 
-export default async function CheckoutPage({ params }: Props) {
-  const { space, offer: slug } = await params;
+export default async function CheckoutPage({ params, searchParams }: Props) {
+  const [{ space, offer: slug }, query] = await Promise.all([params, searchParams]);
   const found = await loadCheckout(space, slug);
   if (!found) notFound();
-  const { offer, locale, payable, clientId, couponField } = found;
+  const { spaceId, offer, locale, payable, clientId, couponField } = found;
+  const linkCoupon =
+    payable && couponField ? await couponFromLink(getServiceRepo(), spaceId, offer.slug, query[COUPON_PARAM], new Date()) : null;
   return (
     <div className={styles.layout}>
       <Stack gap="base">
@@ -72,6 +78,7 @@ export default async function CheckoutPage({ params }: Props) {
           clientId={clientId}
           locale={locale}
           couponField={couponField}
+          linkCoupon={linkCoupon}
           applyCouponAction={applyCouponAction}
           startAction={startCheckoutAction}
           completeAction={completeCheckoutAction}

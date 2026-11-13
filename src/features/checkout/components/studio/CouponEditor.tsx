@@ -1,17 +1,23 @@
-// Studio > Coupons > one coupon: code, discount, limits, expiry, offers, on/off, delete (G23).
+// Studio > Coupons > one coupon: code, discount, limits, expiry, offers, on/off, report,
+// checkout links with the coupon applied, delete (G23).
 // Kajabi: https://help.kajabi.com/articles/sales/coupons/how-to-create-a-coupon
+import { AppLink } from '@/components/ui/links';
 import { Checkbox, Field, Heading, Input, Stack, Text } from '@/components/ui/mds';
 import type { StudioCouponDetail } from '../../api/coupons';
+import { checkoutPath } from '../../paths';
 import { CodeAndDiscount, CouponState } from './CouponFields';
+import { CouponReport } from './CouponReport';
 import { CouponForm } from './StudioForms';
 import styles from './Studio.module.css';
 
 const dateInput = (d: Date | null): string => (d ? d.toISOString().slice(0, 10) : '');
 
-export function CouponEditor({ detail, now }: { detail: StudioCouponDetail; now: Date }) {
-  const { coupon, uses, offers } = detail;
+export function CouponEditor({ detail, now, locale }: { detail: StudioCouponDetail; now: Date; locale: string }) {
+  const { coupon, report, offers } = detail;
+  const { uses } = report;
   const id = { couponId: coupon.id };
   const linked = new Set(coupon.offerIds);
+  const linkedOffers = offers.filter((o) => linked.has(o.id));
   return (
     <Stack gap="loose">
       <div className={styles.actions}>
@@ -39,6 +45,24 @@ export function CouponEditor({ detail, now }: { detail: StudioCouponDetail; now:
           ))}
         </fieldset>
       </CouponForm>
+
+      <Stack gap="base">
+        <Heading level={2} variant="subtitle">
+          Checkout links
+        </Heading>
+        <Text variant="note">These links open the checkout with the coupon already applied. Buyers can still remove it.</Text>
+        {linkedOffers.length === 0 ? <Text variant="note">Tick an offer above to get its link.</Text> : null}
+        {linkedOffers.map((o) => {
+          const href = checkoutPath(o.slug, coupon.code);
+          return (
+            <Text key={o.id} variant="note">
+              {o.title}: <AppLink href={href}>{href}</AppLink>
+            </Text>
+          );
+        })}
+      </Stack>
+
+      <CouponReport report={report} locale={locale} />
 
       <Stack gap="base">
         <Heading level={2} variant="subtitle">

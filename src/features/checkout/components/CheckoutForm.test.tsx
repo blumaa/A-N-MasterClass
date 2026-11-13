@@ -150,6 +150,24 @@ describe('CheckoutForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('not valid');
   });
 
+  it('starts with the coupon from the checkout link applied, and it can be removed', async () => {
+    const props = setup({ couponField: true, linkCoupon: { code: 'ten', result: { ok: true, code: 'TEN', discountCents: 490 } } });
+    expect(screen.getByText(/TEN applied/)).toBeInTheDocument();
+    expect(screen.getByTestId('total')).toHaveTextContent('€44.10');
+    fill();
+    press('Pay (test)');
+    expect(props.startAction).toHaveBeenCalledWith(expect.objectContaining({ couponCode: 'TEN' }));
+    press('Remove');
+    expect(screen.getByTestId('total')).toHaveTextContent('€49.00');
+  });
+
+  it('shows why a coupon from the checkout link did not apply, with the code filled in', () => {
+    setup({ couponField: true, linkCoupon: { code: 'nope', result: { ok: false, message: 'This coupon code is not valid.' } } });
+    expect(screen.getByLabelText('Coupon code')).toHaveValue('nope');
+    expect(screen.getByRole('alert')).toHaveTextContent('not valid');
+    expect(screen.getByTestId('total')).toHaveTextContent('€49.00');
+  });
+
   it('has no coupon field unless the offer has an active coupon', () => {
     setup();
     expect(screen.queryByLabelText('Coupon code')).not.toBeInTheDocument();

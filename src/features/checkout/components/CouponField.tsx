@@ -1,6 +1,7 @@
 'use client';
 // Coupon code box (G23). "Apply" asks the server for the discount; the server checks the code
-// again when the order is created, so this preview is display only.
+// again when the order is created, so this preview is display only. A code from the checkout
+// link that did not apply starts filled in, with the reason (Kajabi coupon links).
 import { useState, useTransition } from 'react';
 import { Button, Field, Inline, Input, Text } from '@/components/ui/mds';
 import type { CouponPreview } from '../api/checkout';
@@ -12,11 +13,13 @@ type Props = {
   applied: AppliedCoupon | null;
   onChange: (coupon: AppliedCoupon | null) => void;
   applyAction: (offerSlug: string, code: string) => Promise<CouponPreview>;
+  initialCode?: string;
+  initialMessage?: string | null;
 };
 
-export function CouponField({ offerSlug, applied, onChange, applyAction }: Props) {
-  const [code, setCode] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
+export function CouponField({ offerSlug, applied, onChange, applyAction, initialCode = '', initialMessage = null }: Props) {
+  const [code, setCode] = useState(initialCode);
+  const [message, setMessage] = useState<string | null>(initialMessage);
   const [pending, startTransition] = useTransition();
 
   function apply() {

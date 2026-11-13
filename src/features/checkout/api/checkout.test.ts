@@ -3,7 +3,7 @@ import { emptyDb } from '@/lib/data/fake/db';
 import { createFakeRepo, type FakeRepo } from '@/lib/data/fake/fakeRepo';
 import type { Offer } from '@/lib/data/types';
 import { createFakeProvider, type FakeProvider } from '@/lib/payments/fake';
-import { checkoutOffer, completeCheckout, previewCoupon, startCheckout, type CheckoutDeps, type CheckoutInput } from './checkout';
+import { checkoutOffer, completeCheckout, couponFromLink, previewCoupon, startCheckout, type CheckoutDeps, type CheckoutInput } from './checkout';
 
 const NOW = new Date('2026-11-10T12:00:00Z');
 
@@ -110,6 +110,14 @@ describe('startCheckout with coupon and bump (G23)', () => {
     expect(await previewCoupon(repo, 's1', 'full', ' ten ', NOW)).toEqual({ ok: true, code: 'TEN', discountCents: 490 });
     expect(await previewCoupon(repo, 's1', 'full', 'NOPE', NOW)).toMatchObject({ ok: false, message: expect.any(String) });
     expect(await previewCoupon(repo, 's1', 'gone', 'TEN', NOW)).toMatchObject({ ok: false });
+  });
+
+  it('applies a coupon from the checkout link (coupon_code)', async () => {
+    expect(await couponFromLink(repo, 's1', 'full', ' ten ', NOW)).toEqual({ code: 'ten', result: { ok: true, code: 'TEN', discountCents: 490 } });
+    expect(await couponFromLink(repo, 's1', 'full', 'NOPE', NOW)).toEqual({ code: 'NOPE', result: { ok: false, message: expect.any(String) } });
+    expect(await couponFromLink(repo, 's1', 'full', undefined, NOW)).toBeNull();
+    expect(await couponFromLink(repo, 's1', 'full', '  ', NOW)).toBeNull();
+    expect(await couponFromLink(repo, 's1', 'full', ['TEN', 'X'], NOW)).toBeNull();
   });
 
   it('refuses a bad coupon before any order exists', async () => {

@@ -28,3 +28,19 @@
   font-family: var(--mds-font-mono, monospace);
   overflow-wrap: anywhere;
 }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--mds-space-3, 0.75rem);
+  margin: 0;
+}
+
+.stat {
+  display: grid;
+  gap: var(--mds-space-1, 0.25rem);
+}
+
+.stat dd {
+  margin: 0;
+}

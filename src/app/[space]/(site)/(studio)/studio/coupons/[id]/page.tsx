@@ -15,14 +15,14 @@ export default async function StudioCouponPage({ params }: PageProps<'/[space]/s
   const { space, id } = await params;
   const viewer = await currentViewer(space);
   const detail = viewer ? await studioCoupon(getRepo(), viewer, id) : null;
-  if (!detail) notFound();
+  if (!viewer || !detail) notFound();
   return (
     <Stack gap="loose">
       <BackLink href={studioCouponsHref}>coupons</BackLink>
       <Heading level={1} variant="title">
         {detail.coupon.code}
       </Heading>
-      <CouponEditor detail={detail} now={new Date()} />
+      <CouponEditor detail={detail} now={new Date()} locale={viewer.space.locale} />
     </Stack>
   );
 }

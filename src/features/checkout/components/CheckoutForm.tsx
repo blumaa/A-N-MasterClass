@@ -12,7 +12,7 @@ import { priceTermsLabel, type RecurringTerms } from '@/lib/commerce/recurring';
 import { WAIVER_TEXT } from '@/lib/commerce/waiver';
 import { isEmail } from '@/lib/text/email';
 import type { CompleteCheckoutState, StartCheckoutState } from '../actions';
-import type { CheckoutInput, CouponPreview } from '../api/checkout';
+import type { CheckoutInput, CouponPreview, LinkCoupon } from '../api/checkout';
 import type { BumpInfo } from '../api/pricing';
 import { CouponField, type AppliedCoupon } from './CouponField';
 import { OrderSummary } from './OrderSummary';
@@ -26,6 +26,8 @@ export type CheckoutFormProps = {
   locale: string;
   /** Kajabi shows the coupon box only when the offer has an active coupon. */
   couponField: boolean;
+  /** Coupon from the checkout link (`coupon_code`), already checked on the server. */
+  linkCoupon?: LinkCoupon | null;
   applyCouponAction: (offerSlug: string, code: string) => Promise<CouponPreview>;
   startAction: (input: CheckoutInput) => Promise<StartCheckoutState>;
   completeAction: (offerSlug: string, providerOrderId: string) => Promise<CompleteCheckoutState>;
@@ -35,14 +37,17 @@ export type CheckoutFormProps = {
 const FAILED = 'Something went wrong. Please try again.';
 
 export function CheckoutForm(props: CheckoutFormProps) {
-  const { offer, clientId, locale, couponField, applyCouponAction, startAction } = props;
+  const { offer, clientId, locale, couponField, linkCoupon = null, applyCouponAction, startAction } = props;
   const recurring = offer.kind !== 'one_time';
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [waiver, setWaiver] = useState(false);
   const [consent, setConsent] = useState(false);
   const [withBump, setWithBump] = useState(false);
-  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+  const linked = linkCoupon?.result ?? null;
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(() =>
+    linked?.ok ? { code: linked.code, discountCents: linked.discountCents } : null,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const ready = isEmail(email.trim()) && waiver;
@@ -138,7 +143,16 @@ export function CheckoutForm(props: CheckoutFormProps) {
             {offer.bump.description ? <Text tone="secondary">{offer.bump.description}</Text> : null}
           </Stack>
         ) : null}
-        {couponField ? <CouponField offerSlug={offer.slug} applied={coupon} onChange={setCoupon} applyAction={applyCouponAction} /> : null}
+        {couponField ? (
+          <CouponField
+            offerSlug={offer.slug}
+            applied={coupon}
+            onChange={setCoupon}
+            applyAction={applyCouponAction}
+            initialCode={linked && !linked.ok ? linkCoupon?.code : undefined}
+            initialMessage={linked && !linked.ok ? linked.message : null}
+          />
+        ) : null}
         <OrderSummary lines={lines} totalCents={totalCents} currency={offer.currency} locale={locale} />
         {recurring ? <Text tone="secondary">{priceTermsLabel(offer, locale)}</Text> : null}
         <Checkbox name="waiver" label={WAIVER_TEXT} checked={waiver} onChange={(e) => setWaiver(e.target.checked)} />
